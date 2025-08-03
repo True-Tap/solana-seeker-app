@@ -32,22 +32,29 @@ android {
             )
         }
     }
+    
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
+    
+    kotlin {
+        jvmToolchain(17)
     }
+    
     buildFeatures {
         compose = true
     }
+    
     composeOptions {
         kotlinCompilerExtensionVersion = "1.6.0"
     }
+    
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // Fix duplicate namespace warning
+            excludes += "META-INF/versions/9/previous-compilation-data.bin"
         }
     }
 }
@@ -65,6 +72,10 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
     
     // Lifecycle
     implementation(libs.androidx.lifecycle.viewmodel.ktx)

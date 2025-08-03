@@ -63,7 +63,7 @@ class WalletViewModel @Inject constructor(
 
     fun disconnect() {
         viewModelScope.launch {
-            walletRepository.disconnect()
+            walletRepository.disconnectWallet()
             _errorMessage.value = null
         }
     }

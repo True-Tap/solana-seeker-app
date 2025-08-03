@@ -7,9 +7,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
-import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
-import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.SignTransactionsResult
-import com.solana.mobilewalletadapter.common.ProtocolContract
+// import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
+// import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.SignTransactionsResult
+// import com.solana.mobilewalletadapter.common.ProtocolContract
 import com.truetap.solana.seeker.data.AuthState
 import com.truetap.solana.seeker.data.WalletAccount
 import com.truetap.solana.seeker.data.WalletResult
@@ -36,7 +36,7 @@ class WalletRepository @Inject constructor(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    private val mobileWalletAdapter = MobileWalletAdapter()
+    // private val mobileWalletAdapter = MobileWalletAdapter()
 
     companion object {
         private val WALLET_PUBLIC_KEY = stringPreferencesKey("wallet_public_key")
@@ -51,35 +51,15 @@ class WalletRepository @Inject constructor(
 
     suspend fun connectAndAuthWallet(
         activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
-        cluster: String = ProtocolContract.CLUSTER_MAINNET_BETA
+        cluster: String = "mainnet-beta" // ProtocolContract.CLUSTER_MAINNET_BETA
     ): WalletResult<WalletAccount> {
         return try {
             _authState.value = AuthState.Connecting
             
-            val authResult = authorizeWallet(activityResultLauncher, cluster)
-            when (authResult) {
-                is WalletResult.Success -> {
-                    _authState.value = AuthState.Authenticating
-                    
-                    val authToken = generateAuthToken(activityResultLauncher)
-                    when (authToken) {
-                        is WalletResult.Success -> {
-                            val account = authResult.data
-                            saveWalletSession(account, authToken.data)
-                            _authState.value = AuthState.Connected(account)
-                            WalletResult.Success(account)
-                        }
-                        is WalletResult.Error -> {
-                            _authState.value = AuthState.Error(authToken.message)
-                            authToken
-                        }
-                    }
-                }
-                is WalletResult.Error -> {
-                    _authState.value = AuthState.Error(authResult.message)
-                    authResult
-                }
-            }
+            // TODO: Fix Solana SDK integration
+            val errorMsg = "Solana SDK integration temporarily disabled"
+            _authState.value = AuthState.Error(errorMsg)
+            WalletResult.Error(RuntimeException(errorMsg), errorMsg)
         } catch (e: Exception) {
             val errorMsg = "Failed to connect wallet: ${e.message}"
             _authState.value = AuthState.Error(errorMsg)
@@ -100,24 +80,29 @@ class WalletRepository @Inject constructor(
                 _authState.value = AuthState.Connected(account)
                 WalletResult.Success(account)
             } else {
+                _authState.value = AuthState.Idle
                 WalletResult.Error(
-                    RuntimeException("No saved session"),
-                    "No wallet session found"
+                    RuntimeException("No saved session found"),
+                    "No saved session found"
                 )
             }
         } catch (e: Exception) {
+            _authState.value = AuthState.Error("Failed to restore session: ${e.message}")
             WalletResult.Error(e, "Failed to restore session")
         }
     }
 
-    suspend fun disconnect() {
+    suspend fun disconnectWallet() {
         try {
             context.dataStore.edit { prefs ->
-                prefs.clear()
+                prefs.remove(WALLET_PUBLIC_KEY)
+                prefs.remove(WALLET_CLUSTER)
+                prefs.remove(WALLET_LABEL)
+                prefs.remove(AUTH_TOKEN)
             }
             _authState.value = AuthState.Idle
         } catch (e: Exception) {
-            // Log error but don't throw
+            _authState.value = AuthState.Error("Failed to disconnect: ${e.message}")
         }
     }
 
@@ -149,52 +134,34 @@ class WalletRepository @Inject constructor(
     private suspend fun authorizeWallet(
         activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
         cluster: String
-    ): WalletResult<WalletAccount> = suspendCancellableCoroutine { continuation ->
-        try {
-            mobileWalletAdapter.transact(activityResultLauncher) { client ->
-                val authResult = client.authorize(
-                    Uri.parse(IDENTITY_URI),
-                    Uri.parse(ICON_URI),
-                    APP_IDENTITY,
-                    cluster
-                )
-
-                val account = WalletAccount(
-                    publicKey = android.util.Base64.encodeToString(authResult.publicKey, android.util.Base64.NO_WRAP),
-                    cluster = cluster,
-                    accountLabel = authResult.accountLabel
-                )
-
-                continuation.resume(WalletResult.Success(account))
-            }
-        } catch (e: Exception) {
-            continuation.resume(
-                WalletResult.Error(e, "Authorization failed: ${e.message}")
-            )
-        }
+    ): WalletResult<WalletAccount> {
+        // TODO: Fix Solana SDK integration
+        return WalletResult.Error(
+            RuntimeException("Solana SDK integration temporarily disabled"),
+            "Wallet authorization not available"
+        )
     }
 
     private suspend fun generateAuthToken(
         activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
     ): WalletResult<String> {
-        val timestamp = System.currentTimeMillis()
-        val authMessage = "Login to True Tap - $timestamp"
-        
-        return when (val signResult = seedVaultService.signMessage(activityResultLauncher, authMessage)) {
-            is WalletResult.Success -> {
-                val token = android.util.Base64.encodeToString(signResult.data, android.util.Base64.NO_WRAP)
-                WalletResult.Success(token)
-            }
-            is WalletResult.Error -> signResult
-        }
+        // TODO: Fix Solana SDK integration
+        return WalletResult.Error(
+            RuntimeException("Solana SDK integration temporarily disabled"),
+            "Auth token generation not available"
+        )
     }
 
     private suspend fun saveWalletSession(account: WalletAccount, authToken: String) {
-        context.dataStore.edit { prefs ->
-            prefs[WALLET_PUBLIC_KEY] = account.publicKey
-            prefs[WALLET_CLUSTER] = account.cluster
-            account.accountLabel?.let { prefs[WALLET_LABEL] = it }
-            prefs[AUTH_TOKEN] = authToken
+        try {
+            context.dataStore.edit { prefs ->
+                prefs[WALLET_PUBLIC_KEY] = account.publicKey
+                prefs[WALLET_CLUSTER] = account.cluster
+                prefs[WALLET_LABEL] = account.accountLabel ?: ""
+                prefs[AUTH_TOKEN] = authToken
+            }
+        } catch (e: Exception) {
+            // Handle error
         }
     }
 }
