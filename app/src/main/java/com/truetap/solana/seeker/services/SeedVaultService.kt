@@ -1,11 +1,9 @@
 package com.truetap.solana.seeker.services
 
 import android.content.Context
-import android.content.Intent
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.IntentSenderRequest
-import com.solanamobile.seedvault.Wallet
-import com.solanamobile.seedvault.WalletContractV1
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.solana.seedvault.SeedVault
+import com.solana.seedvault.WalletContractV1
 import com.truetap.solana.seeker.data.SeedVaultInfo
 import com.truetap.solana.seeker.data.WalletResult
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,16 +17,18 @@ import kotlin.coroutines.resume
 class SeedVaultService @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private val seedVault = SeedVault.getInstance(context)
 
     suspend fun getSeedVaultInfo(): SeedVaultInfo {
         return try {
-            // Check if Seed Vault is available by trying to create an authorization intent
-            val authIntent = Wallet.authorizeSeed(WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION)
-            val isAvailable = authIntent != null
+            val isAvailable = seedVault.isAvailable()
+            val isBiometricSupported = if (isAvailable) {
+                seedVault.isBiometricAuthenticationSupported()
+            } else false
             
             SeedVaultInfo(
                 isAvailable = isAvailable,
-                isBiometricAuthSupported = true // Assume supported if available
+                isBiometricAuthSupported = isBiometricSupported
             )
         } catch (e: Exception) {
             SeedVaultInfo(isAvailable = false)
@@ -36,81 +36,157 @@ class SeedVaultService @Inject constructor(
     }
 
     suspend fun createSeed(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultSender: ActivityResultSender
     ): WalletResult<ByteArray> = suspendCancellableCoroutine { continuation ->
         try {
-            // Create seed creation intent
-            val createIntent = Wallet.createSeed(WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION)
-            
-            if (createIntent != null) {
-                // Launch the intent (simplified - in real usage you'd handle the result)
-                // For now, return a mock seed since this requires complex Intent handling
-                val mockSeed = "mock_seed_bytes".toByteArray()
-                continuation.resume(WalletResult.Success(mockSeed))
-            } else {
-                continuation.resume(
-                    WalletResult.Error(
-                        RuntimeException("Failed to create seed intent"),
-                        "Seed Vault not available"
-                    )
-                )
+            seedVault.createSeed(
+                activityResultSender,
+                WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION
+            ) { result ->
+                when (result) {
+                    is SeedVault.SeedResult.Success -> {
+                        continuation.resume(WalletResult.Success(result.seed))
+                    }
+                    is SeedVault.SeedResult.Cancelled -> {
+                        continuation.resume(
+                            WalletResult.Error(
+                                RuntimeException("Seed creation cancelled"),
+                                "Seed creation was cancelled"
+                            )
+                        )
+                    }
+                    is SeedVault.SeedResult.Failure -> {
+                        continuation.resume(
+                            WalletResult.Error(
+                                result.exception,
+                                "Failed to create seed: ${result.exception.message}"
+                            )
+                        )
+                    }
+                }
             }
         } catch (e: Exception) {
             continuation.resume(
-                WalletResult.Error(e, "Error creating seed: ${e.message}")
+                WalletResult.Error(e, "Error initiating seed creation")
             )
         }
     }
 
     suspend fun signMessage(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+        activityResultSender: ActivityResultSender,
         message: String
     ): WalletResult<ByteArray> = suspendCancellableCoroutine { continuation ->
         try {
             val messageBytes = message.toByteArray(StandardCharsets.UTF_8)
             
-            // Note: Real implementation would require proper auth token and derivation path
-            // For now, return mock signature to allow compilation
-            val mockSignature = "mock_signature_bytes".toByteArray()
-            continuation.resume(WalletResult.Success(mockSignature))
-            
+            seedVault.signMessage(
+                activityResultSender,
+                messageBytes,
+                WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION
+            ) { result ->
+                when (result) {
+                    is SeedVault.SignResult.Success -> {
+                        continuation.resume(WalletResult.Success(result.signature))
+                    }
+                    is SeedVault.SignResult.Cancelled -> {
+                        continuation.resume(
+                            WalletResult.Error(
+                                RuntimeException("Signing cancelled"),
+                                "Message signing was cancelled"
+                            )
+                        )
+                    }
+                    is SeedVault.SignResult.Failure -> {
+                        continuation.resume(
+                            WalletResult.Error(
+                                result.exception,
+                                "Failed to sign message: ${result.exception.message}"
+                            )
+                        )
+                    }
+                }
+            }
         } catch (e: Exception) {
             continuation.resume(
-                WalletResult.Error(e, "Error signing message: ${e.message}")
+                WalletResult.Error(e, "Error initiating message signing")
             )
         }
     }
 
     suspend fun signTransaction(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+        activityResultSender: ActivityResultSender,
         transaction: ByteArray
     ): WalletResult<ByteArray> = suspendCancellableCoroutine { continuation ->
         try {
-            // Note: Real implementation would require proper auth token and derivation path
-            // For now, return mock signature to allow compilation
-            val mockSignature = "mock_transaction_signature".toByteArray()
-            continuation.resume(WalletResult.Success(mockSignature))
-            
+            seedVault.signTransaction(
+                activityResultSender,
+                transaction,
+                WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION
+            ) { result ->
+                when (result) {
+                    is SeedVault.SignResult.Success -> {
+                        continuation.resume(WalletResult.Success(result.signature))
+                    }
+                    is SeedVault.SignResult.Cancelled -> {
+                        continuation.resume(
+                            WalletResult.Error(
+                                RuntimeException("Transaction signing cancelled"),
+                                "Transaction signing was cancelled"
+                            )
+                        )
+                    }
+                    is SeedVault.SignResult.Failure -> {
+                        continuation.resume(
+                            WalletResult.Error(
+                                result.exception,
+                                "Failed to sign transaction: ${result.exception.message}"
+                            )
+                        )
+                    }
+                }
+            }
         } catch (e: Exception) {
             continuation.resume(
-                WalletResult.Error(e, "Error signing transaction: ${e.message}")
+                WalletResult.Error(e, "Error initiating transaction signing")
             )
         }
     }
 
     suspend fun deriveAccount(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+        activityResultSender: ActivityResultSender,
         derivationPath: String = "m/44'/501'/0'/0'"
     ): WalletResult<ByteArray> = suspendCancellableCoroutine { continuation ->
         try {
-            // Note: Real implementation would require proper auth token handling
-            // For now, return mock public key to allow compilation
-            val mockPublicKey = "mock_public_key_bytes".toByteArray()
-            continuation.resume(WalletResult.Success(mockPublicKey))
-            
+            seedVault.deriveKey(
+                activityResultSender,
+                derivationPath,
+                WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION
+            ) { result ->
+                when (result) {
+                    is SeedVault.KeyResult.Success -> {
+                        continuation.resume(WalletResult.Success(result.publicKey))
+                    }
+                    is SeedVault.KeyResult.Cancelled -> {
+                        continuation.resume(
+                            WalletResult.Error(
+                                RuntimeException("Key derivation cancelled"),
+                                "Key derivation was cancelled"
+                            )
+                        )
+                    }
+                    is SeedVault.KeyResult.Failure -> {
+                        continuation.resume(
+                            WalletResult.Error(
+                                result.exception,
+                                "Failed to derive key: ${result.exception.message}"
+                            )
+                        )
+                    }
+                }
+            }
         } catch (e: Exception) {
             continuation.resume(
-                WalletResult.Error(e, "Error deriving account: ${e.message}")
+                WalletResult.Error(e, "Error initiating key derivation")
             )
         }
     }
