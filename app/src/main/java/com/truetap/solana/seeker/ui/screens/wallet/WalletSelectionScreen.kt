@@ -81,7 +81,7 @@ fun WalletSelectionScreen(
         // Wallet Options
         WalletOptionCard(
             walletType = WalletType.PHANTOM,
-            icon = R.drawable.icons.svgs.regular.ghost,
+            icon = R.drawable.ghost,
             iconBackground = Color(0xFFAB47BC), // Purple
             title = "Phantom",
             description = "Most popular Solana wallet",
@@ -92,7 +92,7 @@ fun WalletSelectionScreen(
         
         WalletOptionCard(
             walletType = WalletType.SOLFLARE,
-            icon = R.drawable.icons.svgs.regular.sun,
+            icon = R.drawable.sun,
             iconBackground = Color(0xFFF39C12), // Yellow
             title = "Solflare",
             description = "Feature-rich Solana wallet",
@@ -103,7 +103,7 @@ fun WalletSelectionScreen(
         
         WalletOptionCard(
             walletType = WalletType.SOLANA_SEEKER,
-            icon = R.drawable.icons.svgs.regular.stack,
+            icon = R.drawable.stack,
             iconBackground = Color(0xFF16A085), // Teal
             title = "Solana Seeker",
             description = "Hardware wallet integration",
@@ -137,7 +137,7 @@ fun WalletSelectionScreen(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 androidx.compose.foundation.Image(
-                    painter = painterResource(id = R.drawable.icons.svgs.regular.arrow_up_right),
+                    painter = painterResource(id = R.drawable.arrow_up_right),
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(TrueTapPrimary)
@@ -211,7 +211,7 @@ private fun WalletOptionCard(
             
             // Wallet Icon
             androidx.compose.foundation.Image(
-                painter = painterResource(id = R.drawable.icons.svgs.regular.wallet),
+                painter = painterResource(id = R.drawable.wallet),
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(TrueTapTextInactive)

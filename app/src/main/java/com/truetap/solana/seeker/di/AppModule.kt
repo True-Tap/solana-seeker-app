@@ -1,8 +1,8 @@
 package com.truetap.solana.seeker.di
 
 import android.content.Context
-import com.truetap.solana.seeker.repositories.WalletRepository
-import com.truetap.solana.seeker.services.SeedVaultService
+// import com.truetap.solana.seeker.repositories.WalletRepository
+// import com.truetap.solana.seeker.services.SeedVaultService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,6 +14,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    // Temporarily disabled until Solana Mobile SDK APIs are properly configured
+    /*
     @Provides
     @Singleton
     fun provideSeedVaultService(
@@ -30,4 +32,5 @@ object AppModule {
     ): WalletRepository {
         return WalletRepository(context, seedVaultService)
     }
+    */
 }

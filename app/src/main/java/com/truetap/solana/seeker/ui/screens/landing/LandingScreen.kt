@@ -16,6 +16,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
@@ -88,7 +91,7 @@ fun LandingScreen(
         
         // Action Cards
         ActionCard(
-            icon = R.drawable.icons.svgs.regular.wallet,
+            icon = R.drawable.wallet,
             title = "Connect Wallet",
             description = "Use your Solana wallet for real payments",
             onClick = onConnectWallet
@@ -97,7 +100,7 @@ fun LandingScreen(
         Spacer(modifier = Modifier.height(Spacing.medium))
         
         ActionCard(
-            icon = R.drawable.icons.svgs.regular.code,
+            icon = R.drawable.code,
             title = "Try Demo Mode",
             description = "Explore features with mock transactions",
             onClick = onTryDemo
@@ -108,17 +111,17 @@ fun LandingScreen(
         // Bottom Features
         Row(
             horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.Center
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            FeatureItem(R.drawable.icons.svgs.regular.shield, "Secure")
+            FeatureItem(R.drawable.shield, "Secure")
             Spacer(modifier = Modifier.width(Spacing.medium))
             Text("•", color = TrueTapTextSecondary)
             Spacer(modifier = Modifier.width(Spacing.medium))
-            FeatureItem(R.drawable.icons.svgs.regular.lightning, "Instant")
+            FeatureItem(R.drawable.lightning, "Instant")
             Spacer(modifier = Modifier.width(Spacing.medium))
             Text("•", color = TrueTapTextSecondary)
             Spacer(modifier = Modifier.width(Spacing.medium))
-            FeatureItem(R.drawable.icons.svgs.regular.globe, "Decentralized")
+            FeatureItem(R.drawable.globe, "Decentralized")
         }
         
         Spacer(modifier = Modifier.height(Spacing.medium))
@@ -195,7 +198,7 @@ private fun ActionCard(
             
             // Arrow Icon
             androidx.compose.foundation.Image(
-                painter = painterResource(id = R.drawable.icons.svgs.regular.caret_right),
+                painter = painterResource(id = R.drawable.caret_right),
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(TrueTapPrimary)

@@ -48,6 +48,7 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/versions/9/previous-compilation-data.bin"
         }
     }
 }
@@ -92,12 +93,12 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.7")
     // Material Icons
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
-    // Local Phosphor Icon Pack (JAR/AAR in libs/)
-    implementation(files("libs/phosphor-compose-icons.aar"))
-    // TODO: Uncomment Solana dependencies when available
-    // implementation(libs.solana.seed.vault)
-    // implementation(libs.mobile.wallet.adapter)
-    // implementation(libs.solana.kmp)
+    // Phosphor Icons
+    implementation(libs.phosphor.icons)
+    // Solana dependencies
+    implementation(libs.solana.seed.vault)
+    implementation(libs.mobile.wallet.adapter)
+    implementation(libs.solana.kmp)
     
     // Testing
     testImplementation(libs.junit)

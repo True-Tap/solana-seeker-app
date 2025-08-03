@@ -19,10 +19,10 @@ retrofit = "3.0.0"
 okhttp = "5.1.0"
 room = "2.6.1"
 datastore = "1.1.1"
-solanaSeedVault = "0.3.2"
-mobileWalletAdapter = "2.1.0"
-solanaKmp = "0.3.0-beta1"
-phosphorIcons = "1.0.0-alpha06"
+solanaSeedVault = "0.2.9"
+mobileWalletAdapter = "2.0.8"
+solanaKmp = "0.2.9"
+phosphorIcons = "1.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -50,10 +50,10 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.r
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-solana-seed-vault = { group = "com.solana.mobile", name = "seed-vault-lib", version.ref = "solanaSeedVault" }
-mobile-wallet-adapter = { group = "com.solana.mobile", name = "mobile-wallet-adapter-clientlib", version.ref = "mobileWalletAdapter" }
+solana-seed-vault = { group = "com.solanamobile", name = "seedvault-wallet-sdk", version.ref = "solanaSeedVault" }
+mobile-wallet-adapter = { group = "com.solanamobile", name = "mobile-wallet-adapter-clientlib", version.ref = "mobileWalletAdapter" }
 solana-kmp = { group = "foundation.metaplex", name = "solana", version.ref = "solanaKmp" }
-phosphor-icons = { group = "br.com.devsrsouza.compose.icons", name = "phosphor", version.ref = "phosphorIcons" }
+phosphor-icons = { group = "com.adamglin", name = "phosphor-icon-android", version.ref = "phosphorIcons" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
