@@ -7,14 +7,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.truetap.solana.seeker.ui.navigation.SolanaSeekerNavGraph
 import com.truetap.solana.seeker.ui.theme.SolanaseekerappTheme
-import dagger.hilt.android.AndroidEntryPoint
+// import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
+// @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,8 +22,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             SolanaseekerappTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
+                    SolanaSeekerApp(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -33,17 +32,13 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
+fun SolanaSeekerApp(
+    modifier: Modifier = Modifier
+) {
+    val navController = rememberNavController()
+    
+    SolanaSeekerNavGraph(
+        navController = navController,
         modifier = modifier
     )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SolanaseekerappTheme {
-        Greeting("Android")
-    }
 }
