@@ -1,9 +1,10 @@
 package com.truetap.solana.seeker.services
 
 import android.content.Context
-import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
-import com.solana.seedvault.SeedVault
-import com.solana.seedvault.WalletContractV1
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import com.solana.mobile.seedvault.Wallet
+import com.solana.mobile.seedvault.WalletContractV1
 import com.truetap.solana.seeker.data.SeedVaultInfo
 import com.truetap.solana.seeker.data.WalletResult
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -17,13 +18,13 @@ import kotlin.coroutines.resume
 class SeedVaultService @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val seedVault = SeedVault.getInstance(context)
+    private val wallet = Wallet.getInstance(context)
 
     suspend fun getSeedVaultInfo(): SeedVaultInfo {
         return try {
-            val isAvailable = seedVault.isAvailable()
+            val isAvailable = wallet.isAvailable()
             val isBiometricSupported = if (isAvailable) {
-                seedVault.isBiometricAuthenticationSupported()
+                wallet.isBiometricAuthenticationSupported()
             } else false
             
             SeedVaultInfo(
@@ -36,18 +37,18 @@ class SeedVaultService @Inject constructor(
     }
 
     suspend fun createSeed(
-        activityResultSender: ActivityResultSender
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
     ): WalletResult<ByteArray> = suspendCancellableCoroutine { continuation ->
         try {
-            seedVault.createSeed(
-                activityResultSender,
+            wallet.generateSeed(
+                activityResultLauncher,
                 WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION
             ) { result ->
                 when (result) {
-                    is SeedVault.SeedResult.Success -> {
+                    is Wallet.GenerateSeedResult.Success -> {
                         continuation.resume(WalletResult.Success(result.seed))
                     }
-                    is SeedVault.SeedResult.Cancelled -> {
+                    is Wallet.GenerateSeedResult.UserCanceled -> {
                         continuation.resume(
                             WalletResult.Error(
                                 RuntimeException("Seed creation cancelled"),
@@ -55,7 +56,7 @@ class SeedVaultService @Inject constructor(
                             )
                         )
                     }
-                    is SeedVault.SeedResult.Failure -> {
+                    is Wallet.GenerateSeedResult.Failure -> {
                         continuation.resume(
                             WalletResult.Error(
                                 result.exception,
@@ -73,22 +74,22 @@ class SeedVaultService @Inject constructor(
     }
 
     suspend fun signMessage(
-        activityResultSender: ActivityResultSender,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
         message: String
     ): WalletResult<ByteArray> = suspendCancellableCoroutine { continuation ->
         try {
             val messageBytes = message.toByteArray(StandardCharsets.UTF_8)
             
-            seedVault.signMessage(
-                activityResultSender,
+            wallet.signMessage(
+                activityResultLauncher,
                 messageBytes,
                 WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION
             ) { result ->
                 when (result) {
-                    is SeedVault.SignResult.Success -> {
+                    is Wallet.SignMessageResult.Success -> {
                         continuation.resume(WalletResult.Success(result.signature))
                     }
-                    is SeedVault.SignResult.Cancelled -> {
+                    is Wallet.SignMessageResult.UserCanceled -> {
                         continuation.resume(
                             WalletResult.Error(
                                 RuntimeException("Signing cancelled"),
@@ -96,7 +97,7 @@ class SeedVaultService @Inject constructor(
                             )
                         )
                     }
-                    is SeedVault.SignResult.Failure -> {
+                    is Wallet.SignMessageResult.Failure -> {
                         continuation.resume(
                             WalletResult.Error(
                                 result.exception,
@@ -114,20 +115,20 @@ class SeedVaultService @Inject constructor(
     }
 
     suspend fun signTransaction(
-        activityResultSender: ActivityResultSender,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
         transaction: ByteArray
     ): WalletResult<ByteArray> = suspendCancellableCoroutine { continuation ->
         try {
-            seedVault.signTransaction(
-                activityResultSender,
+            wallet.signTransaction(
+                activityResultLauncher,
                 transaction,
                 WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION
             ) { result ->
                 when (result) {
-                    is SeedVault.SignResult.Success -> {
-                        continuation.resume(WalletResult.Success(result.signature))
+                    is Wallet.SignTransactionResult.Success -> {
+                        continuation.resume(WalletResult.Success(result.signatures[0]))
                     }
-                    is SeedVault.SignResult.Cancelled -> {
+                    is Wallet.SignTransactionResult.UserCanceled -> {
                         continuation.resume(
                             WalletResult.Error(
                                 RuntimeException("Transaction signing cancelled"),
@@ -135,7 +136,7 @@ class SeedVaultService @Inject constructor(
                             )
                         )
                     }
-                    is SeedVault.SignResult.Failure -> {
+                    is Wallet.SignTransactionResult.Failure -> {
                         continuation.resume(
                             WalletResult.Error(
                                 result.exception,
@@ -153,20 +154,20 @@ class SeedVaultService @Inject constructor(
     }
 
     suspend fun deriveAccount(
-        activityResultSender: ActivityResultSender,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
         derivationPath: String = "m/44'/501'/0'/0'"
     ): WalletResult<ByteArray> = suspendCancellableCoroutine { continuation ->
         try {
-            seedVault.deriveKey(
-                activityResultSender,
+            wallet.derivePublicKey(
+                activityResultLauncher,
                 derivationPath,
                 WalletContractV1.PURPOSE_SIGN_SOLANA_TRANSACTION
             ) { result ->
                 when (result) {
-                    is SeedVault.KeyResult.Success -> {
+                    is Wallet.DerivePublicKeyResult.Success -> {
                         continuation.resume(WalletResult.Success(result.publicKey))
                     }
-                    is SeedVault.KeyResult.Cancelled -> {
+                    is Wallet.DerivePublicKeyResult.UserCanceled -> {
                         continuation.resume(
                             WalletResult.Error(
                                 RuntimeException("Key derivation cancelled"),
@@ -174,7 +175,7 @@ class SeedVaultService @Inject constructor(
                             )
                         )
                     }
-                    is SeedVault.KeyResult.Failure -> {
+                    is Wallet.DerivePublicKeyResult.Failure -> {
                         continuation.resume(
                             WalletResult.Error(
                                 result.exception,

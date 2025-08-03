@@ -5,9 +5,10 @@ import android.net.Uri
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
-import com.solana.mobilewalletadapter.clientlib.TransactionResult
+import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.SignTransactionsResult
 import com.solana.mobilewalletadapter.common.ProtocolContract
 import com.truetap.solana.seeker.data.AuthState
 import com.truetap.solana.seeker.data.WalletAccount
@@ -49,18 +50,18 @@ class WalletRepository @Inject constructor(
     }
 
     suspend fun connectAndAuthWallet(
-        activityResultSender: ActivityResultSender,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
         cluster: String = ProtocolContract.CLUSTER_MAINNET_BETA
     ): WalletResult<WalletAccount> {
         return try {
             _authState.value = AuthState.Connecting
             
-            val authResult = authorizeWallet(activityResultSender, cluster)
+            val authResult = authorizeWallet(activityResultLauncher, cluster)
             when (authResult) {
                 is WalletResult.Success -> {
                     _authState.value = AuthState.Authenticating
                     
-                    val authToken = generateAuthToken(activityResultSender)
+                    val authToken = generateAuthToken(activityResultLauncher)
                     when (authToken) {
                         is WalletResult.Success -> {
                             val account = authResult.data
@@ -121,10 +122,10 @@ class WalletRepository @Inject constructor(
     }
 
     suspend fun signAuthMessage(
-        activityResultSender: ActivityResultSender,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
         message: String = "Authenticate with True Tap"
     ): WalletResult<String> {
-        return when (val result = seedVaultService.signMessage(activityResultSender, message)) {
+        return when (val result = seedVaultService.signMessage(activityResultLauncher, message)) {
             is WalletResult.Success -> {
                 WalletResult.Success(android.util.Base64.encodeToString(result.data, android.util.Base64.NO_WRAP))
             }
@@ -146,12 +147,12 @@ class WalletRepository @Inject constructor(
     }
 
     private suspend fun authorizeWallet(
-        activityResultSender: ActivityResultSender,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
         cluster: String
     ): WalletResult<WalletAccount> = suspendCancellableCoroutine { continuation ->
         try {
-            mobileWalletAdapter.transact(activityResultSender) { wallet ->
-                val authResult = wallet.authorize(
+            mobileWalletAdapter.transact(activityResultLauncher) { client ->
+                val authResult = client.authorize(
                     Uri.parse(IDENTITY_URI),
                     Uri.parse(ICON_URI),
                     APP_IDENTITY,
@@ -174,12 +175,12 @@ class WalletRepository @Inject constructor(
     }
 
     private suspend fun generateAuthToken(
-        activityResultSender: ActivityResultSender
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
     ): WalletResult<String> {
         val timestamp = System.currentTimeMillis()
         val authMessage = "Login to True Tap - $timestamp"
         
-        return when (val signResult = seedVaultService.signMessage(activityResultSender, authMessage)) {
+        return when (val signResult = seedVaultService.signMessage(activityResultLauncher, authMessage)) {
             is WalletResult.Success -> {
                 val token = android.util.Base64.encodeToString(signResult.data, android.util.Base64.NO_WRAP)
                 WalletResult.Success(token)
