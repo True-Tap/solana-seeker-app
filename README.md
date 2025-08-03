@@ -1,33 +1,23 @@
-# True Tap - Revolutionizing Solana Payments on Seeker
+# True Tap - Solana Wallet for Seeker
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/True-Tap/solana-seeker-app/build.yml?label=Build)](https://github.com/True-Tap/solana-seeker-app/actions)
 [![Solana Seeker Optimized](https://img.shields.io/badge/Optimized%20for-Solana%20Seeker-orange.svg)](https://solana.com/seeker)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-purple.svg)](https://kotlinlang.org/)
 [![Android](https://img.shields.io/badge/Android-SDK%2035-green.svg)](https://developer.android.com/about/versions/15)
 
-**True Tap** is the ultimate Solana-native payment app, engineered exclusively for the Solana Seeker device. We're unleashing lightning-fast, near-zero-fee transactions with taps so smooth, they feel like magic. Think Venmo meets Cash App meets AliPay—powered by Solana's speed and Seeker's hardware security. Eventually, we'll evolve into the Stripe of Solana, empowering devs with seamless payment APIs.
+**True Tap** is a Solana wallet application designed for the Solana Seeker device. The app provides secure wallet connection and authentication using the Seeker's hardware-backed Seed Vault and biometric authentication capabilities.
 
-Transform your Seeker into a decentralized finance beast: Send SOL with emoji flair, split bills in groups, stash in high-yield DeFi vaults, trade NFTs on the fly, set up merchant subscriptions in AI-driven marketplaces, scan QR codes for instant in-person buys (biometrics + Seed Vault locked), and surprise friends with virtual holiday envelopes. True Tap isn't just an app—it's your gateway to intuitive, secure, revolutionary mobile money where every tap unlocks borderless commerce on Solana.
+Currently in early development, the app focuses on establishing secure wallet connections through the Mobile Wallet Adapter protocol and integrating with Solana's Seed Vault SDK for hardware-secured key management.
 
-## Why True Tap? 🚀
-- **Blazing Solana Speed**: Near-instant txns with fees under a penny—say goodbye to legacy banking delays.
-- **Seeker Superpowers**: Hardware-backed Seed Vault + biometrics for unbreakable security.
-- **Fun & Social**: Emoji notes, group splits, virtual gifting—crypto payments that feel human.
-- **DeFi & Commerce Hub**: Vaults for yields, NFT flips, merchant tools, AI markets—all in one app.
-- **Global & Borderless**: Tap-to-pay anywhere, QR magic for IRL buys, no banks needed.
-- **Dev-Friendly Future**: Building toward Stripe-like APIs for Solana ecosystem builders.
+## Current Features
+- **Secure Wallet Connection**: Integration with Mobile Wallet Adapter for secure Solana wallet connections
+- **Hardware Security**: Utilizes Seeker's Seed Vault for hardware-backed key storage and biometric authentication
+- **Account Management**: Basic wallet account creation and session management
 
-We're not building another wallet—we're crafting the future of Web3 payments.
-
-## Key Features
-- **Tap-to-Pay & QR Magic**: Effortless NFC/QR transactions with biometric confirmation.
-- **P2P Transfers**: Send/split SOL/tokens with emojis, group tracking, and zero hassle.
-- **DeFi Vaults**: Lock in high yields with one tap.
-- **NFT Trading**: Buy/sell digital assets instantly.
-- **Merchant Suite**: Subscriptions, AI marketplaces, borderless sales.
-- **Social Gifting**: Virtual envelopes for holidays or fun surprises.
-
-(Initial release focuses on wallet connection/auth; full features rolling out soon!)
+## Planned Features
+- P2P SOL transfers
+- Transaction history
+- Multi-account support
+- QR code payments
 
 ## Tech Stack
 Lean, mean, and modern for Seeker performance:
