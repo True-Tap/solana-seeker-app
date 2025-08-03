@@ -2,6 +2,7 @@ package com.truetap.solana.seeker.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import com.truetap.solana.seeker.data.AuthState
@@ -42,14 +43,14 @@ class WalletViewModel @Inject constructor(
     }
 
     fun connectWallet(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
-        cluster: String = "mainnet-beta"
+        activity: ComponentActivity,
+        cluster: String = "devnet"
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
 
-            when (val result = walletRepository.connectAndAuthWallet(activityResultLauncher, cluster)) {
+            when (val result = walletRepository.connectAndAuthWallet(activity, cluster)) {
                 is WalletResult.Success -> {
                     _errorMessage.value = null
                 }
@@ -69,13 +70,13 @@ class WalletViewModel @Inject constructor(
     }
 
     fun signAuthMessage(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+        activity: ComponentActivity,
         message: String = "Authenticate with True Tap"
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             
-            when (val result = walletRepository.signAuthMessage(activityResultLauncher, message)) {
+            when (val result = walletRepository.signAuthMessage(activity, message)) {
                 is WalletResult.Success -> {
                     _errorMessage.value = null
                 }
@@ -91,10 +92,10 @@ class WalletViewModel @Inject constructor(
         _errorMessage.value = null
     }
 
-    fun retry(activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>) {
+    fun retry(activity: ComponentActivity) {
         when (val currentState = authState.value) {
             is AuthState.Error -> {
-                connectWallet(activityResultLauncher)
+                connectWallet(activity)
             }
             is AuthState.Idle -> {
                 attemptSessionRestore()
