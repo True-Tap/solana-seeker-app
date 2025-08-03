@@ -30,4 +30,4 @@ object AppModule {
     ): WalletRepository {
         return WalletRepository(context, seedVaultService)
     }
-}
+} 

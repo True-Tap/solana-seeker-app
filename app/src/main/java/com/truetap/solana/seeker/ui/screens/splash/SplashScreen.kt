@@ -12,6 +12,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,18 +75,12 @@ fun SplashScreen(
                 contentScale = ContentScale.Fit
             )
             
-            Spacer(modifier = Modifier.height(Spacing.xlarge))
-            
-            // Brand Name with gradient
-            Text(
+            // Brand Name with gradient - no spacing
+            GradientText(
                 text = "TrueTap",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.alpha(alphaAnim.value),
-                color = TrueTapPrimary
+                fontSize = 48.sp,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.alpha(alphaAnim.value)
             )
             
             Spacer(modifier = Modifier.height(Spacing.medium))
@@ -101,4 +97,31 @@ fun SplashScreen(
             )
         }
     }
+}
+
+@Composable
+private fun GradientText(
+    text: String,
+    fontSize: androidx.compose.ui.unit.TextUnit = 36.sp,
+    fontWeight: FontWeight = FontWeight.ExtraBold,
+    modifier: Modifier = Modifier
+) {
+    val gradient = Brush.horizontalGradient(
+        colors = listOf(
+            Color(0xFFFF6F00), // Orange 700
+            Color(0xFFFF9800), // Orange 500
+            Color(0xFFFFC107)  // Amber 500
+        )
+    )
+
+    Text(
+        text = text,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        textAlign = TextAlign.Center,
+        modifier = modifier,
+        style = TextStyle(
+            brush = gradient
+        )
+    )
 } 

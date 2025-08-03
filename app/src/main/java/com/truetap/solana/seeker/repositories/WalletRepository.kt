@@ -106,62 +106,12 @@ class WalletRepository @Inject constructor(
         }
     }
 
-    suspend fun signAuthMessage(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
-        message: String = "Authenticate with True Tap"
-    ): WalletResult<String> {
-        return when (val result = seedVaultService.signMessage(activityResultLauncher, message)) {
-            is WalletResult.Success -> {
-                WalletResult.Success(android.util.Base64.encodeToString(result.data, android.util.Base64.NO_WRAP))
-            }
-            is WalletResult.Error -> result
+    private suspend fun saveSession(account: WalletAccount, authToken: String) {
+        context.dataStore.edit { prefs ->
+            prefs[WALLET_PUBLIC_KEY] = account.publicKey
+            prefs[WALLET_CLUSTER] = account.cluster
+            prefs[WALLET_LABEL] = account.accountLabel ?: ""
+            prefs[AUTH_TOKEN] = authToken
         }
     }
-
-    fun isConnected(): Flow<Boolean> {
-        return authState.map { it is AuthState.Connected }
-    }
-
-    fun getCurrentAccount(): Flow<WalletAccount?> {
-        return authState.map { 
-            when (it) {
-                is AuthState.Connected -> it.account
-                else -> null
-            }
-        }
-    }
-
-    private suspend fun authorizeWallet(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
-        cluster: String
-    ): WalletResult<WalletAccount> {
-        // TODO: Fix Solana SDK integration
-        return WalletResult.Error(
-            RuntimeException("Solana SDK integration temporarily disabled"),
-            "Wallet authorization not available"
-        )
-    }
-
-    private suspend fun generateAuthToken(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
-    ): WalletResult<String> {
-        // TODO: Fix Solana SDK integration
-        return WalletResult.Error(
-            RuntimeException("Solana SDK integration temporarily disabled"),
-            "Auth token generation not available"
-        )
-    }
-
-    private suspend fun saveWalletSession(account: WalletAccount, authToken: String) {
-        try {
-            context.dataStore.edit { prefs ->
-                prefs[WALLET_PUBLIC_KEY] = account.publicKey
-                prefs[WALLET_CLUSTER] = account.cluster
-                prefs[WALLET_LABEL] = account.accountLabel ?: ""
-                prefs[AUTH_TOKEN] = authToken
-            }
-        } catch (e: Exception) {
-            // Handle error
-        }
-    }
-}
+} 

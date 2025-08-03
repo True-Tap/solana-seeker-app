@@ -1,6 +1,7 @@
 package com.truetap.solana.seeker.ui.screens.landing
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,169 +9,490 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.offset
-import kotlinx.coroutines.delay
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
+import kotlin.math.max as maxOf
+import kotlin.math.min as minOf
 
 @Composable
 fun LandingScreen(
-    onConnectWallet: () -> Unit,
-    onTryDemo: () -> Unit,
+    onNavigateToHome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var agreedToTerms by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
+
+    // Animation values
     var startAnimation by remember { mutableStateOf(false) }
-    
-    val alphaAnim = animateFloatAsState(
+    val fadeAnim = animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 1500, easing = EaseOutCubic),
-        label = "landing_alpha"
+        animationSpec = tween(durationMillis = 1000),
+        label = "fade_animation"
+    )
+    val scaleAnim = animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0.8f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale_animation"
     )
     
-    val slideUpAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 0f else 30f,
-        animationSpec = tween(durationMillis = 1200, easing = EaseOutCubic),
-        label = "landing_slide"
+    // Bouncing animation for Tappy
+    val infiniteTransition = rememberInfiniteTransition(label = "bounce")
+    val bounceAnim = infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 2000,
+                easing = EaseInOut
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bounce"
     )
     
-    LaunchedEffect(key1 = true) {
-        delay(300) // Slight delay for smooth transition from splash
+    // Shadow animation
+    val shadowAnim = infiniteTransition.animateFloat(
+        initialValue = 8f,
+        targetValue = 16f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1500,
+                easing = EaseInOut
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shadow"
+    )
+
+    // Sizing calculations - Tappy matches splash screen
+    val logoSize = 160.dp  // Same as splash screen
+    val titleFontSize = 48.sp  // Increased to 48sp
+    val subtitleFontSize = 18.sp  // Increased from 14sp
+    val buttonTextSize = 18.sp  // Increased from 16sp
+
+    LaunchedEffect(Unit) {
         startAnimation = true
     }
-    
+
+    // Full screen background with click handling
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(TrueTapBackground)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(TrueTapBackground, Color(0xFFF0ECE4))
+                )
+            )
             .statusBarsPadding()
-            .navigationBarsPadding()
-            .clickable { onConnectWallet() }, // Entire screen is tappable
+            .navigationBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(screenPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // TrueTap Logo - larger
-            androidx.compose.foundation.Image(
-                painter = painterResource(id = R.drawable.truetap_logo),
-                contentDescription = "TrueTap Logo",
+            // Top Safe Area Padding
+            Spacer(modifier = Modifier.height(64.dp))
+            
+            // Bouncing Tappy with Realistic Shadow
+            BouncingTappyWithShadow(
                 modifier = Modifier
-                    .size(140.dp)
-                    .alpha(alphaAnim.value),
-                contentScale = ContentScale.Fit
+                    .alpha(fadeAnim.value)
+                    .scale(scaleAnim.value),
+                tappySize = logoSize
+            )
+
+            // Welcome to TrueTap - no spacing, directly under Tappy container
+            GradientText(
+                text = "Welcome to TrueTap",
+                fontSize = titleFontSize,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.alpha(fadeAnim.value)
             )
             
-            Spacer(modifier = Modifier.height(Spacing.large)) // Reduced from xlarge to large
+            // Space between Welcome and Payments text
+            Spacer(modifier = Modifier.height(16.dp))
             
-            // Welcome Text - much larger
-            Text(
-                text = "Welcome to",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                color = TrueTapTextSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.alpha(alphaAnim.value)
-            )
-            
-            Spacer(modifier = Modifier.height(Spacing.small))
-            
-            // Brand Name - much larger
-            Text(
-                text = "TrueTap",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.alpha(alphaAnim.value),
-                color = TrueTapPrimary
-            )
-            
-            Spacer(modifier = Modifier.height(Spacing.small))
-            
-            // Tagline - much larger
+            // Payments Reimagined text
             Text(
                 text = "Payments. Reimagined.",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                color = TrueTapTextSecondary,
+                fontSize = subtitleFontSize,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.alpha(alphaAnim.value)
+                modifier = Modifier.alpha(fadeAnim.value)
             )
+
+            // Push content to create space before connect section
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Connect Wallet Button
             
-            Spacer(modifier = Modifier.height(Spacing.xlarge))
-            
-            // Tap to Continue - positioned in the middle
-            Text(
-                text = "Tap to Continue",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = TrueTapPrimary,
-                textAlign = TextAlign.Center,
+            Button(
+                onClick = { if (agreedToTerms) onNavigateToHome() },
+                enabled = agreedToTerms,
                 modifier = Modifier
-                    .alpha(alphaAnim.value)
-                    .offset(y = slideUpAnim.value.dp)
-            )
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .padding(horizontal = 32.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (agreedToTerms) TrueTapPrimary else TrueTapTextSecondary.copy(alpha = 0.3f)
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 3.dp
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalanceWallet,
+                        contentDescription = "Wallet",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Connect Wallet",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Continue",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             
+            // Terms of Service Toggle - Under Connect Wallet Button
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = agreedToTerms,
+                    onCheckedChange = { agreedToTerms = it },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = TrueTapPrimary,
+                        uncheckedColor = TrueTapTextSecondary
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Clickable terms text with hyperlinks
+                val uriHandler = LocalUriHandler.current
+                val annotatedText = buildAnnotatedString {
+                    append("I agree to the ")
+                    
+                    // Terms of Service link
+                    pushStringAnnotation(tag = "terms", annotation = "https://truetap.com/terms")
+                    withStyle(style = SpanStyle(
+                        color = TrueTapPrimary,
+                        textDecoration = TextDecoration.Underline
+                    )) {
+                        append("Terms of Service")
+                    }
+                    pop()
+                    
+                    append(" and ")
+                    
+                    // Privacy Policy link
+                    pushStringAnnotation(tag = "privacy", annotation = "https://truetap.com/privacy")
+                    withStyle(style = SpanStyle(
+                        color = TrueTapPrimary,
+                        textDecoration = TextDecoration.Underline
+                    )) {
+                        append("Privacy Policy")
+                    }
+                    pop()
+                }
+                
+                ClickableText(
+                    text = annotatedText,
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        color = TrueTapTextSecondary
+                    ),
+                    modifier = Modifier.weight(1f),
+                    onClick = { offset ->
+                        annotatedText.getStringAnnotations(tag = "terms", start = offset, end = offset)
+                            .firstOrNull()?.let { annotation ->
+                                uriHandler.openUri(annotation.item)
+                            }
+                        annotatedText.getStringAnnotations(tag = "privacy", start = offset, end = offset)
+                            .firstOrNull()?.let { annotation ->
+                                uriHandler.openUri(annotation.item)
+                            }
+                    }
+                )
+            }
+            
+            // Push features and "Powered by" text to bottom just above swipe bar
             Spacer(modifier = Modifier.weight(1f))
             
-            // Simple feature text at bottom
-            Text(
-                text = "Secure. Fast. Decentralized.",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                color = TrueTapTextSecondary,
-                textAlign = TextAlign.Center,
+            // Feature Icons Row - FULL screen width, icons above text, 1/3 distribution
+            Row(
                 modifier = Modifier
-                    .alpha(alphaAnim.value)
-                    .offset(y = slideUpAnim.value.dp)
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp, horizontal = 0.dp), // NO horizontal padding for full width
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Secure - exactly 1/3 width
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Secure",
+                        tint = Color(0xFF4C4C4C),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Secure",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF4C4C4C),
+                        maxLines = 1,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                
+                // Dot spacer
+                Text(
+                    text = "•",
+                    fontSize = 14.sp,
+                    color = Color(0xFF4C4C4C),
+                    textAlign = TextAlign.Center
+                )
+                
+                // Instant - exactly 1/3 width
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Bolt,
+                        contentDescription = "Instant",
+                        tint = Color(0xFF4C4C4C),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Instant",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF4C4C4C),
+                        maxLines = 1,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                
+                // Dot spacer
+                Text(
+                    text = "•",
+                    fontSize = 14.sp,
+                    color = Color(0xFF4C4C4C),
+                    textAlign = TextAlign.Center
+                )
+                
+                // Decentralized - exactly 1/3 width
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Public,
+                        contentDescription = "Decentralized",
+                        tint = Color(0xFF4C4C4C),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Decentralized",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF4C4C4C),
+                        maxLines = 1,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            
+            // 4dp spacing between features and "Powered by" - halved again
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // "Powered by" text - just above swipe bar
+            Text(
+                text = "Powered by Solana • Built for Seeker",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF4C4C4C),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
             
-            Spacer(modifier = Modifier.height(Spacing.large))
-            
-            // Simple Learn More text - no card, no shadow
-            Text(
-                text = "Learn more about TrueTap",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                ),
-                color = TrueTapPrimary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .alpha(alphaAnim.value * 0.8f)
-                    .clickable { /* TODO: Learn more */ }
-            )
+            // Minimal spacing above swipe bar
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
- 
+@Composable
+private fun FeatureItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    fontSize: androidx.compose.ui.unit.TextUnit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = text,
+            tint = TrueTapPrimary,
+            modifier = Modifier
+                .size(28.dp)  // Increased from 24dp
+                .padding(bottom = 8.dp)  // Increased spacing to 8dp
+        )
+        Text(
+            text = text,
+            fontSize = fontSize,
+            fontWeight = FontWeight.Medium,
+            color = TrueTapTextSecondary,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+
+/**
+ * Bouncing Tappy Animation with Realistic Shadow
+ * 
+ * Creates a character that bounces vertically with a realistic elliptical shadow.
+ * The shadow behaves like a soft spotlight shadow under a floating object.
+ */
+@Composable
+private fun BouncingTappyWithShadow(
+    modifier: Modifier = Modifier,
+    tappySize: androidx.compose.ui.unit.Dp = 120.dp,
+    bounceHeight: androidx.compose.ui.unit.Dp = 24.dp
+) {
+    // Infinite bouncing animation
+    val infiniteTransition = rememberInfiniteTransition(label = "TappyBounce")
+    
+    // Bounce animation (0f = on ground, 1f = at peak)
+    val bounceProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1200,
+                easing = EaseInOut
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bounce"
+    )
+    
+    // Calculate current height (0 = ground, 1 = peak)
+    val currentHeight = bounceProgress
+    
+    
+    // Container for the bouncing system
+    Box(
+        modifier = modifier
+            .height(tappySize + bounceHeight + 32.dp), // Total height needed
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        // Tappy character - clean bouncing animation
+        Image(
+            painter = painterResource(id = R.drawable.truetap_logo),
+            contentDescription = "Tappy",
+            modifier = Modifier
+                .size(tappySize)
+                .align(Alignment.BottomCenter)
+                .offset(y = -(currentHeight * bounceHeight.value).dp) // Negative offset = up
+                .graphicsLayer {
+                    // Very subtle scale effect for impact anticipation
+                    scaleX = 1f - (1f - currentHeight) * 0.01f // Barely wider when landing
+                    scaleY = 1f + (1f - currentHeight) * 0.005f // Barely taller when landing
+                },
+            contentScale = ContentScale.Fit
+        )
+    }
+}
+
+@Composable
+private fun GradientText(
+    text: String,
+    fontSize: androidx.compose.ui.unit.TextUnit = 36.sp,
+    fontWeight: FontWeight = FontWeight.ExtraBold,
+    modifier: Modifier = Modifier
+) {
+    val gradient = Brush.horizontalGradient(
+        colors = listOf(
+            Color(0xFFFF6F00), // Orange 700
+            Color(0xFFFF9800), // Orange 500
+            Color(0xFFFFC107)  // Amber 500
+        )
+    )
+
+    Text(
+        text = text,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        textAlign = TextAlign.Center,
+        modifier = modifier,
+        style = TextStyle(
+            brush = gradient
+        )
+    )
+}

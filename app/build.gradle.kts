@@ -34,12 +34,12 @@ android {
     }
     
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_18
+        targetCompatibility = JavaVersion.VERSION_18
     }
     
     kotlin {
-        jvmToolchain(17)
+        jvmToolchain(18)
     }
     
     buildFeatures {
@@ -83,6 +83,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
@@ -98,6 +99,15 @@ dependencies {
     // Networking
     implementation(libs.retrofit)
     implementation(libs.okhttp)
+    
+    // Image Loading
+    implementation(libs.coil.compose)
+    
+    // Phosphor Icons
+    implementation(libs.phosphor.icons)
+    
+    // Google Services
+    implementation(libs.google.services.auth)
     
     // Solana
     implementation(libs.solana.seed.vault)
