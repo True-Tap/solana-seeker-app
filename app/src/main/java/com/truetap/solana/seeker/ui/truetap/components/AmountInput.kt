@@ -1,6 +1,10 @@
 package com.truetap.solana.seeker.ui.truetap.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -9,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,7 +30,11 @@ fun AmountInput(
     var amount by remember { mutableStateOf("") }
     var emoji by remember { mutableStateOf("") }
     
-    Column {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -44,23 +53,55 @@ fun AmountInput(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Amount display
-        Text(
-            text = if (amount.isEmpty()) "0" else amount,
-            style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Bold,
+        // Amount input field
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            color = TrueTapTextPrimary
-        )
-        
-        Text(
-            "SOL",
-            style = MaterialTheme.typography.bodyLarge,
-            color = TrueTapTextSecondary,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            BasicTextField(
+                value = amount,
+                onValueChange = { newValue ->
+                    // Allow only numbers and one decimal point
+                    if (newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                        amount = newValue
+                    }
+                },
+                textStyle = MaterialTheme.typography.displayLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = TrueTapTextPrimary,
+                    textAlign = TextAlign.Center
+                ),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (amount.isEmpty()) {
+                            Text(
+                                text = "0",
+                                style = MaterialTheme.typography.displayLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = TrueTapTextSecondary
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+            
+            Text(
+                "SOL",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TrueTapTextSecondary,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        }
         
         Spacer(modifier = Modifier.height(16.dp))
         

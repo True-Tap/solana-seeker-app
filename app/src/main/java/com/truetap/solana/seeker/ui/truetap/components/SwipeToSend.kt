@@ -40,12 +40,14 @@ fun SwipeToSend(
     onSend: () -> Unit,
     onBack: () -> Unit
 ) {
-    Column {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
         IconButton(onClick = onBack) {
             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Transaction summary
         Card(
@@ -95,7 +97,7 @@ fun SwipeToSend(
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         // Swipe to send with BoxWithConstraints to calculate proper width
         BoxWithConstraints(
@@ -142,23 +144,24 @@ fun SwipeToSend(
             )
             
             // Success text that fades in as swipe progresses
-            if (swipeProgress > 0.5f) {
-                Text(
-                    "Release to send",
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(x = 30.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = TrueTapPrimary.copy(alpha = (swipeProgress - 0.5f) * 2f),
-                    fontWeight = FontWeight.Bold
-                )
-            } else {
-                Text(
-                    "Swipe to send",
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = TrueTapTextSecondary
-                )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (swipeProgress > 0.5f) {
+                    Text(
+                        "Release to send",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TrueTapPrimary.copy(alpha = (swipeProgress - 0.5f) * 2f),
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Text(
+                        "Swipe to send",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TrueTapTextSecondary
+                    )
+                }
             }
             
             // Swipeable button

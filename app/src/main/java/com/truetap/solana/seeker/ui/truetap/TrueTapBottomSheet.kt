@@ -2,6 +2,8 @@ package com.truetap.solana.seeker.ui.truetap
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,15 +43,24 @@ fun TrueTapBottomSheet(
         AnimatedContent(
             targetState = currentStep,
             transitionSpec = {
-                fadeIn(animationSpec = tween(300)) + slideInHorizontally() togetherWith
-                fadeOut(animationSpec = tween(300)) + slideOutHorizontally()
+                // Use a smoother crossfade instead of slide for less jarring transitions
+                fadeIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) togetherWith fadeOut(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
             },
             label = "step_transition"
         ) { step ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 400.dp)
                     .padding(16.dp)
                     .navigationBarsPadding()
                     .imePadding()
