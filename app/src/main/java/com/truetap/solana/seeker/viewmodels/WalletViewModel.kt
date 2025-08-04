@@ -9,11 +9,18 @@ import com.truetap.solana.seeker.data.SeedVaultInfo
 import com.truetap.solana.seeker.data.WalletAccount
 import com.truetap.solana.seeker.data.WalletResult
 import com.truetap.solana.seeker.repositories.WalletRepository
+import com.truetap.solana.seeker.repositories.TrueTapContact
+import com.truetap.solana.seeker.repositories.TransactionResult
 import com.truetap.solana.seeker.services.SeedVaultService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -37,9 +44,27 @@ class WalletViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    // TrueTap specific state
+    private val _trueTapState = MutableStateFlow(TrueTapState())
+    val trueTapState: StateFlow<TrueTapState> = _trueTapState.asStateFlow()
+    
+    private val _trueTapContacts = MutableStateFlow<List<TrueTapContact>>(emptyList())
+    val trueTapContacts: StateFlow<List<TrueTapContact>> = _trueTapContacts.asStateFlow()
+    
+    private val _recentActivity = MutableStateFlow<List<TransactionResult>>(emptyList())
+    val recentActivity: StateFlow<List<TransactionResult>> = _recentActivity.asStateFlow()
+    
+    val balance: StateFlow<Double> = flow {
+        while (true) {
+            emit(walletRepository.getBalance())
+            delay(5000) // Refresh every 5 seconds in mock
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 42.5)
+
     init {
         checkSeedVaultAvailability()
         attemptSessionRestore()
+        loadTrueTapContacts()
     }
 
     fun connectWallet(
@@ -120,4 +145,64 @@ class WalletViewModel @Inject constructor(
             walletRepository.restoreSession()
         }
     }
+    
+    // TrueTap specific methods
+    private fun loadTrueTapContacts() {
+        viewModelScope.launch {
+            _trueTapContacts.value = walletRepository.getTrueTapContacts()
+        }
+    }
+    
+    fun selectRecipient(contact: TrueTapContact) {
+        _trueTapState.update { it.copy(selectedRecipient = contact) }
+    }
+    
+    fun setAmount(amount: Double, emoji: String) {
+        _trueTapState.update { it.copy(amount = amount, emojiMessage = emoji) }
+    }
+    
+    fun executeTrueTap() {
+        viewModelScope.launch {
+            val state = _trueTapState.value
+            val recipient = state.selectedRecipient ?: return@launch
+            
+            _trueTapState.update { it.copy(isLoading = true) }
+            
+            val result = walletRepository.sendTransaction(
+                toAddress = recipient.address,
+                amount = state.amount,
+                message = state.emojiMessage
+            )
+            
+            result.onSuccess { txn ->
+                _recentActivity.update { it + txn }
+                _trueTapState.update { 
+                    it.copy(
+                        isLoading = false,
+                        lastTransaction = txn
+                    )
+                }
+            }.onFailure { error ->
+                _trueTapState.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = error.message
+                    )
+                }
+            }
+        }
+    }
+    
+    fun resetTrueTap() {
+        _trueTapState.value = TrueTapState()
+    }
 }
+
+data class TrueTapState(
+    val selectedRecipient: TrueTapContact? = null,
+    val amount: Double = 0.0,
+    val emojiMessage: String = "",
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val lastTransaction: TransactionResult? = null
+)

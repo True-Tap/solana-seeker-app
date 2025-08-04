@@ -38,8 +38,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
+import com.truetap.solana.seeker.ui.truetap.TrueTapBottomSheet
+import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -73,14 +76,14 @@ enum class BottomNavItem(val title: String, val icon: String) {
 
 @Composable
 fun HomeScreen(
-
     onNavigateToNFTCheck: () -> Unit = {},
     onNavigateToSwap: () -> Unit = {},
     onNavigateToNFTs: () -> Unit = {},
     onNavigateToContacts: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToTransactionHistory: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    walletViewModel: WalletViewModel = hiltViewModel()
 ) {
     var isBalanceVisible by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(BottomNavItem.HOME) }
@@ -88,6 +91,7 @@ fun HomeScreen(
     var walletToRename by remember { mutableStateOf<Wallet?>(null) }
     var showTransactionModal by remember { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
+    var showTrueTapSheet by remember { mutableStateOf(false) }
     
     // Sample wallet data
     val wallets = remember {
@@ -207,7 +211,7 @@ fun HomeScreen(
             item {
                 // Action Buttons Section
                 ActionButtonsSection(
-                    onTrueTap = { /* Navigate to TrueTap */ },
+                    onTrueTap = { showTrueTapSheet = true },
                     onContacts = { onNavigateToContacts() },
                     onSchedule = { /* Navigate to Schedule */ }
                 )
@@ -263,6 +267,14 @@ fun HomeScreen(
         TransactionDetailModal(
             transaction = selectedTransaction!!,
             onDismiss = { showTransactionModal = false }
+        )
+    }
+    
+    // TrueTap Bottom Sheet
+    if (showTrueTapSheet) {
+        TrueTapBottomSheet(
+            viewModel = walletViewModel,
+            onDismiss = { showTrueTapSheet = false }
         )
     }
 }

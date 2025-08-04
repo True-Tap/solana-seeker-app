@@ -34,6 +34,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.ui.navigation.Screen
+import com.truetap.solana.seeker.ui.components.TrueTapButton
+import com.truetap.solana.seeker.ui.truetap.TrueTapBottomSheet
+import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
@@ -66,10 +69,12 @@ data class TokenBalance(
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
+    walletViewModel: WalletViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val haptic = LocalHapticFeedback.current
+    var showTrueTapSheet by remember { mutableStateOf(false) }
     
     // Animation states
     val fadeAnimation by animateFloatAsState(
@@ -145,7 +150,7 @@ fun DashboardScreen(
                     QuickActions(
                         onTrueTapClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            navController.navigate(Screen.SendPayment.createRoute())
+                            showTrueTapSheet = true
                         },
                         onContactsClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -214,6 +219,25 @@ fun DashboardScreen(
                 }
             )
         }
+        
+        // TrueTap FAB Button
+        TrueTapButton(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 80.dp, end = 16.dp),
+            onClick = { 
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                showTrueTapSheet = true 
+            }
+        )
+    }
+    
+    // TrueTap Bottom Sheet
+    if (showTrueTapSheet) {
+        TrueTapBottomSheet(
+            viewModel = walletViewModel,
+            onDismiss = { showTrueTapSheet = false }
+        )
     }
 }
 
