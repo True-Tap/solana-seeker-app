@@ -8,6 +8,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.truetap.solana.seeker.viewmodels.WalletViewModel
+import com.truetap.solana.seeker.services.NftService
+import com.truetap.solana.seeker.data.WalletNFT
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 /**
@@ -30,14 +35,16 @@ data class NFTsUiState(
     val walletAddress: String = "",
     val sendingNFT: Boolean = false,
     val sendStatus: SendStatus? = null,
-    val canUndo: Boolean = false
+    val canUndo: Boolean = false,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val hasWallet: Boolean = false,
+    val walletNFTs: List<WalletNFT> = emptyList()
 )
 
 @HiltViewModel
 class NFTsViewModel @Inject constructor(
-    // TODO: Inject actual services when available
-    // private val nftService: NFTService,
-    // private val walletService: WalletService
+    private val nftService: NftService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(NFTsUiState())
@@ -45,6 +52,72 @@ class NFTsViewModel @Inject constructor(
     
     init {
         loadCollections()
+    }
+    
+    /**
+     * Load NFT collections from connected wallet
+     */
+    fun loadWalletNFTs(walletAddress: String?) {
+        if (walletAddress == null) {
+            _uiState.value = _uiState.value.copy(
+                hasWallet = false,
+                collections = emptyList(),
+                walletNFTs = emptyList()
+            )
+            return
+        }
+        
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                hasWallet = true,
+                error = null
+            )
+            
+            try {
+                // Fetch Genesis NFTs
+                val genesisNFTs = nftService.getGenesisNFTs(walletAddress)
+                
+                // Convert Genesis NFTs to display format
+                val collections = if (genesisNFTs.isNotEmpty()) {
+                    val genesisCollection = Collection(
+                        id = 1,
+                        name = "Genesis Collection",
+                        count = genesisNFTs.size,
+                        floorPrice = "N/A",
+                        coverImage = genesisNFTs.firstOrNull()?.image ?: "",
+                        nfts = genesisNFTs.map { genesisNft ->
+                            NFT(
+                                id = genesisNft.mint,
+                                name = genesisNft.name,
+                                image = genesisNft.image,
+                                creator = "TrueTap",
+                                value = "Genesis",
+                                rarity = genesisNft.tier.name,
+                                traits = genesisNft.traits.values.toList(),
+                                description = "TrueTap Genesis NFT - Tier: ${genesisNft.tier.name}"
+                            )
+                        }
+                    )
+                    listOf(genesisCollection)
+                } else {
+                    emptyList()
+                }
+                
+                _uiState.value = _uiState.value.copy(
+                    collections = collections,
+                    isLoading = false,
+                    error = null
+                )
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to load NFTs",
+                    collections = emptyList()
+                )
+            }
+        }
     }
     
     fun setCurrentView(view: NFTView) {

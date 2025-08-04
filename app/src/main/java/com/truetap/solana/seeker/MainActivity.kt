@@ -1,50 +1,192 @@
 package com.truetap.solana.seeker
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
-import com.truetap.solana.seeker.ui.navigation.SolanaSeekerNavGraph
+import com.truetap.solana.seeker.seedvault.SeedVaultManager
+import com.truetap.solana.seeker.ui.navigation.NavGraph
 import com.truetap.solana.seeker.ui.theme.SolanaseekerappTheme
 import com.truetap.solana.seeker.ui.theme.TrueTapBackground
+import com.truetap.solana.seeker.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    // Inject SeedVaultManager
+    @Inject
+    lateinit var seedVaultManager: SeedVaultManager
+    
+    // ActivityResultLauncher for Mobile Wallet Adapter and Seed Vault
+    private lateinit var activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+    
+    // ActivityResultSender for Mobile Wallet Adapter (created early to avoid lifecycle issues)
+    private lateinit var activityResultSender: ActivityResultSender
+    
+    // State for handling deep link wallet connection
+    private var pendingWalletConnection by mutableStateOf<Uri?>(null)
+    
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize ActivityResultLauncher for both MWA and Seed Vault
+        activityResultLauncher = registerForActivityResult(
+            contract = ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            // Handle results for both MWA and Seed Vault
+            seedVaultManager.handleActivityResult(
+                result.resultCode, 
+                result.resultCode, 
+                result.data
+            )
+        }
+        
+        // Initialize ActivityResultSender (must be done during onCreate to avoid lifecycle issues)
+        activityResultSender = ActivityResultSender(this)
+        
+        // Handle intent from onCreate
+        handleIntent(intent)
+        
         enableEdgeToEdge()
         setContent {
             SolanaseekerappTheme {
-                // Full beige background for the entire app
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(TrueTapBackground)
-                ) {
-                    SolanaSeekerApp()
+                com.truetap.solana.seeker.ui.accessibility.AccessibilityProvider {
+                    val settings = com.truetap.solana.seeker.ui.accessibility.LocalAccessibilitySettings.current
+                    val dynamicColors = com.truetap.solana.seeker.ui.theme.getDynamicColors(
+                        themeMode = settings.themeMode,
+                        highContrastMode = settings.highContrastMode
+                    )
+                    
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        com.truetap.solana.seeker.ui.theme.LocalDynamicColors provides dynamicColors
+                    ) {
+                        com.truetap.solana.seeker.ui.theme.DynamicBackground(
+                            colors = dynamicColors,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            SolanaSeekerApp(
+                                activityResultLauncher = activityResultLauncher,
+                                activityResultSender = activityResultSender,
+                                pendingWalletConnection = pendingWalletConnection,
+                                onWalletConnectionHandled = { pendingWalletConnection = null }
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+    
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent) // Update the activity's intent
+        handleIntent(intent)
+    }
+    
+    private fun handleIntent(intent: Intent) {
+        Log.d(TAG, "Handling intent: ${intent.action}, data: ${intent.data}")
+        
+        // Check if this is a deep link from Solflare wallet connection
+        if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+            val uri = intent.data!!
+            Log.d(TAG, "Processing deep link: $uri")
+            
+            // Check if this is the wallet connection response
+            if (uri.scheme == "truetap" && uri.host == "wallet-connected") {
+                Log.d(TAG, "Wallet connection deep link detected")
+                pendingWalletConnection = uri
+            }
+        }
+    }
+    
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        
+        // Forward activity results to SeedVaultManager
+        seedVaultManager.handleActivityResult(requestCode, resultCode, data)
     }
 }
 
 @Composable
 fun SolanaSeekerApp(
+    activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+    activityResultSender: ActivityResultSender,
+    pendingWalletConnection: Uri?,
+    onWalletConnectionHandled: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
+    val mainViewModel: MainViewModel = hiltViewModel()
+    
+    val isInitialized by mainViewModel.isInitialized.collectAsState()
+    val startDestination by mainViewModel.startDestination.collectAsState()
 
-    SolanaSeekerNavGraph(
-        navController = navController,
-        modifier = modifier
-    )
+    if (!isInitialized) {
+        // Show loading screen while determining start destination
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Initializing...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    } else {
+        NavGraph(
+            navController = navController,
+            activityResultLauncher = activityResultLauncher,
+            activityResultSender = activityResultSender,
+            pendingWalletConnection = pendingWalletConnection,
+            onWalletConnectionHandled = onWalletConnectionHandled,
+            startDestination = startDestination,
+            modifier = modifier
+        )
+    }
 }

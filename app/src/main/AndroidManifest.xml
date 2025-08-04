@@ -22,11 +22,20 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Solanaseekerapp"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            
+            <!-- Deep link intent filter for Solflare wallet connection response -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="truetap" android:host="wallet-connected" />
             </intent-filter>
         </activity>
     </application>

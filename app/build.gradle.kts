@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
@@ -23,7 +24,36 @@ android {
         }
     }
 
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            
+            buildConfigField("boolean", "USE_FAKE_SEED_VAULT", "true")
+            buildConfigField("String", "BUILD_FLAVOR", "\"dev\"")
+            
+            resValue("string", "app_name", "TrueTap (Dev)")
+            manifestPlaceholders["appLabel"] = "TrueTap (Dev)"
+        }
+        
+        create("prod") {
+            dimension = "environment"
+            
+            buildConfigField("boolean", "USE_FAKE_SEED_VAULT", "false")
+            buildConfigField("String", "BUILD_FLAVOR", "\"prod\"")
+            
+            resValue("string", "app_name", "TrueTap")
+            manifestPlaceholders["appLabel"] = "TrueTap"
+        }
+    }
+
     buildTypes {
+        debug {
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -44,6 +74,7 @@ android {
     
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     
     composeOptions {
@@ -88,6 +119,9 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     
+    // Serialization
+    implementation(libs.kotlinx.serialization.json)
+    
     // DataStore
     implementation(libs.androidx.datastore.preferences)
     
@@ -113,6 +147,9 @@ dependencies {
     implementation(libs.solana.seed.vault)
     implementation(libs.mobile.wallet.adapter)
     implementation(libs.solana.kmp)
+    
+    // Fake Seed Vault Provider for development/testing
+    "devImplementation"(libs.fake.seed.vault.provider)
     
     // Testing
     testImplementation(libs.junit)

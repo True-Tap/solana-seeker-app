@@ -1,8 +1,10 @@
 package com.truetap.solana.seeker.di
 
 import android.content.Context
+import com.truetap.solana.seeker.repositories.ContactsRepository
 import com.truetap.solana.seeker.repositories.WalletRepository
 import com.truetap.solana.seeker.services.SeedVaultService
+import com.truetap.solana.seeker.services.SolanaService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,10 +26,25 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideSolanaService(): SolanaService {
+        return SolanaService()
+    }
+
+    @Provides
+    @Singleton
+    fun provideContactsRepository(
+        @ApplicationContext context: Context
+    ): ContactsRepository {
+        return ContactsRepository(context)
+    }
+
+    @Provides
+    @Singleton
     fun provideWalletRepository(
         @ApplicationContext context: Context,
-        seedVaultService: SeedVaultService
+        seedVaultService: SeedVaultService,
+        solanaService: SolanaService
     ): WalletRepository {
-        return WalletRepository(context, seedVaultService)
+        return WalletRepository(context, seedVaultService, solanaService)
     }
 } 

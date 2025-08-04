@@ -1,8 +1,17 @@
 package com.truetap.solana.seeker.ui.screens.wallet
 
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,10 +32,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.R
+import com.truetap.solana.seeker.data.AuthState
+import com.truetap.solana.seeker.data.WalletType
+import com.truetap.solana.seeker.data.ConnectionResult
 import com.truetap.solana.seeker.ui.theme.*
+import com.truetap.solana.seeker.ui.accessibility.LocalAccessibilitySettings
+import com.truetap.solana.seeker.ui.theme.LocalDynamicColors
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeout
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
+import com.truetap.solana.seeker.utils.SolflareDeepLinkParser
 import kotlinx.coroutines.delay
 
 data class WalletConfig(
@@ -41,6 +64,290 @@ sealed class PairingConnectionState {
     object Connecting : PairingConnectionState()
 }
 
+// Wallet connection helper object
+object WalletConnectionHelper {
+    
+    // Timeout configurations for wallet connections
+    private const val MWA_CONNECTION_TIMEOUT = 60_000L // 60 seconds for MWA connection
+    private const val SEED_VAULT_TIMEOUT = 30_000L     // 30 seconds for Seed Vault
+    
+    suspend fun attemptWalletConnection(
+        walletType: WalletType,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>?,
+        context: Context? = null,
+        activityResultSender: ActivityResultSender? = null,
+        retryCount: Int = 0
+    ): ConnectionResult {
+        println("WalletConnectionHelper: Attempting connection for ${walletType.displayName}, retry: $retryCount")
+        android.util.Log.d("WalletConnectionHelper", "Attempting connection for ${walletType.displayName}, retry: $retryCount")
+        
+        return try {
+            val result = when (walletType) {
+                WalletType.SOLFLARE, WalletType.EXTERNAL -> {
+                    if (activityResultSender != null) {
+                        println("WalletConnectionHelper: Using Mobile Wallet Adapter for ${walletType.displayName}")
+                        android.util.Log.d("WalletConnectionHelper", "Using Mobile Wallet Adapter for ${walletType.displayName}")
+                        connectWithMobileWalletAdapter(walletType, activityResultSender)
+                    } else {
+                        println("WalletConnectionHelper: Missing ActivityResultSender for MWA")
+                        android.util.Log.e("WalletConnectionHelper", "Missing ActivityResultSender for MWA")
+                        ConnectionResult.Failure(
+                            error = "Mobile Wallet Adapter setup error. Please restart the app.",
+                            walletType = walletType
+                        )
+                    }
+                }
+                WalletType.SOLANA_SEEKER -> {
+                    println("WalletConnectionHelper: Using Seed Vault for ${walletType.displayName}")
+                    connectWithSeedVault(walletType)
+                }
+            }
+            println("WalletConnectionHelper: Connection attempt result: $result")
+            result
+        } catch (e: Exception) {
+            println("WalletConnectionHelper: Exception during connection: ${e.message}")
+            if (retryCount < 2) {
+                println("WalletConnectionHelper: Retrying in 1 second...")
+                delay(1000) // Wait 1 second before retry
+                attemptWalletConnection(walletType, activityResultLauncher, context, activityResultSender, retryCount + 1)
+            } else {
+                ConnectionResult.Failure(
+                    error = "Connection failed after ${retryCount + 1} attempts: ${e.message}",
+                    exception = e,
+                    walletType = walletType
+                )
+            }
+        }
+    }
+    
+    private suspend fun connectWithMobileWalletAdapter(
+        walletType: WalletType,
+        activityResultSender: ActivityResultSender
+    ): ConnectionResult {
+        return try {
+            withTimeout(MWA_CONNECTION_TIMEOUT) {
+                suspendCancellableCoroutine { continuation ->
+            try {
+                println("WalletConnectionHelper: Starting Mobile Wallet Adapter connection for ${walletType.displayName}")
+                android.util.Log.d("WalletConnectionHelper", "Starting Mobile Wallet Adapter connection for ${walletType.displayName}")
+                
+                // Create connection identity for MWA
+                val connectionIdentity = com.solana.mobilewalletadapter.clientlib.ConnectionIdentity(
+                    identityUri = android.net.Uri.parse("https://truetap.app"),
+                    iconUri = android.net.Uri.parse(""), // Empty URI to avoid validation issues
+                    identityName = "TrueTap"
+                )
+                
+                println("WalletConnectionHelper: Creating MobileWalletAdapter instance")
+                android.util.Log.d("WalletConnectionHelper", "Creating MobileWalletAdapter instance")
+                val mobileWalletAdapter = com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter(connectionIdentity)
+                
+                println("WalletConnectionHelper: Launching MWA for authorization")
+                android.util.Log.d("WalletConnectionHelper", "Launching MWA for authorization")
+                
+                // Use a coroutine to handle the MWA transact call
+                CoroutineScope(Dispatchers.Main).launch {
+                    try {
+                        // Launch MWA with proper callback block for authorization
+                        val result = mobileWalletAdapter.transact(activityResultSender) { authResult ->
+                            println("WalletConnectionHelper: MWA authorization callback triggered")
+                            println("WalletConnectionHelper: Auth result accounts: ${authResult.accounts.size}")
+                            
+                            // Get the first authorized account's public key
+                            if (authResult.accounts.isNotEmpty()) {
+                                val account = authResult.accounts.first()
+                                val publicKey = account.publicKey
+                                val accountLabel = account.accountLabel
+                                val authToken = authResult.authToken
+                                
+                                println("WalletConnectionHelper: Got public key bytes: ${publicKey.size} bytes")
+                                println("WalletConnectionHelper: Account label: $accountLabel")
+                                
+                                // Convert public key bytes to base58 string (proper Solana format)
+                                val publicKeyBase58 = try {
+                                    // Use proper base58 encoding for Solana public keys
+                                    encodeBase58(publicKey)
+                                } catch (e: Exception) {
+                                    println("WalletConnectionHelper: Failed to encode public key: ${e.message}")
+                                    android.util.Base64.encodeToString(publicKey, android.util.Base64.NO_WRAP)
+                                }
+                                
+                                println("WalletConnectionHelper: Encoded public key: $publicKeyBase58")
+                                
+                                // Resume the coroutine with success result
+                                if (continuation.isActive) {
+                                    continuation.resume(
+                                        ConnectionResult.Success(
+                                            publicKey = publicKeyBase58,
+                                            accountLabel = accountLabel ?: "${walletType.displayName} Wallet",
+                                            walletType = walletType,
+                                            authToken = authToken
+                                        )
+                                    )
+                                }
+                            } else {
+                                println("WalletConnectionHelper: No accounts in auth result")
+                                if (continuation.isActive) {
+                                    continuation.resume(
+                                        ConnectionResult.Failure(
+                                            error = "No accounts were authorized by the wallet",
+                                            walletType = walletType
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Handle the overall transaction result
+                        when (result) {
+                            is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
+                                println("WalletConnectionHelper: MWA transaction completed successfully")
+                                // Success case is already handled in the callback above
+                            }
+                            is com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure -> {
+                                println("WalletConnectionHelper: MWA transaction failed: ${result.e.message}")
+                                if (continuation.isActive) {
+                                    continuation.resume(
+                                        ConnectionResult.Failure(
+                                            error = "Wallet connection failed: ${result.e.localizedMessage ?: result.e.message}",
+                                            exception = result.e,
+                                            walletType = walletType
+                                        )
+                                    )
+                                }
+                            }
+                            is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
+                                println("WalletConnectionHelper: No MWA compatible wallet found")
+                                if (continuation.isActive) {
+                                    continuation.resume(
+                                        ConnectionResult.Failure(
+                                            error = "No compatible Solana wallet found. Please install ${walletType.displayName} or another MWA-compatible wallet.",
+                                            walletType = walletType
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("WalletConnectionHelper: MWA transact exception: ${e.message}")
+                        e.printStackTrace()
+                        
+                        if (continuation.isActive) {
+                            continuation.resume(
+                                ConnectionResult.Failure(
+                                    error = "Mobile Wallet Adapter error: ${e.localizedMessage ?: e.message}. Please ensure you have ${walletType.displayName} or another compatible Solana wallet installed.",
+                                    exception = e,
+                                    walletType = walletType
+                                )
+                            )
+                        }
+                    }
+                }
+                
+            } catch (e: Exception) {
+                println("WalletConnectionHelper: MWA connection exception: ${e.message}")
+                e.printStackTrace()
+                
+                if (continuation.isActive) {
+                    continuation.resume(
+                        ConnectionResult.Failure(
+                            error = "Mobile Wallet Adapter error: ${e.localizedMessage ?: e.message}. Please ensure you have ${walletType.displayName} or another compatible Solana wallet installed.",
+                            exception = e,
+                            walletType = walletType
+                        )
+                    )
+                }
+            }
+                } // End of suspendCancellableCoroutine
+            } // End of withTimeout
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            android.util.Log.w("WalletConnectionHelper", "MWA connection timed out after ${MWA_CONNECTION_TIMEOUT}ms")
+            ConnectionResult.Failure(
+                error = "Wallet connection timed out after ${MWA_CONNECTION_TIMEOUT / 1000} seconds. Please try again.",
+                walletType = walletType
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("WalletConnectionHelper", "Unexpected error in MWA connection", e)
+            ConnectionResult.Failure(
+                error = "Unexpected error during wallet connection: ${e.localizedMessage ?: e.message}",
+                exception = e,
+                walletType = walletType
+            )
+        }
+    }
+    
+    // Helper function to encode bytes to base58 (Solana public key format)
+    private fun encodeBase58(bytes: ByteArray): String {
+        val alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+        
+        if (bytes.isEmpty()) return ""
+        
+        val input = bytes.copyOf()
+        var zeros = 0
+        while (zeros < input.size && input[zeros] == 0.toByte()) {
+            zeros++
+        }
+        
+        val encoded = mutableListOf<Char>()
+        var i = zeros
+        while (i < input.size) {
+            var carry = input[i].toInt() and 0xFF
+            var j = 0
+            while (carry != 0 || j < encoded.size) {
+                if (j >= encoded.size) {
+                    encoded.add('1')
+                }
+                carry += (alphabet.indexOf(encoded[j]) * 256)
+                encoded[j] = alphabet[carry % 58]
+                carry /= 58
+                j++
+            }
+            i++
+        }
+        
+        // Add leading zeros
+        repeat(zeros) {
+            encoded.add(0, '1')
+        }
+        
+        return encoded.reversed().joinToString("")
+    }
+
+    // Helper function to generate encryption key pair for Solflare
+    private fun generateEncryptionKeyPair(): java.security.KeyPair {
+        val keyGen = java.security.KeyPairGenerator.getInstance("RSA")
+        keyGen.initialize(2048)
+        return keyGen.generateKeyPair()
+    }
+    
+    private suspend fun connectWithSeedVault(walletType: WalletType): ConnectionResult {
+        return try {
+            withTimeout(SEED_VAULT_TIMEOUT) {
+                android.util.Log.d("WalletConnectionHelper", "Starting Seed Vault connection for ${walletType.displayName}")
+                // Redirect to SeedVaultScreen - this should be handled by navigation
+                // This method should not be called when using the new modular system
+                ConnectionResult.Failure(
+                    error = "Please use the Seed Vault screen for hardware wallet connections",
+                    walletType = walletType
+                )
+            }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            android.util.Log.w("WalletConnectionHelper", "Seed Vault connection timed out after ${SEED_VAULT_TIMEOUT}ms")
+            ConnectionResult.Failure(
+                error = "Seed Vault connection timed out. Please try again.",
+                walletType = walletType
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("WalletConnectionHelper", "Error in Seed Vault connection", e)
+            ConnectionResult.Failure(
+                error = "Seed Vault connection error: ${e.localizedMessage ?: e.message}",
+                exception = e,
+                walletType = walletType
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PairingScreen(
@@ -48,26 +355,36 @@ fun PairingScreen(
     onNavigateToSuccess: () -> Unit,
     onNavigateToFailure: (String, String?) -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: WalletViewModel? = null
+    activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null,
+    activityResultSender: ActivityResultSender? = null,
+    pendingWalletConnection: Uri? = null,
+    onWalletConnectionHandled: () -> Unit = {},
+    viewModel: WalletViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     var connectionState by remember { mutableStateOf<PairingConnectionState>(PairingConnectionState.Connecting) }
+    var debugMessage by remember { mutableStateOf("Initializing...") }
+    
+    // ActivityResultSender is now passed from MainActivity (created during onCreate)
+    
+    // Observe ViewModel state
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
     
     // Wallet configurations
     val walletConfigs = mapOf(
-        "phantom" to WalletConfig(
-            id = "phantom",
-            name = "Phantom",
-            logoRes = R.drawable.phantom,
-            gradient = listOf(Color(0xFFAB9FF2), Color(0xFF7B61FF)),
-            description = "Most popular Solana wallet"
-        ),
         "solflare" to WalletConfig(
             id = "solflare", 
             name = "Solflare",
             logoRes = R.drawable.solflare,
             gradient = listOf(Color(0xFFFFC107), Color(0xFFFF6B00)),
             description = "Feature-rich Solana wallet"
+        ),
+        "external" to WalletConfig(
+            id = "external",
+            name = "External Wallet",
+            logoRes = R.drawable.ic_wallet,
+            gradient = listOf(TrueTapPrimary, TrueTapPrimary.copy(alpha = 0.8f)),
+            description = "Compatible external wallets"
         ),
         "solana" to WalletConfig(
             id = "solana",
@@ -125,10 +442,132 @@ fun PairingScreen(
         )
     }
     
-    // Connection process - simplified to just show connecting state
+    // Get wallet type from ID
+    val walletType = WalletType.fromId(walletId)
+    
+    // Handle pending wallet connection from deep link
+    LaunchedEffect(pendingWalletConnection) {
+        if (pendingWalletConnection != null) {
+            debugMessage = "Processing deep link response..."
+            println("PairingScreen: Processing pending wallet connection: $pendingWalletConnection")
+            
+            try {
+                val connectionResult = SolflareDeepLinkParser.parseWalletConnectionResponse(pendingWalletConnection)
+                debugMessage = "Deep link parsed: $connectionResult"
+                println("PairingScreen: Deep link parsed result: $connectionResult")
+                
+                when (connectionResult) {
+                    is ConnectionResult.Success -> {
+                        debugMessage = "Deep link success! Saving and navigating..."
+                        println("PairingScreen: Deep link success! Saving connection and navigating...")
+                        
+                        // Save connection result to repository via ViewModel
+                        viewModel.saveWalletConnection(connectionResult)
+                        
+                        // Mark deep link as handled
+                        onWalletConnectionHandled()
+                        
+                        // Navigate to success
+                        onNavigateToSuccess()
+                    }
+                    is ConnectionResult.Failure -> {
+                        debugMessage = "Deep link failure: ${connectionResult.error}"
+                        println("PairingScreen: Deep link failure: ${connectionResult.error}")
+                        
+                        // Mark deep link as handled
+                        onWalletConnectionHandled()
+                        
+                        // Navigate to failure
+                        onNavigateToFailure(walletId, connectionResult.error)
+                    }
+                    is ConnectionResult.Pending -> {
+                        debugMessage = "Deep link pending: ${connectionResult.message}"
+                        println("PairingScreen: Deep link pending: ${connectionResult.message}")
+                        
+                        // This shouldn't happen when parsing a completed deep link response
+                        // but we handle it gracefully
+                        onWalletConnectionHandled()
+                        onNavigateToFailure(walletId, "Unexpected pending state from deep link")
+                    }
+                }
+                
+            } catch (e: Exception) {
+                debugMessage = "Deep link error: ${e.message}"
+                println("PairingScreen: Deep link processing error: ${e.message}")
+                
+                // Mark deep link as handled
+                onWalletConnectionHandled()
+                
+                // Navigate to failure
+                onNavigateToFailure(walletId, "Failed to process wallet response: ${e.message}")
+            }
+            
+            return@LaunchedEffect // Skip normal connection flow when processing deep link
+        }
+    }
+    
+    // Trigger wallet connection when screen loads
     LaunchedEffect(walletId) {
-        // The actual connection logic will be handled by the navigation
-        // This screen just shows the connecting animation
+        debugMessage = "LaunchedEffect triggered with walletId: $walletId"
+        println("PairingScreen: LaunchedEffect triggered with walletId: $walletId")
+        println("PairingScreen: walletType: $walletType")
+        
+        if (walletType != null) {
+            debugMessage = "Attempting connection for ${walletType.displayName}"
+            println("PairingScreen: Attempting connection for ${walletType.displayName}")
+            
+            try {
+                val result = WalletConnectionHelper.attemptWalletConnection(
+                    walletType = walletType,
+                    activityResultLauncher = activityResultLauncher,
+                    context = context,
+                    activityResultSender = activityResultSender
+                )
+                
+                debugMessage = "Connection result: $result"
+                println("PairingScreen: Connection result: $result")
+                
+                when (result) {
+                    is ConnectionResult.Success -> {
+                        debugMessage = "Success! Saving and navigating..."
+                        println("PairingScreen: Success! Saving connection and navigating...")
+                        // Save connection result to repository via ViewModel
+                        viewModel.saveWalletConnection(result)
+                        
+                        // Navigate to success
+                        debugMessage = "About to navigate to success"
+                        println("PairingScreen: About to call onNavigateToSuccess()")
+                        onNavigateToSuccess()
+                        println("PairingScreen: Called onNavigateToSuccess()")
+                    }
+                    is ConnectionResult.Failure -> {
+                        debugMessage = "Failure: ${result.error}"
+                        println("PairingScreen: Failure! Error: ${result.error}")
+                        // Navigate to failure with error message
+                        debugMessage = "About to navigate to failure"
+                        println("PairingScreen: About to call onNavigateToFailure()")
+                        onNavigateToFailure(walletId, result.error)
+                        println("PairingScreen: Called onNavigateToFailure()")
+                    }
+                    is ConnectionResult.Pending -> {
+                        debugMessage = "Pending: ${result.message}"
+                        println("PairingScreen: Pending connection - waiting for response: ${result.message}")
+                        // Stay on the connecting screen and wait for deep link response
+                        // The deep link LaunchedEffect will handle the actual connection
+                    }
+                }
+            } catch (e: Exception) {
+                debugMessage = "Exception: ${e.message}"
+                println("PairingScreen: Exception in LaunchedEffect: ${e.message}")
+                e.printStackTrace()
+                onNavigateToFailure(walletId, "Unexpected error: ${e.message}")
+            }
+        } else {
+            debugMessage = "Unknown wallet type for ID: $walletId"
+            println("PairingScreen: Unknown wallet type for ID: $walletId")
+            // Unknown wallet ID
+            onNavigateToFailure(walletId, "Unknown wallet type: $walletId")
+        }
     }
     
     if (walletConfig == null) {
@@ -141,14 +580,28 @@ fun PairingScreen(
         return
     }
     
+    val accessibility = LocalAccessibilitySettings.current
+    val dynamicColors = getDynamicColors(
+        themeMode = accessibility.themeMode,
+        highContrastMode = accessibility.highContrastMode
+    )
+    
+    // Apply dynamic background color
+    val backgroundModifier = if (dynamicColors.backgroundBrush != null) {
+        Modifier.fillMaxSize().background(dynamicColors.backgroundBrush)
+    } else {
+        Modifier.fillMaxSize().background(dynamicColors.background)
+    }
+    
     Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = TrueTapBackground
+        modifier = backgroundModifier,
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer(alpha = fadeAnim),
+                .graphicsLayer(alpha = fadeAnim)
+                .padding(WindowInsets.navigationBars.asPaddingValues()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
@@ -158,7 +611,7 @@ fun PairingScreen(
                         text = "Syncing",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TrueTapTextPrimary,
+                        color = dynamicColors.textPrimary,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -185,6 +638,17 @@ fun PairingScreen(
                 dotAnimations = dotAnimations
             )
             
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Debug message for troubleshooting
+            Text(
+                text = "Debug: $debugMessage",
+                fontSize = 12.sp,
+                color = dynamicColors.textSecondary.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            
             Spacer(modifier = Modifier.weight(1f))
             
             // Action button - only cancel option
@@ -196,7 +660,7 @@ fun PairingScreen(
                     text = "Cancel Connection",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = TrueTapTextSecondary
+                    color = dynamicColors.textSecondary
                 )
             }
         }
@@ -210,6 +674,11 @@ private fun TwoCircleConnectionAnimation(
     floatingOffset: Float
 ) {
     val circleSize = 100.dp
+    val accessibility = LocalAccessibilitySettings.current
+    val dynamicColors = getDynamicColors(
+        themeMode = accessibility.themeMode,
+        highContrastMode = accessibility.highContrastMode
+    )
     
     Row(
         horizontalArrangement = Arrangement.spacedBy(40.dp),
@@ -239,7 +708,7 @@ private fun TwoCircleConnectionAnimation(
             imageVector = Icons.Default.Add,
             contentDescription = null,
             modifier = Modifier.size(32.dp),
-            tint = TrueTapPrimary
+            tint = dynamicColors.primary
         )
         
         // Wallet Circle with synchronized heartbeat
@@ -253,12 +722,30 @@ private fun TwoCircleConnectionAnimation(
                 .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = walletConfig.logoRes),
-                contentDescription = "${walletConfig.name} logo",
-                modifier = Modifier.size(circleSize),
-                contentScale = ContentScale.Crop
-            )
+            // Check if this is the external wallet category to use appropriate rendering
+            if (walletConfig.id == "external") {
+                Box(
+                    modifier = Modifier
+                        .size(circleSize * 0.6f)
+                        .clip(CircleShape)
+                        .background(dynamicColors.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = walletConfig.logoRes),
+                        contentDescription = "${walletConfig.name} logo",
+                        modifier = Modifier.size(circleSize * 0.4f),
+                        tint = Color.White
+                    )
+                }
+            } else {
+                Image(
+                    painter = painterResource(id = walletConfig.logoRes),
+                    contentDescription = "${walletConfig.name} logo",
+                    modifier = Modifier.size(circleSize),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
     }
 }
@@ -268,14 +755,20 @@ private fun ConnectingTextContent(
     walletConfig: WalletConfig,
     dotAnimations: List<State<Float>>
 ) {
+    val accessibility = LocalAccessibilitySettings.current
+    val dynamicColors = getDynamicColors(
+        themeMode = accessibility.themeMode,
+        highContrastMode = accessibility.highContrastMode
+    )
+    
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "We're better together!",
-            fontSize = 28.sp,
+            fontSize = if (accessibility.largeButtonMode) 32.sp else 28.sp,
             fontWeight = FontWeight.ExtraBold,
-            color = TrueTapTextPrimary,
+            color = dynamicColors.textPrimary,
             textAlign = TextAlign.Center,
             letterSpacing = (-0.5).sp
         )
@@ -284,10 +777,10 @@ private fun ConnectingTextContent(
         
         Text(
             text = "Syncing with ${walletConfig.name}",
-            fontSize = 18.sp,
-            color = TrueTapTextSecondary,
+            fontSize = if (accessibility.largeButtonMode) 20.sp else 18.sp,
+            color = dynamicColors.textSecondary,
             textAlign = TextAlign.Center,
-            lineHeight = 24.sp
+            lineHeight = if (accessibility.largeButtonMode) 28.sp else 24.sp
         )
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -303,7 +796,7 @@ private fun ConnectingTextContent(
                         .size(8.dp)
                         .scale(animatedOpacity.value)
                         .background(
-                            TrueTapPrimary.copy(alpha = animatedOpacity.value),
+                            dynamicColors.primary.copy(alpha = animatedOpacity.value),
                             CircleShape
                         )
                 )
@@ -320,9 +813,22 @@ private fun ErrorContent(
     subtitle: String,
     onRetry: () -> Unit
 ) {
+    val accessibility = LocalAccessibilitySettings.current
+    val dynamicColors = getDynamicColors(
+        themeMode = accessibility.themeMode,
+        highContrastMode = accessibility.highContrastMode
+    )
+    
+    // Apply dynamic background color
+    val backgroundModifier = if (dynamicColors.backgroundBrush != null) {
+        Modifier.fillMaxSize().background(dynamicColors.backgroundBrush)
+    } else {
+        Modifier.fillMaxSize().background(dynamicColors.background)
+    }
+    
     Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = TrueTapBackground
+        modifier = backgroundModifier,
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -333,9 +839,9 @@ private fun ErrorContent(
         ) {
             Text(
                 text = title,
-                fontSize = 24.sp,
+                fontSize = if (accessibility.largeButtonMode) 28.sp else 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = TrueTapTextPrimary,
+                color = dynamicColors.textPrimary,
                 textAlign = TextAlign.Center
             )
             
@@ -343,8 +849,8 @@ private fun ErrorContent(
             
             Text(
                 text = subtitle,
-                fontSize = 16.sp,
-                color = TrueTapTextSecondary,
+                fontSize = if (accessibility.largeButtonMode) 18.sp else 16.sp,
+                color = dynamicColors.textSecondary,
                 textAlign = TextAlign.Center
             )
             
@@ -353,7 +859,7 @@ private fun ErrorContent(
             Button(
                 onClick = onRetry,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = TrueTapPrimary
+                    containerColor = dynamicColors.primary
                 )
             ) {
                 Text(

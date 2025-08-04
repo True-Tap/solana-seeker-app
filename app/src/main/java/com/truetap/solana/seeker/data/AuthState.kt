@@ -17,3 +17,33 @@ data class SeedVaultInfo(
     val isAvailable: Boolean,
     val isBiometricAuthSupported: Boolean = false
 )
+
+enum class WalletType(val id: String, val displayName: String, val usesMobileWalletAdapter: Boolean) {
+    SOLFLARE("solflare", "Solflare", true),
+    EXTERNAL("external", "External Wallet", true),
+    SOLANA_SEEKER("solana", "Solana Seeker", false);
+    
+    companion object {
+        fun fromId(id: String): WalletType? = values().find { it.id == id }
+    }
+}
+
+sealed class ConnectionResult {
+    data class Success(
+        val publicKey: String,
+        val accountLabel: String? = null,
+        val walletType: WalletType,
+        val authToken: String? = null
+    ) : ConnectionResult()
+    
+    data class Failure(
+        val error: String,
+        val exception: Throwable? = null,
+        val walletType: WalletType
+    ) : ConnectionResult()
+    
+    data class Pending(
+        val message: String,
+        val walletType: WalletType
+    ) : ConnectionResult()
+}

@@ -6,6 +6,9 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -26,22 +29,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import kotlinx.coroutines.delay
 
-data class WalletOption(
+data class WalletCategory(
     val id: String,
     val name: String,
     val description: String,
-    val logoRes: Int,
+    val iconRes: Int,
     val gradient: List<Color>
 )
 
@@ -56,7 +62,7 @@ fun WalletConnectionScreen(
     onNavigateToNext: () -> Unit,
     onNavigateToPairing: (String) -> Unit,
     activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null,
-    viewModel: WalletViewModel? = null
+    viewModel: WalletViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     var currentState by remember { mutableStateOf<ConnectionState>(ConnectionState.Selection) }
@@ -64,59 +70,62 @@ fun WalletConnectionScreen(
     
     // Animation states
     val infiniteTransition = rememberInfiniteTransition(label = "wallet_connection")
-    // val isLoading by viewModel?.isLoading?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
-    // val errorMessage by viewModel?.errorMessage?.collectAsStateWithLifecycle() ?: remember { mutableStateOf<String?>(null) }
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     
-    // Wallet options
-    val walletOptions = listOf(
-        WalletOption(
-            id = "phantom",
-            name = "Phantom",
-            description = "Most popular Solana wallet",
-            logoRes = R.drawable.phantom,
-            gradient = listOf(TrueTapPrimary, TrueTapPrimary)
+    // Wallet categories
+    val walletCategories = listOf(
+        WalletCategory(
+            id = "solflare", // Changed from "external" to directly target Solflare
+            name = "Use Solflare Wallet",
+            description = "Connect with your Solflare wallet",
+            iconRes = R.drawable.solflare, // Using Solflare icon
+            gradient = listOf(Color(0xFFFFC107), Color(0xFFFF6B00)) // Solflare colors
         ),
-        WalletOption(
-            id = "solflare",
-            name = "Solflare", 
-            description = "Feature-rich Solana wallet",
-            logoRes = R.drawable.solflare,
-            gradient = listOf(TrueTapPrimary, TrueTapPrimary)
-        ),
-        WalletOption(
+        WalletCategory(
             id = "solana",
-            name = "Solana Seeker",
-            description = "Official Solana wallet",
-            logoRes = R.drawable.skr,
-            gradient = listOf(TrueTapPrimary, TrueTapPrimary)
+            name = "Use Hardware Wallet",
+            description = "Use the Seeker's Seed Vault",
+            iconRes = R.drawable.skr, // Using Seeker icon
+            gradient = listOf(Color(0xFF00D4FF), Color(0xFF00FFA3)) // Seeker colors
         )
     )
     
-    // Handle wallet selection
-    val handleWalletSelect: (String) -> Unit = { walletId ->
-        selectedWallet = walletId
-        // Navigate directly to pairing screen - no connecting state here
-        onNavigateToPairing(walletId)
+    // Handle wallet category selection
+    val handleWalletCategorySelect: (String) -> Unit = { categoryId ->
+        android.util.Log.d("WalletConnectionScreen", "handleWalletCategorySelect called with categoryId: '$categoryId'")
+        selectedWallet = categoryId
+        
+        // All wallet types go through pairing screen - let pairing screen handle the specific logic
+        android.util.Log.d("WalletConnectionScreen", "About to call onNavigateToPairing with categoryId: '$categoryId'")
+        onNavigateToPairing(categoryId)
     }
 
-    // Handle creating wallet with Phantom
-    val handleCreateWalletWithPhantom: () -> Unit = {
+    // Handle creating wallet with Solflare
+    val handleCreateWalletWithSolflare: () -> Unit = {
         try {
-            // Check if Phantom app is installed
+            // Check if Solflare app is installed
             val packageManager = context.packageManager
-            val phantomPackageName = "app.phantom"
+            val solflarePackageName = "com.solflare.mobile"
             
             try {
-                // Try to get Phantom app info
-                packageManager.getPackageInfo(phantomPackageName, 0)
+                // Try to get Solflare app info
+                packageManager.getPackageInfo(solflarePackageName, 0)
                 
-                // Phantom is installed - navigate to pairing screen
-                onNavigateToPairing("phantom")
+                // Solflare is installed - open Solflare app directly for wallet creation
+                val solflareIntent = packageManager.getLaunchIntentForPackage(solflarePackageName)
+                if (solflareIntent != null) {
+                    solflareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(solflareIntent)
+                } else {
+                    // If we can't launch it, fall back to pairing screen
+                    onNavigateToPairing("solflare")
+                }
                 
             } catch (e: Exception) {
-                // Phantom is not installed - open Play Store
+                // Solflare is not installed - open Play Store
                 val playStoreIntent = Intent(Intent.ACTION_VIEW).apply {
-                    data = android.net.Uri.parse("market://details?id=$phantomPackageName")
+                    data = android.net.Uri.parse("market://details?id=$solflarePackageName")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 
@@ -125,15 +134,25 @@ fun WalletConnectionScreen(
                     context.startActivity(playStoreIntent)
                 } else {
                     val webIntent = Intent(Intent.ACTION_VIEW).apply {
-                        data = android.net.Uri.parse("https://play.google.com/store/apps/details?id=$phantomPackageName")
+                        data = android.net.Uri.parse("https://play.google.com/store/apps/details?id=$solflarePackageName")
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     context.startActivity(webIntent)
                 }
             }
         } catch (e: Exception) {
-            // Fallback to pairing screen if there's any error
-            onNavigateToPairing("phantom")
+            // If there's any unexpected error, open Play Store as fallback
+            android.util.Log.e("WalletConnectionScreen", "Error handling create wallet", e)
+            try {
+                val playStoreIntent = Intent(Intent.ACTION_VIEW).apply {
+                    data = android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.solflare.mobile")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(playStoreIntent)
+            } catch (ex: Exception) {
+                // Last resort - show error or do nothing
+                android.util.Log.e("WalletConnectionScreen", "Could not open Play Store", ex)
+            }
         }
     }
 
@@ -148,9 +167,9 @@ fun WalletConnectionScreen(
     ) {
         when (currentState) {
             ConnectionState.Selection -> WalletSelectionContent(
-                walletOptions = walletOptions,
-                onWalletSelect = handleWalletSelect,
-                onCreateWalletWithPhantom = handleCreateWalletWithPhantom,
+                walletCategories = walletCategories,
+                onWalletCategorySelect = handleWalletCategorySelect,
+                onCreateWalletWithSolflare = handleCreateWalletWithSolflare,
                 onTempBypass = handleTempBypass
             )
             ConnectionState.Success -> WalletSuccessContent()
@@ -160,9 +179,9 @@ fun WalletConnectionScreen(
 
 @Composable
 private fun WalletSelectionContent(
-    walletOptions: List<WalletOption>,
-    onWalletSelect: (String) -> Unit,
-    onCreateWalletWithPhantom: () -> Unit,
+    walletCategories: List<WalletCategory>,
+    onWalletCategorySelect: (String) -> Unit,
+    onCreateWalletWithSolflare: () -> Unit,
     onTempBypass: () -> Unit
 ) {
     // Bounce animation for Tappy
@@ -185,7 +204,8 @@ private fun WalletSelectionContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(24.dp)
+            .padding(WindowInsets.navigationBars.asPaddingValues()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(40.dp))
@@ -234,15 +254,15 @@ private fun WalletSelectionContent(
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Wallet List
+        // Wallet Categories
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(walletOptions) { wallet ->
-                WalletOptionCard(
-                    wallet = wallet,
-                    onClick = { onWalletSelect(wallet.id) }
+            items(walletCategories) { category ->
+                WalletCategoryCard(
+                    category = category,
+                    onClick = { onWalletCategorySelect(category.id) }
                 )
             }
         }
@@ -272,7 +292,7 @@ private fun WalletSelectionContent(
             
             // Create Wallet Button
             TextButton(
-                onClick = onCreateWalletWithPhantom,
+                onClick = onCreateWalletWithSolflare,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Box(
@@ -292,7 +312,7 @@ private fun WalletSelectionContent(
                 Spacer(modifier = Modifier.width(12.dp))  // Increased from 8dp
                 
                 Text(
-                    text = "Create a new wallet in Phantom",
+                    text = "Create a new Solflare wallet",
                     fontSize = 18.sp,  // Increased from 16sp
                     fontWeight = FontWeight.Bold,  // Changed from SemiBold
                     color = TrueTapPrimary
@@ -307,7 +327,10 @@ private fun WalletSelectionContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp)
-                    .padding(horizontal = 32.dp),
+                    .padding(horizontal = 32.dp)
+                    .semantics { 
+                        contentDescription = "Temporary bypass for testing. Skip wallet connection and continue to app"
+                    },
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = TrueTapPrimary
@@ -341,15 +364,19 @@ private fun WalletSelectionContent(
 }
 
 @Composable
-private fun WalletOptionCard(
-    wallet: WalletOption,
+private fun WalletCategoryCard(
+    category: WalletCategory,
     onClick: () -> Unit
 ) {
     Card(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp),
+            .height(80.dp)
+            .semantics { 
+                contentDescription = "Connect with ${category.name}. ${category.description}"
+                role = androidx.compose.ui.semantics.Role.Button
+            },
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),
@@ -362,37 +389,31 @@ private fun WalletOptionCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Wallet Icon
-            Box(
+            // Category Icon - Full image filling the circle
+            Image(
+                painter = painterResource(id = category.iconRes),
+                contentDescription = "${category.name} wallet icon",
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(CircleShape)
-                    .background(TrueTapPrimary),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = wallet.logoRes),
-                    contentDescription = "${wallet.name} logo",
-                    modifier = Modifier.size(48.dp),
-                    contentScale = ContentScale.Crop
-                )
-            }
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
             
             Spacer(modifier = Modifier.width(16.dp))
             
-            // Wallet Info
+            // Category Info
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = wallet.name,
+                    text = category.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TrueTapTextPrimary
                 )
                 
                 Text(
-                    text = wallet.description,
+                    text = category.description,
                     fontSize = 14.sp,
                     color = TrueTapTextSecondary,
                     lineHeight = 20.sp
