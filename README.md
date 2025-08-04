@@ -1,6 +1,5 @@
 # True Tap - Revolutionizing Solana Payments on Seeker
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/True-Tap/solana-seeker-app/build.yml?label=Build)](https://github.com/True-Tap/solana-seeker-app/actions)
 [![Solana Seeker Optimized](https://img.shields.io/badge/Optimized%20for-Solana%20Seeker-orange.svg)](https://solana.com/seeker)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-purple.svg)](https://kotlinlang.org/)
 [![Android](https://img.shields.io/badge/Android-SDK%2035-green.svg)](https://developer.android.com/about/versions/15)
