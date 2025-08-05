@@ -32,7 +32,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.truetap.solana.seeker.R
@@ -224,50 +224,49 @@ fun LandingScreen(
                 
                 // Clickable terms text with hyperlinks
                 val uriHandler = LocalUriHandler.current
-                val annotatedText = buildAnnotatedString {
-                    append("I agree to the ")
-                    
-                    // Terms of Service link
-                    pushStringAnnotation(tag = "terms", annotation = "https://truetap.com/terms")
-                    withStyle(style = SpanStyle(
-                        color = TrueTapPrimary,
-                        textDecoration = TextDecoration.Underline
-                    )) {
-                        append("Terms of Service")
-                    }
-                    pop()
-                    
-                    append(" and ")
-                    
-                    // Privacy Policy link
-                    pushStringAnnotation(tag = "privacy", annotation = "https://truetap.com/privacy")
-                    withStyle(style = SpanStyle(
-                        color = TrueTapPrimary,
-                        textDecoration = TextDecoration.Underline
-                    )) {
-                        append("Privacy Policy")
-                    }
-                    pop()
-                }
                 
-                ClickableText(
-                    text = annotatedText,
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        color = TrueTapTextSecondary
-                    ),
+                // Using Row with separate clickable texts for better accessibility
+                Row(
                     modifier = Modifier.weight(1f),
-                    onClick = { offset ->
-                        annotatedText.getStringAnnotations(tag = "terms", start = offset, end = offset)
-                            .firstOrNull()?.let { annotation ->
-                                uriHandler.openUri(annotation.item)
-                            }
-                        annotatedText.getStringAnnotations(tag = "privacy", start = offset, end = offset)
-                            .firstOrNull()?.let { annotation ->
-                                uriHandler.openUri(annotation.item)
-                            }
-                    }
-                )
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "By continuing, you agree to our ",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = TrueTapTextSecondary
+                        )
+                    )
+                    Text(
+                        text = "Terms",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = TrueTapPrimary,
+                            textDecoration = TextDecoration.Underline
+                        ),
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://truetap.com/terms")
+                        }
+                    )
+                    Text(
+                        text = " and ",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = TrueTapTextSecondary
+                        )
+                    )
+                    Text(
+                        text = "Privacy Policy",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = TrueTapPrimary,
+                            textDecoration = TextDecoration.Underline
+                        ),
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://truetap.com/privacy")
+                        }
+                    )
+                }
             }
             
             // Push features and "Powered by" text to bottom just above swipe bar

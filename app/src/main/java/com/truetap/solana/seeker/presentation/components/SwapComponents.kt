@@ -10,6 +10,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -143,7 +146,7 @@ fun SwapFeeDisplay(
             }
             
             if (!isGenesisHolder) {
-                Divider(color = TrueTapTextInactive.copy(alpha = 0.2f))
+                HorizontalDivider(color = TrueTapTextInactive.copy(alpha = 0.2f))
                 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -210,7 +213,7 @@ fun SwapRouteDisplay(
                     route.forEachIndexed { index, dex ->
                         if (index > 0) {
                             Icon(
-                                imageVector = Icons.Default.ArrowForward,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = "Arrow",
                                 tint = TrueTapTextSecondary,
                                 modifier = Modifier.size(12.dp)
@@ -249,8 +252,8 @@ fun PriceImpactIndicator(
     modifier: Modifier = Modifier
 ) {
     val (color, text, icon) = when {
-        priceImpact < 0.1 -> Triple(TrueTapSuccess, "Excellent", Icons.Default.TrendingUp)
-        priceImpact < 0.5 -> Triple(Color(0xFFFFC107), "Good", Icons.Default.TrendingFlat)
+        priceImpact < 0.1 -> Triple(TrueTapSuccess, "Excellent", Icons.AutoMirrored.Filled.TrendingUp)
+        priceImpact < 0.5 -> Triple(Color(0xFFFFC107), "Good", Icons.AutoMirrored.Filled.TrendingFlat)
         priceImpact < 1.0 -> Triple(Color(0xFFFF9800), "Fair", Icons.Default.Warning)
         else -> Triple(TrueTapError, "High Impact", Icons.Default.Error)
     }
@@ -423,7 +426,7 @@ fun SwapConfirmationDialog(
                     )
                 }
                 
-                Divider()
+                HorizontalDivider()
                 
                 // Fee breakdown
                 Row(
@@ -470,7 +473,7 @@ fun SwapConfirmationDialog(
                 }
                 
                 if (quote.route.isNotEmpty()) {
-                    Divider()
+                    HorizontalDivider()
                     Column {
                         Text(
                             "Route:",

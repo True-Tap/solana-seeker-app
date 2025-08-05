@@ -118,7 +118,7 @@ fun TransactionHistoryScreen(
                     color = Color(0xFF4CAF50)
                 )
                 
-                Divider(
+                VerticalDivider(
                     modifier = Modifier
                         .height(40.dp)
                         .width(1.dp),
@@ -577,7 +577,7 @@ private fun <T> FilterDropdown(
                             color = TrueTapTextPrimary
                         )
                         if (option != options.last()) {
-                            Divider(
+                            HorizontalDivider(
                                 color = TrueTapTextSecondary.copy(alpha = 0.2f),
                                 thickness = 0.5.dp
                             )

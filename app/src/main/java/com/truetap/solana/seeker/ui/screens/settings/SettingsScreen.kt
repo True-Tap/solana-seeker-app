@@ -4,10 +4,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.truetap.solana.seeker.ui.components.*
 import com.truetap.solana.seeker.ui.components.layouts.*
@@ -181,7 +185,7 @@ fun SettingsScreen(
                     SettingsItemData(
                         title = "Audio Feedback",
                         subtitle = "Sound confirmations",
-                        icon = Icons.Default.VolumeUp,
+                        icon = Icons.AutoMirrored.Filled.VolumeUp,
                         type = SettingsItemType.TOGGLE,
                         value = uiState.audioConfirmations,
                         onClick = { viewModel.toggleAudioConfirmations() }
@@ -189,7 +193,7 @@ fun SettingsScreen(
                     SettingsItemData(
                         title = "Simplified Interface",
                         subtitle = "Reduce visual complexity",
-                        icon = Icons.Default.ViewList,
+                        icon = Icons.AutoMirrored.Filled.ViewList,
                         type = SettingsItemType.TOGGLE,
                         value = uiState.simplifiedUIMode,
                         onClick = { viewModel.toggleSimplifiedUI() }
@@ -319,27 +323,39 @@ fun SettingsScreen(
     }
     
     // Show dialog messages if needed
-    // TODO: Implement proper dialog message handling
-    /*
     uiState.dialogMessage?.let { message ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDialog,
             title = {
                 Text(
-                    text = message,
+                    text = "Information",
+                    style = getDynamicTypography(accessibility.largeButtonMode).headlineSmall,
                     color = dynamicColors.textPrimary
                 )
             },
-            confirmButton = {
-                TrueTapButton(
-                    text = "OK",
-                    onClick = viewModel::dismissDialog,
-                    style = TrueTapButtonStyle.PRIMARY
+            text = {
+                Text(
+                    text = message,
+                    style = getDynamicTypography(accessibility.largeButtonMode).bodyMedium,
+                    color = dynamicColors.textSecondary
                 )
-            }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::dismissDialog
+                ) {
+                    Text(
+                        text = "OK",
+                        color = dynamicColors.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            containerColor = dynamicColors.surface,
+            titleContentColor = dynamicColors.textPrimary,
+            textContentColor = dynamicColors.textSecondary
         )
     }
-    */
 }
 
 @Composable
@@ -405,7 +421,7 @@ private fun SettingsItem(
                 }
                 SettingsItemType.NAVIGATION -> {
                     Icon(
-                        imageVector = Icons.Default.ChevronRight,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Navigate",
                         tint = dynamicColors.textSecondary
                     )
@@ -418,7 +434,7 @@ private fun SettingsItem(
                             color = dynamicColors.textSecondary
                         )
                         Icon(
-                            imageVector = Icons.Default.ChevronRight,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Select",
                             tint = dynamicColors.textSecondary
                         )
@@ -426,7 +442,7 @@ private fun SettingsItem(
                 }
                 SettingsItemType.ACTION -> {
                     Icon(
-                        imageVector = Icons.Default.ChevronRight,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Action",
                         tint = dynamicColors.textSecondary
                     )
