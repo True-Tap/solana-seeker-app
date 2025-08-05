@@ -319,40 +319,27 @@ fun SettingsScreen(
     }
     
     // Show dialog messages if needed
+    // TODO: Implement proper dialog message handling
+    /*
     uiState.dialogMessage?.let { message ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDialog,
             title = {
                 Text(
-                    text = message.title,
-                    color = if (message.isError) dynamicColors.error else dynamicColors.textPrimary
+                    text = message,
+                    color = dynamicColors.textPrimary
                 )
             },
-            text = message.content?.let { { Text(it) } },
             confirmButton = {
                 TrueTapButton(
                     text = "OK",
-                    onClick = {
-                        viewModel.dismissDialog()
-                        message.onConfirm?.invoke()
-                    },
-                    style = if (message.isError) TrueTapButtonStyle.SECONDARY else TrueTapButtonStyle.PRIMARY
+                    onClick = viewModel::dismissDialog,
+                    style = TrueTapButtonStyle.PRIMARY
                 )
-            },
-            dismissButton = message.onCancel?.let { cancel ->
-                {
-                    TrueTapButton(
-                        text = "Cancel",
-                        onClick = {
-                            viewModel.dismissDialog()
-                            cancel()
-                        },
-                        style = TrueTapButtonStyle.TEXT
-                    )
-                }
             }
         )
     }
+    */
 }
 
 @Composable
