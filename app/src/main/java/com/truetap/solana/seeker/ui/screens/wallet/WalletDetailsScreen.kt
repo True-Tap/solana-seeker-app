@@ -21,8 +21,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.ui.theme.*
-import com.truetap.solana.seeker.ui.screens.home.Transaction
-import com.truetap.solana.seeker.ui.screens.home.TransactionType
+import com.truetap.solana.seeker.data.models.Transaction
+import com.truetap.solana.seeker.data.models.TransactionType
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import com.truetap.solana.seeker.data.AuthState
 

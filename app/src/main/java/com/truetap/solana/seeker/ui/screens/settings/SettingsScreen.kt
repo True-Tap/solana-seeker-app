@@ -13,6 +13,8 @@ import com.truetap.solana.seeker.ui.components.*
 import com.truetap.solana.seeker.ui.components.layouts.*
 import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.viewmodels.SettingsViewModel
+import com.truetap.solana.seeker.viewmodels.SelectionType
+import com.truetap.solana.seeker.viewmodels.SettingsUiState
 import com.truetap.solana.seeker.ui.accessibility.LocalAccessibilitySettings
 
 /**
@@ -117,7 +119,8 @@ fun SettingsScreen(
                         subtitle = uiState.defaultCurrency,
                         icon = Icons.Default.AttachMoney,
                         type = SettingsItemType.SELECTION,
-                        value = uiState.defaultCurrency
+                        value = uiState.defaultCurrency,
+                        onClick = { viewModel.selectCurrency() }
                     ),
                     SettingsItemData(
                         title = "Network",
@@ -136,17 +139,19 @@ fun SettingsScreen(
                 items = listOf(
                     SettingsItemData(
                         title = "Theme",
-                        subtitle = uiState.themeMode.replaceFirstChar { it.uppercase() },
+                        subtitle = uiState.themeMode.name.lowercase().replaceFirstChar { it.uppercase() },
                         icon = Icons.Default.Brightness6,
                         type = SettingsItemType.SELECTION,
-                        value = uiState.themeMode
+                        value = uiState.themeMode,
+                        onClick = { viewModel.selectTheme() }
                     ),
                     SettingsItemData(
                         title = "Language",
                         subtitle = uiState.language,
                         icon = Icons.Default.Language,
                         type = SettingsItemType.SELECTION,
-                        value = uiState.language
+                        value = uiState.language,
+                        onClick = { viewModel.selectLanguage() }
                     ),
                     SettingsItemData(
                         title = "Large Text",
@@ -376,7 +381,7 @@ private fun SettingsGroupCard(
                 if (index < group.items.size - 1) {
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = TrueTapSpacing.md),
-                        color = getDynamicColors().outline.copy(alpha = 0.2f)
+                        color = LocalDynamicColors.current.outline.copy(alpha = 0.2f)
                     )
                 }
             }
@@ -506,17 +511,26 @@ private fun SelectionDialog(
     // This is a placeholder for the migration
 }
 
-private fun getSelectionTitle(modalType: Any): String {
-    // Implementation from original SettingsScreen
-    return "Selection"
+private fun getSelectionTitle(modalType: SelectionType): String {
+    return when (modalType) {
+        SelectionType.CURRENCY -> "Select Currency"
+        SelectionType.THEME -> "Select Theme"
+        SelectionType.LANGUAGE -> "Select Language"
+    }
 }
 
-private fun getSelectionOptions(modalType: Any, uiState: Any): List<String> {
-    // Implementation from original SettingsScreen
-    return listOf("Option 1", "Option 2")
+private fun getSelectionOptions(modalType: SelectionType, uiState: SettingsUiState): List<String> {
+    return when (modalType) {
+        SelectionType.CURRENCY -> listOf("USD", "EUR", "GBP", "JPY", "AUD", "CAD")
+        SelectionType.THEME -> listOf("Light", "Dark", "System")
+        SelectionType.LANGUAGE -> listOf("English", "Spanish", "French", "German", "Japanese")
+    }
 }
 
-private fun getSelectedValue(modalType: Any, uiState: Any): String {
-    // Implementation from original SettingsScreen
-    return "Option 1"
+private fun getSelectedValue(modalType: SelectionType, uiState: SettingsUiState): String {
+    return when (modalType) {
+        SelectionType.CURRENCY -> uiState.defaultCurrency
+        SelectionType.THEME -> uiState.themeMode.name.lowercase().replaceFirstChar { it.uppercase() }
+        SelectionType.LANGUAGE -> uiState.language
+    }
 }
