@@ -1,5 +1,6 @@
 package com.truetap.solana.seeker.ui.truetap.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -7,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +31,8 @@ fun AmountInput(
 ) {
     var amount by remember { mutableStateOf("") }
     var emoji by remember { mutableStateOf("") }
+    var isUsdMode by remember { mutableStateOf(true) } // Start with USD mode
+    val solPrice = 150.0 // Mock SOL price - in real app this would come from API
     
     Column(
         modifier = Modifier
@@ -53,7 +57,7 @@ fun AmountInput(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Amount input field
+        // Amount input field with currency toggle
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -94,13 +98,45 @@ fun AmountInput(
                 }
             )
             
-            Text(
-                "SOL",
-                style = MaterialTheme.typography.bodyLarge,
-                color = TrueTapTextSecondary,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
+            // Currency label with swap icon
+            Row(
+                modifier = Modifier
+                    .clickable { isUsdMode = !isUsdMode }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    if (isUsdMode) "USD" else "SOL",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TrueTapPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    Icons.Default.SwapVert,
+                    contentDescription = "Swap currency",
+                    tint = TrueTapPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            
+            // Equivalent amount display
+            val amountDouble = amount.toDoubleOrNull() ?: 0.0
+            val equivalentAmount = if (isUsdMode) {
+                amountDouble / solPrice // USD to SOL
+            } else {
+                amountDouble * solPrice // SOL to USD
+            }
+            
+            if (amountDouble > 0) {
+                Text(
+                    if (isUsdMode) "≈ ${equivalentAmount.format(4)} SOL" else "≈ $${equivalentAmount.format(2)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TrueTapTextSecondary,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -157,14 +193,18 @@ fun AmountInput(
         Button(
             onClick = {
                 val amountDouble = amount.toDoubleOrNull() ?: 0.0
-                if (amountDouble > 0 && amountDouble <= balance) {
-                    onConfirm(amountDouble, emoji)
+                val solAmount = if (isUsdMode) amountDouble / solPrice else amountDouble
+                if (amountDouble > 0 && solAmount <= balance) {
+                    onConfirm(solAmount, emoji)
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            enabled = amount.toDoubleOrNull()?.let { it > 0 && it <= balance } ?: false,
+            enabled = amount.toDoubleOrNull()?.let { 
+                val solAmount = if (isUsdMode) it / solPrice else it
+                it > 0 && solAmount <= balance 
+            } ?: false,
             colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary)
         ) {
             Text("Continue", color = Color.White)

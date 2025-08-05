@@ -160,7 +160,6 @@ fun LandingScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             // Connect Wallet Button
-            
             Button(
                 onClick = { if (agreedToTerms) onNavigateToHome() },
                 enabled = agreedToTerms,
@@ -203,14 +202,18 @@ fun LandingScreen(
                 }
             }
             
-            // Terms of Service Toggle - Under Connect Wallet Button
+            // Terms and Conditions - Professional spacing following WhatsApp/Instagram pattern
             Spacer(modifier = Modifier.height(16.dp))
+            
+            // Terms acceptance with checkbox - following mobile UI best practices
+            val uriHandler = LocalUriHandler.current
             
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 32.dp)
+                    .clickable { agreedToTerms = !agreedToTerms }, // Make entire row clickable
+                verticalAlignment = Alignment.Top
             ) {
                 Checkbox(
                     checked = agreedToTerms,
@@ -220,47 +223,53 @@ fun LandingScreen(
                         uncheckedColor = TrueTapTextSecondary
                     )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
                 
-                // Clickable terms text with hyperlinks
-                val uriHandler = LocalUriHandler.current
+                Spacer(modifier = Modifier.width(12.dp))
                 
-                // Using Row with separate clickable texts for better accessibility
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.Center
+                // Terms text with inline links - professional mobile pattern
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = "By continuing, you agree to our ",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            color = TrueTapTextSecondary
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "I agree to the ",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                color = TrueTapTextSecondary,
+                                lineHeight = 20.sp
+                            )
                         )
-                    )
-                    Text(
-                        text = "Terms",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            color = TrueTapPrimary,
-                            textDecoration = TextDecoration.Underline
-                        ),
-                        modifier = Modifier.clickable {
-                            uriHandler.openUri("https://truetap.com/terms")
-                        }
-                    )
-                    Text(
-                        text = " and ",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            color = TrueTapTextSecondary
+                        Text(
+                            text = "Terms of Service",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                color = TrueTapPrimary,
+                                textDecoration = TextDecoration.Underline,
+                                lineHeight = 20.sp
+                            ),
+                            modifier = Modifier.clickable {
+                                uriHandler.openUri("https://truetap.com/terms")
+                            }
                         )
-                    )
+                        Text(
+                            text = " and ",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                color = TrueTapTextSecondary,
+                                lineHeight = 20.sp
+                            )
+                        )
+                    }
+                    
                     Text(
                         text = "Privacy Policy",
                         style = TextStyle(
                             fontSize = 14.sp,
                             color = TrueTapPrimary,
-                            textDecoration = TextDecoration.Underline
+                            textDecoration = TextDecoration.Underline,
+                            lineHeight = 20.sp
                         ),
                         modifier = Modifier.clickable {
                             uriHandler.openUri("https://truetap.com/privacy")

@@ -305,10 +305,7 @@ fun NavGraph(
                 onNavigateToNFTs = { navController.navigate(Screen.NFTs.route) },
                 onNavigateToContacts = { navController.navigate(Screen.Contacts.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                onNavigateToTransactionHistory = { navController.navigate(Screen.TransactionHistory.route) },
-                onNavigateToNfcPayment = { navController.navigate(Screen.NfcPayment.route) },
-                onNavigateToBluetoothPayment = { navController.navigate(Screen.BluetoothPayment.route) },
-                onNavigateToScheduledPayments = { navController.navigate(Screen.ScheduledPayments.route) }
+                onNavigateToTransactionHistory = { navController.navigate(Screen.TransactionHistory.route) }
             )
         }
         
