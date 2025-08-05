@@ -67,7 +67,7 @@ data class Transaction(
 )
 
 enum class TransactionType {
-    SENT, RECEIVED
+    SENT, RECEIVED, SWAPPED
 }
 
 enum class TransactionStatus {

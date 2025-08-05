@@ -44,10 +44,7 @@ fun NFTsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val walletState by walletViewModel.walletState.collectAsStateWithLifecycle()
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     // Load NFTs when wallet state changes
     LaunchedEffect(walletState.account?.publicKey) {
@@ -235,6 +232,8 @@ private fun GenesisNFTStatusCard(
     tier: String?,
     onViewDetails: () -> Unit
 ) {
+    val dynamicColors = LocalDynamicColors.current
+    
     TrueTapCard(
         style = TrueTapCardStyle.FILLED,
         onClick = onViewDetails
@@ -251,19 +250,19 @@ private fun GenesisNFTStatusCard(
                     Surface(
                         modifier = Modifier.size(8.dp),
                         shape = androidx.compose.foundation.shape.CircleShape,
-                        color = getDynamicColors().success
+                        color = dynamicColors.success
                     ) {}
                     
                     Text(
                         text = "Active",
                         style = getDynamicTypography().labelSmall,
-                        color = getDynamicColors().success
+                        color = dynamicColors.success
                     )
                     
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "View Details",
-                        tint = getDynamicColors().textSecondary
+                        tint = dynamicColors.textSecondary
                     )
                 }
             }
@@ -277,10 +276,7 @@ private fun CollectionCard(
     onClick: () -> Unit
 ) {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     TrueTapCard(
         style = TrueTapCardStyle.ELEVATED,
@@ -359,6 +355,9 @@ private fun GalleryHeader(
     collection: Collection,
     onNavigateBack: () -> Unit
 ) {
+    val dynamicColors = LocalDynamicColors.current
+    val accessibility = LocalAccessibilitySettings.current
+    
     TrueTapCard {
         Column {
             Row(
@@ -377,15 +376,15 @@ private fun GalleryHeader(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = collection.name,
-                        style = getDynamicTypography().headlineSmall,
-                        color = getDynamicColors().textPrimary,
+                        style = getDynamicTypography(accessibility.largeButtonMode).headlineSmall,
+                        color = dynamicColors.textPrimary,
                         fontWeight = FontWeight.Bold
                     )
                     
                     Text(
                         text = "${collection.nfts.size} items",
-                        style = getDynamicTypography().bodyMedium,
-                        color = getDynamicColors().textSecondary
+                        style = getDynamicTypography(accessibility.largeButtonMode).bodyMedium,
+                        color = dynamicColors.textSecondary
                     )
                 }
             }
@@ -422,10 +421,7 @@ private fun NFTCard(
     onClick: () -> Unit
 ) {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     TrueTapCard(
         style = TrueTapCardStyle.DEFAULT,
@@ -475,10 +471,7 @@ private fun NFTDetailDialog(
     onSendNFT: () -> Unit
 ) {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.truetap.solana.seeker.ui.components.BottomNavItem
 import com.truetap.solana.seeker.ui.components.TrueTapBottomNavigationBar
 import com.truetap.solana.seeker.ui.components.rememberBottomNavHandler

@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.truetap.solana.seeker.ui.components.*
 import com.truetap.solana.seeker.ui.components.layouts.*
@@ -364,7 +365,7 @@ private fun FavoritesRow(
                     Text(
                         text = "More",
                         style = getDynamicTypography().labelSmall,
-                        color = getDynamicColors().textSecondary
+                        color = LocalDynamicColors.current.textSecondary
                     )
                 }
             }
@@ -392,7 +393,7 @@ private fun FavoriteContactItem(
         Text(
             text = contact.name.split(" ").first(),
             style = getDynamicTypography().labelSmall,
-            color = getDynamicColors().textPrimary,
+            color = LocalDynamicColors.current.textPrimary,
             maxLines = 1
         )
     }
@@ -404,7 +405,7 @@ private fun ContactListItem(
     onContactClick: () -> Unit,
     onFavoriteClick: () -> Unit
 ) {
-    val dynamicColors = getDynamicColors()
+    val dynamicColors = LocalDynamicColors.current
     
     TrueTapCard(onClick = onContactClick) {
         TrueTapListItem(
@@ -437,7 +438,7 @@ private fun ContactDetailModal(
     onAddWallet: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
-    val dynamicColors = getDynamicColors()
+    val dynamicColors = LocalDynamicColors.current
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,

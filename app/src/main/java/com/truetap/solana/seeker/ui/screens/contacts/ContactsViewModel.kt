@@ -30,6 +30,26 @@ data class ManualContact(
     val address: String = ""
 )
 
+// Contact data with multiple wallets support
+data class ModernContact(
+    val id: String,
+    val name: String,
+    val initials: String,
+    val wallets: List<ContactWallet>,
+    val isFavorite: Boolean = false
+)
+
+data class ContactWallet(
+    val id: String,
+    val name: String,
+    val address: String,
+    val type: WalletType
+)
+
+enum class AddContactMethod {
+    NFC, BLUETOOTH, QR_CODE, SEND_LINK, MANUAL
+}
+
 data class ContactsUiState(
     val contacts: List<ModernContact> = emptyList(),
     val filteredContacts: List<ModernContact> = emptyList(),

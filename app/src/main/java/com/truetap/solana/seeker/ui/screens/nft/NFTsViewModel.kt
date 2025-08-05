@@ -25,6 +25,32 @@ enum class NFTView {
     GALLERY
 }
 
+data class NFT(
+    val id: String,
+    val name: String,
+    val image: String,
+    val creator: String,
+    val value: String,
+    val rarity: String,
+    val traits: List<String>,
+    val description: String
+)
+
+data class Collection(
+    val id: Int,
+    val name: String,
+    val count: Int,
+    val floorPrice: String,
+    val coverImage: String,
+    val nfts: List<NFT>
+)
+
+enum class SendStatus {
+    SUCCESS,
+    FAILURE,
+    PENDING
+}
+
 data class NFTsUiState(
     val currentView: NFTView = NFTView.COLLECTIONS,
     val collections: List<Collection> = emptyList(),
@@ -158,7 +184,7 @@ class NFTsViewModel @Inject constructor(
         val isValidWallet = currentState.walletAddress.length in 32..44
         
         if (!isValidWallet) {
-            _uiState.value = currentState.copy(sendStatus = SendStatus.ERROR)
+            _uiState.value = currentState.copy(sendStatus = SendStatus.FAILURE)
             return
         }
         
@@ -194,7 +220,7 @@ class NFTsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     sendingNFT = false,
-                    sendStatus = SendStatus.ERROR
+                    sendStatus = SendStatus.FAILURE
                 )
             }
         }
@@ -203,7 +229,7 @@ class NFTsViewModel @Inject constructor(
     fun undoSend() {
         _uiState.value = _uiState.value.copy(
             canUndo = false,
-            sendStatus = SendStatus.UNDONE
+            sendStatus = null // Reset to null as UNDONE is not in the enum
         )
         
         viewModelScope.launch {

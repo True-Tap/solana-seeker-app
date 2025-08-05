@@ -31,9 +31,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.ui.theme.*
-import com.truetap.solana.seeker.ui.screens.home.Transaction
-import com.truetap.solana.seeker.ui.screens.home.TransactionType
 import com.truetap.solana.seeker.viewmodels.TransactionHistoryViewModel
+import com.truetap.solana.seeker.viewmodels.Transaction
+import com.truetap.solana.seeker.data.models.TransactionType
 import com.truetap.solana.seeker.viewmodels.SortOption
 import com.truetap.solana.seeker.viewmodels.TransactionTypeFilter
 import com.truetap.solana.seeker.viewmodels.TimePeriodFilter

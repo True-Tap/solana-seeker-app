@@ -21,7 +21,9 @@ data class DynamicColors(
     val textSecondary: Color,
     val textInactive: Color,
     val success: Color,
-    val error: Color
+    val error: Color,
+    val outline: Color,
+    val onSurface: Color
 )
 
 val LocalDynamicColors = compositionLocalOf {
@@ -35,7 +37,9 @@ val LocalDynamicColors = compositionLocalOf {
         textSecondary = TrueTapTextSecondary,
         textInactive = TrueTapTextInactive,
         success = TrueTapSuccess,
-        error = TrueTapError
+        error = TrueTapError,
+        outline = TrueTapTextInactive,
+        onSurface = TrueTapTextPrimary
     )
 }
 
@@ -73,7 +77,9 @@ fun getDynamicColors(
             textSecondary = Color(0xFFB8ADA4), // Warm Taupe
             textInactive = Color(0xFF3C2A20), // Dark Umber for borders/inactive
             success = Color(0xFF2ECC71), // Soft Moss
-            error = Color(0xFFE74C3C) // Ember Red
+            error = Color(0xFFE74C3C), // Ember Red
+            outline = Color(0xFF3C2A20), // Dark Umber for outlines
+            onSurface = Color(0xFFF5E9DA) // Pale Ivory for text on surface
         )
     } else {
         // Light mode (existing theme)
@@ -87,7 +93,9 @@ fun getDynamicColors(
             textSecondary = TrueTapTextSecondary,
             textInactive = TrueTapTextInactive,
             success = TrueTapSuccess,
-            error = TrueTapError
+            error = TrueTapError,
+            outline = TrueTapTextInactive,
+            onSurface = TrueTapTextPrimary
         )
     }
     

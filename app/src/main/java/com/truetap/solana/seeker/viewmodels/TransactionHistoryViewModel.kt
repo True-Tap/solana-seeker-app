@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.truetap.solana.seeker.data.WalletTransaction
 import com.truetap.solana.seeker.data.TransactionType as WalletTransactionType
-import com.truetap.solana.seeker.ui.screens.home.Transaction
-import com.truetap.solana.seeker.ui.screens.home.TransactionType
+import com.truetap.solana.seeker.data.models.TransactionType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +17,16 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+
+// Display-specific Transaction model for UI
+data class Transaction(
+    val id: String,
+    val type: TransactionType,
+    val amount: String,
+    val otherParty: String,
+    val token: String,
+    val timeAgo: String
+)
 
 @HiltViewModel
 class TransactionHistoryViewModel @Inject constructor(

@@ -44,7 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
-import com.truetap.solana.seeker.ui.screens.home.BottomNavItem
+import com.truetap.solana.seeker.ui.components.BottomNavItem
 import com.truetap.solana.seeker.viewmodels.SwapViewModel
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import com.truetap.solana.seeker.viewmodels.SwapState

@@ -2,6 +2,7 @@ package com.truetap.solana.seeker.ui.screens.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
@@ -20,6 +21,8 @@ import com.truetap.solana.seeker.ui.components.layouts.*
 import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.ui.accessibility.LocalAccessibilitySettings
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
+import com.truetap.solana.seeker.data.models.TransactionType
+import com.truetap.solana.seeker.data.models.Transaction
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -53,10 +56,7 @@ fun HomeScreen(
 ) {
     val walletState by viewModel.walletState.collectAsStateWithLifecycle()
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     // Quick Actions
     val quickActions = remember {
@@ -86,8 +86,8 @@ fun HomeScreen(
     }
     
     // Convert wallet transactions to display format
-    val displayTransactions = remember(walletState.recentTransactions) {
-        walletState.recentTransactions.map { walletTransaction ->
+    val displayTransactions = remember(walletState.transactions) {
+        walletState.transactions.map { walletTransaction ->
             val transactionType = when (walletTransaction.type) {
                 com.truetap.solana.seeker.data.TransactionType.TRANSFER -> {
                     if (walletTransaction.amount?.compareTo(java.math.BigDecimal.ZERO) == -1) {
@@ -98,6 +98,7 @@ fun HomeScreen(
                 }
                 com.truetap.solana.seeker.data.TransactionType.SWAP -> TransactionType.SWAPPED
                 com.truetap.solana.seeker.data.TransactionType.UNKNOWN -> TransactionType.RECEIVED
+                else -> TransactionType.RECEIVED
             }
             
             val otherParty = when (transactionType) {
@@ -109,10 +110,9 @@ fun HomeScreen(
             Transaction(
                 id = walletTransaction.signature,
                 type = transactionType,
-                amount = walletTransaction.amount?.toPlainString() ?: "0.00",
-                otherParty = otherParty,
-                timeAgo = formatTimeAgo(walletTransaction.blockTime * 1000),
-                token = "SOL"
+                amount = walletTransaction.amount?.toDouble() ?: 0.0,
+                currency = "SOL",
+                timestamp = (walletTransaction.blockTime ?: (System.currentTimeMillis() / 1000)) * 1000
             )
         }
     }
@@ -269,10 +269,7 @@ private fun WalletBalanceCard(
     onRefreshWallet: () -> Unit
 ) {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     TrueTapCard(style = TrueTapCardStyle.ELEVATED) {
         if (walletState.account != null) {
@@ -323,7 +320,7 @@ private fun WalletBalanceCard(
                 Text(
                     text = "${walletState.account!!.publicKey.take(8)}...${walletState.account!!.publicKey.takeLast(8)}",
                     style = getDynamicTypography(accessibility.largeButtonMode).bodyMedium,
-                    color = dynamicColors.textTertiary,
+                    color = dynamicColors.textInactive,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                 )
                 
@@ -417,10 +414,7 @@ private fun QuickActionButton(
     modifier: Modifier = Modifier
 ) {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     Column(
         modifier = modifier
@@ -431,7 +425,7 @@ private fun QuickActionButton(
         Surface(
             modifier = Modifier.size(if (accessibility.largeButtonMode) 56.dp else 48.dp),
             shape = androidx.compose.foundation.shape.CircleShape,
-            color = dynamicColors.primaryContainer
+            color = dynamicColors.primary.copy(alpha = 0.1f)
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -463,10 +457,7 @@ private fun GenesisNFTCard(
     onViewDetails: () -> Unit
 ) {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     TrueTapCard(
         style = TrueTapCardStyle.FILLED,
@@ -490,37 +481,34 @@ private fun GenesisNFTCard(
 @Composable
 private fun TransactionListItem(transaction: Transaction) {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     val (icon, description, amountColor) = when (transaction.type) {
         TransactionType.SENT -> Triple(
             Icons.AutoMirrored.Filled.Send,
-            "Sent to ${transaction.otherParty}",
+            "Sent",
             dynamicColors.error
         )
         TransactionType.RECEIVED -> Triple(
             Icons.Default.CallReceived,
-            "Received from ${transaction.otherParty}",
+            "Received",
             dynamicColors.success
         )
         TransactionType.SWAPPED -> Triple(
             Icons.Default.SwapHoriz,
-            "Swapped via ${transaction.otherParty}",
+            "Swapped",
             dynamicColors.textPrimary
         )
     }
     
     TrueTapListItem(
         title = description,
-        subtitle = transaction.timeAgo,
+        subtitle = formatTimeAgo(transaction.timestamp),
         leadingIcon = icon,
         trailingContent = {
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${if (transaction.type == TransactionType.SENT) "-" else "+"}${transaction.amount} ${transaction.token}",
+                    text = "${if (transaction.type == TransactionType.SENT) "-" else "+"}${transaction.amount} ${transaction.currency}",
                     style = getDynamicTypography(accessibility.largeButtonMode).bodyMedium,
                     color = amountColor,
                     fontWeight = FontWeight.Medium
@@ -544,13 +532,13 @@ private fun PortfolioSummaryCard(walletState: com.truetap.solana.seeker.data.Wal
                         Text(
                             text = formatBalance(walletState.balance?.solBalance?.toDouble() ?: 0.0),
                             style = getDynamicTypography().bodyMedium,
-                            color = getDynamicColors().textPrimary,
+                            color = LocalDynamicColors.current.textPrimary,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
                             text = formatCurrency(calculateUSDValue(walletState.balance?.solBalance?.toDouble() ?: 0.0)),
                             style = getDynamicTypography().bodySmall,
-                            color = getDynamicColors().textSecondary
+                            color = LocalDynamicColors.current.textSecondary
                         )
                     }
                 }
@@ -567,7 +555,7 @@ private fun PortfolioSummaryCard(walletState: com.truetap.solana.seeker.data.Wal
                             Text(
                                 text = formatBalance(balance.toDouble()),
                                 style = getDynamicTypography().bodyMedium,
-                                color = getDynamicColors().textPrimary,
+                                color = LocalDynamicColors.current.textPrimary,
                                 fontWeight = FontWeight.Medium
                             )
                         }

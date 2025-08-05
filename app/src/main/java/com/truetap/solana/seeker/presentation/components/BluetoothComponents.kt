@@ -24,7 +24,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.truetap.solana.seeker.data.bluetooth.*
-import com.truetap.solana.seeker.ui.theme.*
+import com.truetap.solana.seeker.ui.theme.TrueTapPrimary
+import com.truetap.solana.seeker.ui.theme.TrueTapTextPrimary
+import com.truetap.solana.seeker.ui.theme.TrueTapTextSecondary
+import com.truetap.solana.seeker.ui.theme.TrueTapContainer
+import com.truetap.solana.seeker.ui.theme.TrueTapSuccess
+import com.truetap.solana.seeker.ui.theme.TrueTapError
+import com.truetap.solana.seeker.ui.theme.TrueTapTextInactive
+import com.truetap.solana.seeker.ui.theme.TrueTapBackground
 import kotlin.math.cos
 import kotlin.math.sin
 

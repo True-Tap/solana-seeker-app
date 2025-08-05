@@ -286,7 +286,7 @@ val LocalTrueTapTypography = staticCompositionLocalOf { BaseTrueTapTypography }
 
 // Helper function to get colors based on theme and accessibility settings
 @Composable
-fun getDynamicColors(
+fun getTrueTapColors(
     themeMode: String = "system",
     highContrastMode: Boolean = false
 ): TrueTapColors {
@@ -307,10 +307,13 @@ fun getDynamicTypography(
 }
 
 // Theme Extensions for backwards compatibility
-val TrueTapPrimary = Color(0xFFFF8B3D)
-val TrueTapBackground = Color(0xFFFFFBF7)
-val TrueTapContainer = Color.White
-val TrueTapTextPrimary = Color(0xFF1A1A1A)
-val TrueTapTextSecondary = Color(0xFF666666)
-val TrueTapSuccess = Color(0xFF22C55E)
-val TrueTapError = Color(0xFFEF4444)
+// Namespaced to avoid conflicts with Color.kt definitions
+object TrueTapDesignColors {
+    val Primary = Color(0xFFFF8B3D)
+    val Background = Color(0xFFFFFBF7)
+    val Container = Color.White
+    val TextPrimary = Color(0xFF1A1A1A)
+    val TextSecondary = Color(0xFF666666)
+    val Success = Color(0xFF22C55E)
+    val Error = Color(0xFFEF4444)
+}

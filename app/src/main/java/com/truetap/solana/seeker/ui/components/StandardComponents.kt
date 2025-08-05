@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.truetap.solana.seeker.ui.components.layouts.TrueTapSpacing
 import com.truetap.solana.seeker.ui.components.layouts.TrueTapTypography
 import com.truetap.solana.seeker.ui.theme.*
@@ -385,7 +386,7 @@ fun TrueTapAvatar(
     ) {
         Text(
             text = text.take(2).uppercase(),
-            fontSize = (size * 0.4).sp,
+            fontSize = (size * 0.4).toInt().sp,
             fontWeight = FontWeight.Bold,
             color = dynamicColors.onPrimary,
             textAlign = TextAlign.Center

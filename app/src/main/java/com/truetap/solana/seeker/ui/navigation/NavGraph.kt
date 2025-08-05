@@ -415,7 +415,7 @@ fun NavGraph(
         composable(Screen.TransactionHistory.route) {
             TransactionHistoryScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onTransactionClick = { transaction ->
+                onTransactionClick = { 
                     // Handle transaction detail modal or navigation if needed
                 }
             )

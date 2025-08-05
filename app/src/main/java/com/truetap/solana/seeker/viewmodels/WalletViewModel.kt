@@ -129,6 +129,28 @@ class WalletViewModel @Inject constructor(
         }
     }
     
+    fun connectWallet() {
+        // Alias for connect() to maintain compatibility
+        connect()
+    }
+    
+    fun connect() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            
+            try {
+                // Since connect() doesn't exist in the repository, 
+                // we'll just restore the session or clear the loading state
+                walletRepository.restoreSession()
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Failed to connect wallet"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
     /**
      * Check if connected wallet has Genesis NFT
      */
