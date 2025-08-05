@@ -306,6 +306,30 @@ fun getDynamicTypography(
     return if (largeTextMode) LargeTextTrueTapTypography else BaseTrueTapTypography
 }
 
+// Convert TrueTapTypography to Material3 Typography
+fun TrueTapTypography.toMaterial3Typography(): Typography {
+    return Typography(
+        displayLarge = displayLarge,
+        displayMedium = displayMedium,
+        displaySmall = displaySmall,
+        headlineLarge = headlineLarge,
+        headlineMedium = headlineMedium,
+        headlineSmall = headlineSmall,
+        titleLarge = titleLarge,
+        titleMedium = titleMedium,
+        titleSmall = titleSmall,
+        bodyLarge = bodyLarge,
+        bodyMedium = bodyMedium,
+        bodySmall = bodySmall,
+        labelLarge = labelLarge,
+        labelMedium = labelMedium,
+        labelSmall = labelSmall
+    )
+}
+
+// Default Material3 Typography
+val DefaultMaterial3Typography = BaseTrueTapTypography.toMaterial3Typography()
+
 // Theme Extensions for backwards compatibility
 // Namespaced to avoid conflicts with Color.kt definitions
 object TrueTapDesignColors {

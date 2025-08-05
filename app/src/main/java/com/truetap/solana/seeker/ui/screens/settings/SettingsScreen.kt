@@ -12,6 +12,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.truetap.solana.seeker.ui.components.*
 import com.truetap.solana.seeker.ui.components.layouts.*
 import com.truetap.solana.seeker.ui.theme.*
+import com.truetap.solana.seeker.viewmodels.SettingsViewModel
 import com.truetap.solana.seeker.ui.accessibility.LocalAccessibilitySettings
 
 /**
@@ -62,10 +63,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     // Settings groups organized by category
     val settingsGroups = remember(uiState) {
@@ -392,10 +390,7 @@ private fun SettingsItem(
     onClick: () -> Unit
 ) {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     TrueTapListItem(
         title = item.title,
@@ -452,10 +447,7 @@ private fun SettingsItem(
 @Composable
 private fun AppInfoCard() {
     val accessibility = LocalAccessibilitySettings.current
-    val dynamicColors = getDynamicColors(
-        themeMode = accessibility.themeMode,
-        highContrastMode = accessibility.highContrastMode
-    )
+    val dynamicColors = LocalDynamicColors.current
     
     TrueTapCard(style = TrueTapCardStyle.OUTLINED) {
         Column(
@@ -481,7 +473,7 @@ private fun AppInfoCard() {
             Text(
                 text = "Made with ❤️ for Solana",
                 style = getDynamicTypography(accessibility.largeButtonMode).bodySmall,
-                color = dynamicColors.textTertiary
+                color = dynamicColors.textSecondary
             )
         }
     }
