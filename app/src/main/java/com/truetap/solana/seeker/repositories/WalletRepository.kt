@@ -7,13 +7,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
-// import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
-// import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.SignTransactionsResult
-// import com.solana.mobilewalletadapter.common.ProtocolContract
-import com.truetap.solana.seeker.data.AuthState
-import com.truetap.solana.seeker.data.WalletAccount
-import com.truetap.solana.seeker.data.WalletResult
+import com.truetap.solana.seeker.BuildConfig
+import com.truetap.solana.seeker.data.*
 import com.truetap.solana.seeker.services.SeedVaultService
+import com.truetap.solana.seeker.services.SolanaService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -33,37 +30,66 @@ private val Context.dataStore by preferencesDataStore(name = "wallet_prefs")
 @Singleton
 class WalletRepository @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val seedVaultService: SeedVaultService
+    private val seedVaultService: SeedVaultService,
+    private val solanaService: SolanaService
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
-
-    // private val mobileWalletAdapter = MobileWalletAdapter()
+    
+    private val _walletState = MutableStateFlow(WalletState(null, null))
+    val walletState: StateFlow<WalletState> = _walletState.asStateFlow()
 
     companion object {
         private val WALLET_PUBLIC_KEY = stringPreferencesKey("wallet_public_key")
         private val WALLET_CLUSTER = stringPreferencesKey("wallet_cluster")
         private val WALLET_LABEL = stringPreferencesKey("wallet_label")
+        private val WALLET_TYPE = stringPreferencesKey("wallet_type")
         private val AUTH_TOKEN = stringPreferencesKey("auth_token")
-        
-        private const val APP_IDENTITY = "True Tap"
-        private const val ICON_URI = "favicon.ico"
-        private const val IDENTITY_URI = "https://truetap.solana"
     }
+    
+    /**
+     * Get the current connected wallet address
+     */
+    suspend fun getCurrentWalletAddress(): String? {
+        return walletState.value.account?.publicKey
+    }
+    
 
-    suspend fun connectAndAuthWallet(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
-        cluster: String = "mainnet-beta" // ProtocolContract.CLUSTER_MAINNET_BETA
+    suspend fun saveConnectionResult(
+        connectionResult: ConnectionResult.Success,
+        cluster: String = if (BuildConfig.DEBUG) "devnet" else "mainnet-beta"
     ): WalletResult<WalletAccount> {
         return try {
-            _authState.value = AuthState.Connecting
+            // Create WalletAccount from ConnectionResult
+            val account = WalletAccount(
+                publicKey = connectionResult.publicKey,
+                cluster = cluster,
+                accountLabel = connectionResult.accountLabel,
+                walletType = connectionResult.walletType
+            )
             
-            // TODO: Fix Solana SDK integration
-            val errorMsg = "Solana SDK integration temporarily disabled"
-            _authState.value = AuthState.Error(errorMsg)
-            WalletResult.Error(RuntimeException(errorMsg), errorMsg)
+            // Generate auth token for session
+            val authToken = "${connectionResult.publicKey}_${System.currentTimeMillis()}"
+            
+            // Save session data with wallet type
+            saveSessionWithWalletType(account, authToken, connectionResult.walletType.id)
+            
+            // Update auth state
+            _authState.value = AuthState.Connected(account)
+            
+            // Update wallet state and fetch data
+            _walletState.value = _walletState.value.copy(
+                account = account,
+                isLoading = false,
+                error = null
+            )
+            
+            // Fetch wallet data in background
+            fetchWalletData(account.publicKey)
+            
+            WalletResult.Success(account)
         } catch (e: Exception) {
-            val errorMsg = "Failed to connect wallet: ${e.message}"
+            val errorMsg = "Failed to save wallet connection: ${e.message}"
             _authState.value = AuthState.Error(errorMsg)
             WalletResult.Error(e, errorMsg)
         }
@@ -75,11 +101,24 @@ class WalletRepository @Inject constructor(
             val publicKey = prefs[WALLET_PUBLIC_KEY]
             val cluster = prefs[WALLET_CLUSTER]
             val label = prefs[WALLET_LABEL]
+            val walletType = prefs[WALLET_TYPE]
             val authToken = prefs[AUTH_TOKEN]
 
             if (publicKey != null && cluster != null && authToken != null) {
-                val account = WalletAccount(publicKey, cluster, label)
+                val walletTypeEnum = walletType?.let { WalletType.fromId(it) }
+                val account = WalletAccount(publicKey, cluster, label, walletTypeEnum)
                 _authState.value = AuthState.Connected(account)
+                
+                // Update wallet state and fetch data
+                _walletState.value = _walletState.value.copy(
+                    account = account,
+                    isLoading = false,
+                    error = null
+                )
+                
+                // Fetch wallet data in background
+                fetchWalletData(account.publicKey)
+                
                 WalletResult.Success(account)
             } else {
                 _authState.value = AuthState.Idle
@@ -100,25 +139,104 @@ class WalletRepository @Inject constructor(
                 prefs.remove(WALLET_PUBLIC_KEY)
                 prefs.remove(WALLET_CLUSTER)
                 prefs.remove(WALLET_LABEL)
+                prefs.remove(WALLET_TYPE)
                 prefs.remove(AUTH_TOKEN)
             }
             _authState.value = AuthState.Idle
+            _walletState.value = WalletState(null, null)
         } catch (e: Exception) {
             _authState.value = AuthState.Error("Failed to disconnect: ${e.message}")
         }
     }
+    
+    /**
+     * Fetch all wallet data (balance, NFTs, transactions)
+     */
+    suspend fun fetchWalletData(publicKey: String) {
+        try {
+            _walletState.value = _walletState.value.copy(isLoading = true)
+            
+            // Fetch balance
+            val balanceResult = solanaService.getBalance(publicKey)
+            val balance = when (balanceResult) {
+                is WalletResult.Success -> balanceResult.data
+                is WalletResult.Error -> {
+                    _walletState.value = _walletState.value.copy(
+                        isLoading = false,
+                        error = "Failed to fetch balance: ${balanceResult.message}"
+                    )
+                    return
+                }
+            }
+            
+            // Fetch token balances
+            val tokenBalancesResult = solanaService.getTokenBalances(publicKey)
+            val tokenBalances = when (tokenBalancesResult) {
+                is WalletResult.Success -> tokenBalancesResult.data
+                is WalletResult.Error -> emptyList()
+            }
+            
+            // Update balance with token balances
+            val updatedBalance = balance.copy(tokenBalances = tokenBalances)
+            
+            // Fetch NFTs
+            val nftsResult = solanaService.getNFTs(publicKey)
+            val nfts = when (nftsResult) {
+                is WalletResult.Success -> nftsResult.data
+                is WalletResult.Error -> emptyList()
+            }
+            
+            // Fetch recent transactions
+            val transactionsResult = solanaService.getTransactionHistory(publicKey, 10)
+            val transactions = when (transactionsResult) {
+                is WalletResult.Success -> transactionsResult.data
+                is WalletResult.Error -> emptyList()
+            }
+            
+            // Update wallet state with all data
+            _walletState.value = _walletState.value.copy(
+                balance = updatedBalance,
+                nfts = nfts,
+                transactions = transactions,
+                isLoading = false,
+                lastUpdated = System.currentTimeMillis(),
+                error = null
+            )
+            
+        } catch (e: Exception) {
+            _walletState.value = _walletState.value.copy(
+                isLoading = false,
+                error = "Failed to fetch wallet data: ${e.message}"
+            )
+        }
+    }
+    
+    /**
+     * Refresh wallet data
+     */
+    suspend fun refreshWalletData() {
+        val currentAccount = _walletState.value.account
+        if (currentAccount != null) {
+            fetchWalletData(currentAccount.publicKey)
+        }
+    }
 
-    private suspend fun saveSession(account: WalletAccount, authToken: String) {
+    private suspend fun saveSessionWithWalletType(
+        account: WalletAccount, 
+        authToken: String, 
+        walletTypeId: String
+    ) {
         context.dataStore.edit { prefs ->
             prefs[WALLET_PUBLIC_KEY] = account.publicKey
             prefs[WALLET_CLUSTER] = account.cluster
             prefs[WALLET_LABEL] = account.accountLabel ?: ""
+            prefs[WALLET_TYPE] = walletTypeId
             prefs[AUTH_TOKEN] = authToken
         }
     }
     
     // TrueTap specific implementation
-    private val isMockMode = true // TODO: Toggle via BuildConfig for production
+    private val isMockMode = BuildConfig.DEBUG // Use mock data only in debug builds
     
     suspend fun getTrueTapContacts(): List<TrueTapContact> {
         return if (isMockMode) {
@@ -140,6 +258,17 @@ class WalletRepository @Inject constructor(
             42.5 + Random.nextDouble(-0.5, 0.5)
         } else {
             TODO("Fetch real balance via Solana RPC")
+        }
+    }
+    
+    /**
+     * Get balance for a specific token
+     */
+    fun getTokenBalance(tokenSymbol: String): java.math.BigDecimal {
+        val currentState = _walletState.value
+        return when (tokenSymbol) {
+            "SOL" -> currentState.solBalance
+            else -> currentState.tokenBalances[tokenSymbol] ?: java.math.BigDecimal.ZERO
         }
     }
     

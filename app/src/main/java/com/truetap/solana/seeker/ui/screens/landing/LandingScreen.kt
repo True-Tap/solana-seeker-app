@@ -32,23 +32,38 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
+import com.truetap.solana.seeker.viewmodels.WalletViewModel
+import com.truetap.solana.seeker.data.AuthState
 import kotlin.math.max as maxOf
 import kotlin.math.min as minOf
 
 @Composable
 fun LandingScreen(
     onNavigateToHome: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    walletViewModel: WalletViewModel = hiltViewModel()
 ) {
     var agreedToTerms by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
+    
+    // Check if user is already connected
+    val authState by walletViewModel.authState.collectAsStateWithLifecycle()
+    
+    // If user is already connected, skip directly to home
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Connected) {
+            onNavigateToHome()
+        }
+    }
 
     // Animation values
     var startAnimation by remember { mutableStateOf(false) }
@@ -122,17 +137,18 @@ fun LandingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // Top Safe Area Padding
-            Spacer(modifier = Modifier.height(64.dp))
-            
-            // Bouncing Tappy with Realistic Shadow
-            BouncingTappyWithShadow(
+            // Static Tappy to match SplashScreen positioning
+            androidx.compose.foundation.Image(
+                painter = painterResource(id = R.drawable.truetap_logo),
+                contentDescription = "TrueTap Logo",
                 modifier = Modifier
+                    .size(logoSize)
                     .alpha(fadeAnim.value)
                     .scale(scaleAnim.value),
-                tappySize = logoSize
+                contentScale = ContentScale.Fit
             )
 
             // Welcome to TrueTap - no spacing, directly under Tappy container
@@ -156,11 +172,10 @@ fun LandingScreen(
                 modifier = Modifier.alpha(fadeAnim.value)
             )
 
-            // Push content to create space before connect section
-            Spacer(modifier = Modifier.weight(1f))
+            // Spacing before connect section
+            Spacer(modifier = Modifier.height(80.dp))
 
             // Connect Wallet Button
-            
             Button(
                 onClick = { if (agreedToTerms) onNavigateToHome() },
                 enabled = agreedToTerms,
@@ -203,14 +218,18 @@ fun LandingScreen(
                 }
             }
             
-            // Terms of Service Toggle - Under Connect Wallet Button
+            // Terms and Conditions - Professional spacing following WhatsApp/Instagram pattern
             Spacer(modifier = Modifier.height(16.dp))
+            
+            // Terms acceptance with checkbox - following mobile UI best practices
+            val uriHandler = LocalUriHandler.current
             
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 32.dp)
+                    .clickable { agreedToTerms = !agreedToTerms }, // Make entire row clickable
+                verticalAlignment = Alignment.Top
             ) {
                 Checkbox(
                     checked = agreedToTerms,
@@ -220,58 +239,63 @@ fun LandingScreen(
                         uncheckedColor = TrueTapTextSecondary
                     )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
                 
-                // Clickable terms text with hyperlinks
-                val uriHandler = LocalUriHandler.current
-                val annotatedText = buildAnnotatedString {
-                    append("I agree to the ")
-                    
-                    // Terms of Service link
-                    pushStringAnnotation(tag = "terms", annotation = "https://truetap.com/terms")
-                    withStyle(style = SpanStyle(
-                        color = TrueTapPrimary,
-                        textDecoration = TextDecoration.Underline
-                    )) {
-                        append("Terms of Service")
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                // Terms text with inline links - professional mobile pattern
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "I agree to the ",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                color = TrueTapTextSecondary,
+                                lineHeight = 20.sp
+                            )
+                        )
+                        Text(
+                            text = "Terms of Service",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                color = TrueTapPrimary,
+                                textDecoration = TextDecoration.Underline,
+                                lineHeight = 20.sp
+                            ),
+                            modifier = Modifier.clickable {
+                                uriHandler.openUri("https://truetap.app/terms")
+                            }
+                        )
+                        Text(
+                            text = " and ",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                color = TrueTapTextSecondary,
+                                lineHeight = 20.sp
+                            )
+                        )
                     }
-                    pop()
                     
-                    append(" and ")
-                    
-                    // Privacy Policy link
-                    pushStringAnnotation(tag = "privacy", annotation = "https://truetap.com/privacy")
-                    withStyle(style = SpanStyle(
-                        color = TrueTapPrimary,
-                        textDecoration = TextDecoration.Underline
-                    )) {
-                        append("Privacy Policy")
-                    }
-                    pop()
+                    Text(
+                        text = "Privacy Policy",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = TrueTapPrimary,
+                            textDecoration = TextDecoration.Underline,
+                            lineHeight = 20.sp
+                        ),
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://truetap.app/privacy")
+                        }
+                    )
                 }
-                
-                ClickableText(
-                    text = annotatedText,
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        color = TrueTapTextSecondary
-                    ),
-                    modifier = Modifier.weight(1f),
-                    onClick = { offset ->
-                        annotatedText.getStringAnnotations(tag = "terms", start = offset, end = offset)
-                            .firstOrNull()?.let { annotation ->
-                                uriHandler.openUri(annotation.item)
-                            }
-                        annotatedText.getStringAnnotations(tag = "privacy", start = offset, end = offset)
-                            .firstOrNull()?.let { annotation ->
-                                uriHandler.openUri(annotation.item)
-                            }
-                    }
-                )
             }
             
-            // Push features and "Powered by" text to bottom just above swipe bar
-            Spacer(modifier = Modifier.weight(1f))
+            // Spacing before features
+            Spacer(modifier = Modifier.height(40.dp))
             
             // Feature Icons Row - FULL screen width, icons above text, 1/3 distribution
             Row(

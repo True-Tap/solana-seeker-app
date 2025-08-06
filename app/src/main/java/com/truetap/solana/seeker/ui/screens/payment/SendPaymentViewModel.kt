@@ -60,12 +60,8 @@ class SendPaymentViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(SendPaymentUiState())
     val uiState: StateFlow<SendPaymentUiState> = _uiState.asStateFlow()
     
-    // Sample token data
-    private val sampleTokens = listOf(
-        TokenInfo("SOL", "Solana", 125.4567),
-        TokenInfo("USDC", "USD Coin", 1000.0),
-        TokenInfo("BONK", "Bonk", 50000.0)
-    )
+    // Real token data - will be empty until wallet is connected
+    private val sampleTokens = emptyList<TokenInfo>()
     
     init {
         loadWalletInfo()

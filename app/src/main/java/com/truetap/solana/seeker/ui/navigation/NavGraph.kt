@@ -1,6 +1,10 @@
 package com.truetap.solana.seeker.ui.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -19,6 +23,7 @@ import com.truetap.solana.seeker.ui.screens.nft.NFTFailureScreen
 import com.truetap.solana.seeker.ui.screens.wallet.WalletConnectionScreen
 import com.truetap.solana.seeker.ui.screens.wallet.PairingScreen
 import com.truetap.solana.seeker.ui.screens.wallet.WalletSuccessScreen
+import com.truetap.solana.seeker.ui.screens.wallet.WalletDetailsScreen
 import com.truetap.solana.seeker.ui.screens.wallet.WalletFailureScreen
 import com.truetap.solana.seeker.ui.screens.welcome.WelcomeScreen
 import com.truetap.solana.seeker.ui.screens.genesis.GenesisTokenScreen
@@ -26,18 +31,28 @@ import com.truetap.solana.seeker.ui.screens.onboarding.OnboardingScreen
 import com.truetap.solana.seeker.ui.screens.dashboard.DashboardScreen
 import com.truetap.solana.seeker.ui.screens.contacts.ContactsScreen
 import com.truetap.solana.seeker.ui.screens.contacts.ContactDetailsScreen
+import com.truetap.solana.seeker.ui.screens.contacts.AddContactScreen
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.truetap.solana.seeker.ui.screens.payment.PaymentScreen
-import com.truetap.solana.seeker.ui.screens.payment.SwapScreen
+import com.truetap.solana.seeker.ui.screens.payment.EnhancedSwapScreen
 import com.truetap.solana.seeker.ui.screens.payment.SendPaymentScreen
 import com.truetap.solana.seeker.ui.screens.payment.SchedulePaymentScreen
+import com.truetap.solana.seeker.presentation.screens.scheduled.ScheduledPaymentScreen
 import com.truetap.solana.seeker.ui.screens.nft.NFTsScreen
 import com.truetap.solana.seeker.ui.screens.settings.SettingsScreen
 import com.truetap.solana.seeker.ui.screens.bluetooth.BluetoothDiscoveryScreen
+import com.truetap.solana.seeker.presentation.screens.bluetooth.BluetoothPaymentScreen
 import com.truetap.solana.seeker.ui.screens.transaction.TransactionHistoryScreen
+import com.truetap.solana.seeker.ui.screens.SeedVaultScreen
+import com.truetap.solana.seeker.ui.screens.nfc.NfcPaymentScreen
 
 @Composable
-fun SolanaSeekerNavGraph(
+fun NavGraph(
     navController: NavHostController,
+    activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+    activityResultSender: ActivityResultSender,
+    pendingWalletConnection: android.net.Uri? = null,
+    onWalletConnectionHandled: () -> Unit = {},
     modifier: Modifier = Modifier,
     startDestination: String = Screen.Splash.route
 ) {
@@ -104,20 +119,50 @@ fun SolanaSeekerNavGraph(
             )
         ) { backStackEntry ->
             val walletId = backStackEntry.arguments?.getString("walletId") ?: ""
-            PairingScreen(
-                walletId = walletId,
-                onNavigateToSuccess = { 
-                    navController.navigate(Screen.WalletSuccess.route) {
-                        popUpTo(Screen.WalletPairing.route) { inclusive = true }
-                    }
-                },
-                onNavigateToFailure = { walletId, errorMessage ->
-                    navController.navigate(Screen.WalletFailure.createRoute(walletId, errorMessage)) {
-                        popUpTo(Screen.WalletPairing.route) { inclusive = true }
-                    }
-                },
-                onNavigateBack = { navController.popBackStack() }
-            )
+            
+            // Debug logging
+            android.util.Log.d("NavGraph", "WalletPairing route with walletId: '$walletId'")
+            android.util.Log.d("NavGraph", "walletId comparison: '$walletId' == 'solana' = ${walletId == "solana"}")
+            
+            // If walletId is "solana" (Use Hardware Wallet), navigate to SeedVault
+            if (walletId == "solana") {
+                android.util.Log.d("NavGraph", "✓ CONFIRMED: Routing to SeedVaultScreen for hardware wallet")
+                SeedVaultScreen(
+                    activityResultLauncher = activityResultLauncher,
+                    onNavigateToSuccess = { 
+                        navController.navigate(Screen.WalletSuccess.route) {
+                            popUpTo(Screen.WalletPairing.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToFailure = { errorMessage, _ ->
+                        navController.navigate(Screen.WalletFailure.createRoute("solana", errorMessage)) {
+                            popUpTo(Screen.WalletPairing.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateBack = { navController.popBackStack() },
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                android.util.Log.d("NavGraph", "Routing to PairingScreen for walletId: '$walletId'")
+                PairingScreen(
+                    walletId = walletId,
+                    onNavigateToSuccess = { 
+                        navController.navigate(Screen.WalletSuccess.route) {
+                            popUpTo(Screen.WalletPairing.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToFailure = { walletId, errorMessage ->
+                        navController.navigate(Screen.WalletFailure.createRoute(walletId, errorMessage)) {
+                            popUpTo(Screen.WalletPairing.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateBack = { navController.popBackStack() },
+                    activityResultLauncher = activityResultLauncher,
+                    activityResultSender = activityResultSender,
+                    pendingWalletConnection = pendingWalletConnection,
+                    onWalletConnectionHandled = onWalletConnectionHandled
+                )
+            }
         }
         
         // 5. WALLET SUCCESS SCREEN
@@ -129,8 +174,15 @@ fun SolanaSeekerNavGraph(
                     }
                 },
                 onViewDetails = { 
-                    navController.navigate(Screen.Home.route)
+                    navController.navigate(Screen.WalletDetails.route)
                 }
+            )
+        }
+        
+        // 5B. WALLET DETAILS SCREEN
+        composable(Screen.WalletDetails.route) {
+            WalletDetailsScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         
@@ -149,7 +201,9 @@ fun SolanaSeekerNavGraph(
             )
         ) { backStackEntry ->
             val walletId = backStackEntry.arguments?.getString("walletId") ?: ""
-            val errorMessage = backStackEntry.arguments?.getString("errorMessage")
+            val errorMessage = backStackEntry.arguments?.getString("errorMessage")?.let { 
+                java.net.URLDecoder.decode(it, "UTF-8") 
+            }
             WalletFailureScreen(
                 walletId = walletId,
                 errorMessage = errorMessage,
@@ -164,9 +218,8 @@ fun SolanaSeekerNavGraph(
                     }
                 },
                 onGetHelp = { 
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.WalletFailure.route) { inclusive = true }
-                    }
+                    // Navigate to Settings screen which should contain help and support information
+                    navController.navigate(Screen.Settings.route)
                 }
             )
         }
@@ -269,7 +322,15 @@ fun SolanaSeekerNavGraph(
                 onNavigateToHome = { navController.navigate(Screen.Home.route) },
                 onNavigateToSwap = { navController.navigate(Screen.Swap.route) },
                 onNavigateToNFTs = { navController.navigate(Screen.NFTs.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToAddContact = { navController.navigate(Screen.AddContact.route) }
+            )
+        }
+        
+        composable(Screen.AddContact.route) {
+            AddContactScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onContactAdded = { navController.popBackStack() }
             )
         }
         
@@ -297,7 +358,7 @@ fun SolanaSeekerNavGraph(
         }
         
         composable(Screen.Swap.route) {
-            SwapScreen(
+            EnhancedSwapScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToHome = { navController.navigate(Screen.Home.route) },
                 onNavigateToContacts = { navController.navigate(Screen.Contacts.route) },
@@ -342,10 +403,16 @@ fun SolanaSeekerNavGraph(
             )
         }
         
+        composable(Screen.ScheduledPayments.route) {
+            ScheduledPaymentScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
         composable(Screen.TransactionHistory.route) {
             TransactionHistoryScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onTransactionClick = { transaction ->
+                onTransactionClick = { 
                     // Handle transaction detail modal or navigation if needed
                 }
             )
@@ -383,6 +450,23 @@ fun SolanaSeekerNavGraph(
             )
         }
         
+        composable(Screen.BluetoothPayment.route) {
+            BluetoothPaymentScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.SeedVault.route) {
+            SeedVaultScreen(
+                activityResultLauncher = activityResultLauncher
+            )
+        }
+        
+        composable(Screen.NfcPayment.route) {
+            NfcPaymentScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
 
     }
 } 

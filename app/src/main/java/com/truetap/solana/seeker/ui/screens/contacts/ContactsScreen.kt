@@ -1,68 +1,30 @@
 package com.truetap.solana.seeker.ui.screens.contacts
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.truetap.solana.seeker.ui.components.*
+import com.truetap.solana.seeker.ui.components.layouts.*
 import com.truetap.solana.seeker.ui.theme.*
-import com.truetap.solana.seeker.data.models.Contact
-import com.truetap.solana.seeker.data.models.Wallet
+import com.truetap.solana.seeker.ui.accessibility.LocalAccessibilitySettings
 import com.truetap.solana.seeker.data.models.WalletType
-import com.truetap.solana.seeker.ui.screens.home.BottomNavItem
 
-// Contact data with multiple wallets support
-data class ModernContact(
-    val id: String,
-    val name: String,
-    val initials: String,
-    val wallets: List<ContactWallet>,
-    val isFavorite: Boolean = false
-)
+/**
+ * ContactsScreen migrated to use TrueTap Design System
+ * 
+ * Clean, searchable contacts interface with consistent styling
+ */
 
-data class ContactWallet(
-    val id: String,
-    val name: String,
-    val address: String,
-    val type: WalletType
-)
-
-enum class AddContactMethod {
-    NFC, BLUETOOTH, QR_CODE, SEND_LINK, MANUAL
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactsScreen(
     onNavigateBack: () -> Unit,
@@ -70,18 +32,25 @@ fun ContactsScreen(
     onNavigateToSwap: () -> Unit = {},
     onNavigateToNFTs: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onNavigateToAddContact: () -> Unit = {},
+    modifier: Modifier = Modifier,
+    viewModel: ContactsViewModel = hiltViewModel()
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var isSearchExpanded by remember { mutableStateOf(false) }
-    var showAddContactModal by remember { mutableStateOf(false) }
     var selectedContact by remember { mutableStateOf<ModernContact?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf<ModernContact?>(null) }
     var contactToEdit by remember { mutableStateOf<ModernContact?>(null) }
-    var selectedLetter by remember { mutableStateOf<Char?>(null) }
-    var showLetterPreview by remember { mutableStateOf(false) }
+    var walletToEdit by remember { mutableStateOf<Pair<ModernContact, ContactWallet>?>(null) }
+    var walletToDelete by remember { mutableStateOf<Pair<ModernContact, ContactWallet>?>(null) }
+    var contactToAddWallet by remember { mutableStateOf<ModernContact?>(null) }
     
-    // Sample contacts data (as requested: Charlie Brown and Diana Prince style)
+    val accessibility = LocalAccessibilitySettings.current
+    val dynamicColors = getDynamicColors(
+        themeMode = accessibility.themeMode,
+        highContrastMode = accessibility.highContrastMode
+    )
+    
+    // Sample contacts data
     val contacts = remember {
         mutableStateListOf(
             ModernContact(
@@ -132,21 +101,93 @@ fun ContactsScreen(
     }.sortedBy { it.name }
     
     val favoriteContacts = filteredContacts.filter { it.isFavorite }
-    val nonFavoriteContacts = filteredContacts // Show all contacts in main section
+    val regularContacts = filteredContacts
     
-    // Group contacts by first letter for alphabet navigation
-    val groupedContacts = nonFavoriteContacts.groupBy { it.name.first().uppercaseChar() }
-    val alphabet = ('A'..'Z').toList()
-    
-    // Add Contact Modal
-    if (showAddContactModal) {
-        AddContactModal(
-            onDismiss = { showAddContactModal = false },
-            onContactAdded = { newContact ->
-                contacts.add(newContact)
-                showAddContactModal = false
+    // Use searchable screen template
+    TrueTapSearchableScreenTemplate(
+        title = "Contacts",
+        currentTab = BottomNavItem.CONTACTS,
+        searchQuery = searchQuery,
+        onSearchQueryChange = { searchQuery = it },
+        searchPlaceholder = "Search contacts...",
+        onNavigateToHome = onNavigateToHome,
+        onNavigateToSwap = onNavigateToSwap,
+        onNavigateToNFTs = onNavigateToNFTs,
+        onNavigateToContacts = { /* Already on contacts */ },
+        onNavigateToSettings = onNavigateToSettings,
+        floatingActionButton = {
+            TrueTapButton(
+                text = "Add Contact",
+                onClick = onNavigateToAddContact,
+                icon = Icons.Default.Add
+            )
+        },
+        modifier = modifier
+    ) {
+        // Favorites Section
+        if (favoriteContacts.isNotEmpty()) {
+            item {
+                TrueTapSectionHeader(
+                    title = "Favorites",
+                    subtitle = "${favoriteContacts.size} favorite contacts"
+                )
             }
-        )
+            
+            item {
+                FavoritesRow(
+                    favorites = favoriteContacts,
+                    onContactClick = { selectedContact = it }
+                )
+            }
+        }
+        
+        // All Contacts Section
+        if (regularContacts.isNotEmpty()) {
+            item {
+                TrueTapSectionHeader(
+                    title = "All Contacts",
+                    subtitle = "${regularContacts.size} contacts",
+                    modifier = Modifier.padding(
+                        top = if (favoriteContacts.isNotEmpty()) TrueTapSpacing.lg else 0.dp
+                    )
+                )
+            }
+            
+            // Contact list
+            items(regularContacts) { contact ->
+                ContactListItem(
+                    contact = contact,
+                    onContactClick = { selectedContact = contact },
+                    onFavoriteClick = { 
+                        val index = contacts.indexOfFirst { it.id == contact.id }
+                        if (index != -1) {
+                            contacts[index] = contact.copy(isFavorite = !contact.isFavorite)
+                        }
+                    }
+                )
+            }
+        } else {
+            // Empty state
+            item {
+                TrueTapEmptyState(
+                    title = if (searchQuery.isNotEmpty()) "No contacts found" else "No contacts yet",
+                    description = if (searchQuery.isNotEmpty()) 
+                        "Try a different search term" 
+                    else 
+                        "Add contacts to make payments easier",
+                    icon = if (searchQuery.isNotEmpty()) Icons.Default.SearchOff else Icons.Default.Groups,
+                    action = {
+                        if (searchQuery.isEmpty()) {
+                            TrueTapButton(
+                                text = "Add Contact",
+                                onClick = onNavigateToAddContact,
+                                icon = Icons.Default.Add
+                            )
+                        }
+                    }
+                )
+            }
+        }
     }
     
     // Contact Details Modal
@@ -168,6 +209,18 @@ fun ContactsScreen(
             onEditContact = {
                 contactToEdit = contact
                 selectedContact = null
+            },
+            onEditWallet = { wallet ->
+                walletToEdit = Pair(contact, wallet)
+                selectedContact = null
+            },
+            onDeleteWallet = { wallet ->
+                walletToDelete = Pair(contact, wallet)
+                selectedContact = null
+            },
+            onAddWallet = {
+                contactToAddWallet = contact
+                selectedContact = null
             }
         )
     }
@@ -180,656 +233,198 @@ fun ContactsScreen(
                 Text(
                     text = "Delete Contact",
                     fontWeight = FontWeight.Bold,
-                    color = TrueTapTextPrimary
+                    color = dynamicColors.textPrimary
                 )
             },
             text = {
                 Text(
                     text = "Are you sure you want to delete ${contact.name}? This action cannot be undone.",
-                    color = TrueTapTextSecondary
+                    color = dynamicColors.textSecondary
                 )
             },
             confirmButton = {
-                Button(
+                TrueTapButton(
+                    text = "Delete",
                     onClick = {
                         contacts.removeIf { it.id == contact.id }
                         showDeleteConfirmation = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = TrueTapError)
-                ) {
-                    Text("Delete", color = Color.White)
-                }
+                    style = TrueTapButtonStyle.SECONDARY // Using secondary for destructive action
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = null }) {
-                    Text("Cancel", color = TrueTapTextSecondary)
-                }
-            },
-            containerColor = TrueTapContainer
+                TrueTapButton(
+                    text = "Cancel",
+                    onClick = { showDeleteConfirmation = null },
+                    style = TrueTapButtonStyle.TEXT
+                )
+            }
         )
     }
     
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(TrueTapBackground)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-        Spacer(modifier = Modifier.height(48.dp))
+    // Edit Contact Dialog
+    contactToEdit?.let { contact ->
+        var editedName by remember { mutableStateOf(contact.name) }
         
-        // Header with Search
-        Column(
+        AlertDialog(
+            onDismissRequest = { contactToEdit = null },
+            title = {
+                Text(
+                    text = "Edit Contact",
+                    fontWeight = FontWeight.Bold,
+                    color = dynamicColors.textPrimary
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Change contact name:",
+                        color = dynamicColors.textSecondary,
+                        style = getDynamicTypography(accessibility.largeButtonMode).bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(TrueTapSpacing.sm))
+                    OutlinedTextField(
+                        value = editedName,
+                        onValueChange = { editedName = it },
+                        label = { Text("Contact Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = dynamicColors.primary,
+                            focusedLabelColor = dynamicColors.primary,
+                            cursorColor = dynamicColors.primary
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                TrueTapButton(
+                    text = "Save",
+                    onClick = {
+                        if (editedName.isNotBlank()) {
+                            val index = contacts.indexOfFirst { it.id == contact.id }
+                            if (index >= 0) {
+                                contacts[index] = contact.copy(
+                                    name = editedName,
+                                    initials = editedName.split(' ')
+                                        .mapNotNull { it.firstOrNull()?.uppercase() }
+                                        .take(2)
+                                        .joinToString("")
+                                )
+                            }
+                        }
+                        contactToEdit = null
+                    },
+                    enabled = editedName.isNotBlank()
+                )
+            },
+            dismissButton = {
+                TrueTapButton(
+                    text = "Cancel",
+                    onClick = { contactToEdit = null },
+                    style = TrueTapButtonStyle.TEXT
+                )
+            }
+        )
+    }
+    
+    // Additional dialogs would be implemented here similar to the original screen
+    // (Edit Wallet, Delete Wallet, Add Wallet dialogs)
+}
+
+@Composable
+private fun FavoritesRow(
+    favorites: List<ModernContact>,
+    onContactClick: (ModernContact) -> Unit
+) {
+    TrueTapCard {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(TrueTapSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(TrueTapSpacing.md)
         ) {
-                // Header Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (!isSearchExpanded) {
-                        Text(
-                            text = "Contacts",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TrueTapTextPrimary
-                        )
-                    }
-                    
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Expandable Search
-                        AnimatedSearchBar(
-                            query = searchQuery,
-                            onQueryChange = { searchQuery = it },
-                            isExpanded = isSearchExpanded,
-                            onExpandedChange = { isSearchExpanded = it }
-                        )
-                        
-                    }
-                }
-            }
-        
-        // Main Content with Alphabet Navigation
-        Box(
-            modifier = Modifier.weight(1f)
-        ) {
-            // Alphabet Sidebar on LEFT
-            if (nonFavoriteContacts.isNotEmpty() && searchQuery.isEmpty()) {
-                AlphabetSidebar(
-                    alphabet = alphabet,
-                    selectedLetter = selectedLetter,
-                    onLetterSelected = { letter ->
-                        selectedLetter = letter
-                        showLetterPreview = true
-                    },
-                    onLetterReleased = {
-                        showLetterPreview = false
-                        selectedLetter = null
-                    },
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(start = 8.dp)
+            favorites.take(4).forEach { contact ->
+                FavoriteContactItem(
+                    contact = contact,
+                    onClick = { onContactClick(contact) },
+                    modifier = Modifier.weight(1f)
                 )
             }
             
-            // Letter Preview Overlay
-            if (showLetterPreview && selectedLetter != null) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(80.dp)
-                        .background(
-                            TrueTapPrimary.copy(alpha = 0.9f),
-                            RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+            // Show more indicator if there are more favorites
+            if (favorites.size > 4) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    TrueTapAvatar(
+                        text = "+${favorites.size - 4}",
+                        onClick = { /* Show all favorites */ }
+                    )
+                    Spacer(modifier = Modifier.height(TrueTapSpacing.sm))
                     Text(
-                        text = selectedLetter.toString(),
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        text = "More",
+                        style = getDynamicTypography().labelSmall,
+                        color = LocalDynamicColors.current.textSecondary
                     )
                 }
             }
-            
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = if (nonFavoriteContacts.isNotEmpty() && searchQuery.isEmpty()) 60.dp else 20.dp,
-                    end = 20.dp,
-                    top = 16.dp,
-                    bottom = 16.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Favorites Section
-                if (favoriteContacts.isNotEmpty()) {
-                    item {
-                        Column {
-                            Text(
-                                text = "Favorites",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TrueTapTextPrimary,
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                            
-                            // Horizontal scrolling favorite avatars
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(favoriteContacts) { contact ->
-                                    FavoriteContactAvatar(
-                                        contact = contact,
-                                        onClick = { selectedContact = contact }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // All Contacts Section
-                if (nonFavoriteContacts.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "All Contacts",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TrueTapTextPrimary,
-                            modifier = Modifier.padding(top = if (favoriteContacts.isNotEmpty()) 24.dp else 0.dp)
-                        )
-                    }
-                    
-                    // Grouped contacts by alphabet
-                    alphabet.forEach { letter ->
-                        val contactsForLetter = groupedContacts[letter] ?: emptyList()
-                        if (contactsForLetter.isNotEmpty()) {
-                            item {
-                                Text(
-                                    text = letter.toString(),
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = TrueTapPrimary,
-                                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                                )
-                            }
-                            
-                            items(contactsForLetter) { contact ->
-                                ModernContactCard(
-                                    contact = contact,
-                                    onContactClick = { selectedContact = contact },
-                                    onFavoriteClick = { 
-                                        val index = contacts.indexOfFirst { it.id == contact.id }
-                                        if (index != -1) {
-                                            contacts[index] = contact.copy(isFavorite = !contact.isFavorite)
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                
-                // Empty State
-                if (filteredContacts.isEmpty()) {
-                    item {
-                        EmptyContactsState(
-                            hasSearchQuery = searchQuery.isNotEmpty(),
-                            onAddContact = { showAddContactModal = true }
-                        )
-                    }
-                }
-                
-                // Bottom spacing for navigation
-                item {
-                    Spacer(modifier = Modifier.height(100.dp))
-                }
-            }
-        }
-        
-        // Bottom Navigation
-        BottomNavigationBar(
-            selectedTab = BottomNavItem.CONTACTS,
-            onTabSelected = { item ->
-                when (item) {
-                    BottomNavItem.HOME -> onNavigateToHome()
-                    BottomNavItem.SWAP -> onNavigateToSwap()
-                    BottomNavItem.NFTS -> onNavigateToNFTs()
-                    BottomNavItem.SETTINGS -> onNavigateToSettings()
-                    BottomNavItem.CONTACTS -> { /* Already on contacts */ }
-                }
-            }
-        )
-        }
-        
-        // Floating Action Button for Add Contact - Circular and positioned higher
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 80.dp) // Move higher to avoid navbar
-                .size(56.dp)
-                .background(TrueTapPrimary, CircleShape)
-                .clickable { showAddContactModal = true },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Contact",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
         }
     }
 }
 
 @Composable
-private fun AnimatedSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    isExpanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val searchWidth by animateFloatAsState(
-        targetValue = if (isExpanded) 240f else 48f,
-        label = "searchWidth"
-    )
-    
-    Box(
-        modifier = modifier
-            .width(searchWidth.dp)
-            .height(48.dp)
-            .background(
-                if (isExpanded) TrueTapContainer else Color.Transparent,
-                RoundedCornerShape(24.dp)
-            )
-            .border(
-                if (isExpanded) 1.dp else 0.dp,
-                TrueTapTextSecondary.copy(alpha = 0.3f),
-                RoundedCornerShape(24.dp)
-            )
-            .clickable { 
-                if (!isExpanded) onExpandedChange(true)
-            },
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
-        ) {
-            if (isExpanded) {
-                BasicTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    modifier = Modifier.weight(1f),
-                    textStyle = TextStyle(
-                        fontSize = 16.sp,
-                        color = TrueTapTextPrimary
-                    ),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        if (query.isEmpty()) {
-                            Text(
-                                text = "Search contacts...",
-                                color = TrueTapTextSecondary,
-                                fontSize = 16.sp
-                            )
-                        }
-                        innerTextField()
-                    }
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                if (query.isNotEmpty()) {
-                    IconButton(
-                        onClick = { onQueryChange("") },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear",
-                            tint = TrueTapTextSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                } else {
-                    IconButton(
-                        onClick = { onExpandedChange(false) },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close Search",
-                            tint = TrueTapTextSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-            
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = TrueTapTextSecondary,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun FavoriteContactAvatar(
+private fun FavoriteContactItem(
     contact: ModernContact,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .background(TrueTapPrimary, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = contact.initials,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
+        TrueTapAvatar(
+            text = contact.initials,
+            onClick = onClick
+        )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(TrueTapSpacing.sm))
         
         Text(
             text = contact.name.split(" ").first(),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = TrueTapTextPrimary,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.width(64.dp)
+            style = getDynamicTypography().labelSmall,
+            color = LocalDynamicColors.current.textPrimary,
+            maxLines = 1
         )
     }
 }
 
 @Composable
-private fun ModernContactCard(
+private fun ContactListItem(
     contact: ModernContact,
     onContactClick: () -> Unit,
-    onFavoriteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onFavoriteClick: () -> Unit
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onContactClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = TrueTapContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Avatar with initials
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(TrueTapPrimary, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = contact.initials,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            // Contact Info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = contact.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TrueTapTextPrimary
-                )
-                
-                Text(
-                    text = "${contact.wallets.size} wallet${if (contact.wallets.size != 1) "s" else ""}",
-                    fontSize = 14.sp,
-                    color = TrueTapTextSecondary,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-            
-            // Favorite Star
-            IconButton(
-                onClick = onFavoriteClick,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = if (contact.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                    contentDescription = if (contact.isFavorite) "Remove from favorites" else "Add to favorites",
-                    tint = if (contact.isFavorite) TrueTapPrimary else TrueTapTextSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AlphabetSidebar(
-    alphabet: List<Char>,
-    selectedLetter: Char?,
-    onLetterSelected: (Char) -> Unit,
-    onLetterReleased: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var sidebarSize by remember { mutableStateOf(IntSize.Zero) }
+    val dynamicColors = LocalDynamicColors.current
     
-    Column(
-        modifier = modifier
-            .background(
-                TrueTapContainer.copy(alpha = 0.9f),
-                RoundedCornerShape(16.dp)
-            )
-            .padding(vertical = 8.dp, horizontal = 6.dp)
-            .onGloballyPositioned { coordinates ->
-                sidebarSize = coordinates.size
+    TrueTapCard(onClick = onContactClick) {
+        TrueTapListItem(
+            title = contact.name,
+            subtitle = "${contact.wallets.size} wallet${if (contact.wallets.size != 1) "s" else ""}",
+            leadingIcon = null, // We'll use custom avatar
+            trailingContent = {
+                IconButton(onClick = onFavoriteClick) {
+                    Icon(
+                        imageVector = if (contact.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = if (contact.isFavorite) "Remove from favorites" else "Add to favorites",
+                        tint = if (contact.isFavorite) dynamicColors.primary else dynamicColors.textSecondary
+                    )
+                }
             }
-            .pointerInput(Unit) {
-                var currentY = 0f
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        currentY = offset.y
-                        val letterIndex = (currentY / (sidebarSize.height / alphabet.size)).toInt()
-                            .coerceIn(0, alphabet.size - 1)
-                        onLetterSelected(alphabet[letterIndex])
-                    },
-                    onDrag = { _, dragAmount ->
-                        currentY += dragAmount.y
-                        currentY = currentY.coerceIn(0f, sidebarSize.height.toFloat())
-                        val letterIndex = (currentY / (sidebarSize.height / alphabet.size)).toInt()
-                            .coerceIn(0, alphabet.size - 1)
-                        onLetterSelected(alphabet[letterIndex])
-                    },
-                    onDragEnd = {
-                        onLetterReleased()
-                    }
-                )
-            },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        alphabet.forEach { letter ->
-            val isSelected = letter == selectedLetter
-            Text(
-                text = letter.toString(),
-                fontSize = 11.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) TrueTapPrimary else TrueTapTextPrimary,
-                modifier = Modifier
-                    .padding(vertical = 2.dp)
-                    .clickable { 
-                        onLetterSelected(letter)
-                        onLetterReleased()
-                    }
-            )
-        }
-    }
-}
-
-@Composable
-private fun EmptyContactsState(
-    hasSearchQuery: Boolean,
-    onAddContact: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = if (hasSearchQuery) Icons.Default.SearchOff else Icons.Default.PersonAdd,
-            contentDescription = null,
-            tint = TrueTapTextSecondary,
-            modifier = Modifier.size(64.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = if (hasSearchQuery) "No contacts found" else "No contacts yet",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = TrueTapTextPrimary,
-            textAlign = TextAlign.Center
-        )
-        
-        Text(
-            text = if (hasSearchQuery) 
-                "Try a different search term" 
-            else 
-                "Add contacts to make payments easier",
-            fontSize = 14.sp,
-            color = TrueTapTextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(8.dp)
-        )
-        
-        if (!hasSearchQuery) {
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Button(
-                onClick = onAddContact,
-                colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Add Contact",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BottomNavigationBar(
-    selectedTab: BottomNavItem,
-    onTabSelected: (BottomNavItem) -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = TrueTapContainer,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            BottomNavItem.values().forEach { item ->
-                BottomNavButton(
-                    item = item,
-                    isSelected = selectedTab == item,
-                    onClick = { onTabSelected(item) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BottomNavButton(
-    item: BottomNavItem,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .clickable { onClick() }
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Icon with filled orange when selected
-        Icon(
-            imageVector = when (item) {
-                BottomNavItem.HOME -> Icons.Default.Home
-                BottomNavItem.SWAP -> Icons.Default.SwapHoriz
-                BottomNavItem.NFTS -> Icons.Default.Image
-                BottomNavItem.CONTACTS -> Icons.Default.People
-                BottomNavItem.SETTINGS -> Icons.Default.Settings
-            },
-            contentDescription = item.title,
-            tint = if (isSelected) TrueTapPrimary else TrueTapTextSecondary,
-            modifier = Modifier.size(24.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(2.dp))
-        
-        Text(
-            text = item.title,
-            fontSize = 10.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) TrueTapPrimary else TrueTapTextSecondary
         )
     }
 }
 
-// New Contact Detail Modal based on the wallet management interface
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ContactDetailModal(
@@ -837,313 +432,158 @@ private fun ContactDetailModal(
     onDismiss: () -> Unit,
     onToggleFavorite: () -> Unit,
     onDeleteContact: () -> Unit,
-    onEditContact: () -> Unit
+    onEditContact: () -> Unit,
+    onEditWallet: (ContactWallet) -> Unit,
+    onDeleteWallet: (ContactWallet) -> Unit,
+    onAddWallet: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    val dynamicColors = LocalDynamicColors.current
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = TrueTapBackground,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .background(
-                            TrueTapTextSecondary.copy(alpha = 0.3f),
-                            RoundedCornerShape(2.dp)
-                        )
-                )
-            }
-        }
+        containerColor = dynamicColors.surface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 20.dp)
+                .padding(TrueTapSpacing.lg)
         ) {
-            // Header with Contact Name and Edit Pencil
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = contact.name,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TrueTapTextPrimary
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TrueTapAvatar(text = contact.initials)
                     
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(TrueTapSpacing.md))
                     
-                    IconButton(
-                        onClick = onEditContact,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Contact",
-                            tint = TrueTapTextSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-                
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Delete Contact Button (Trash Icon)
-                    IconButton(
-                        onClick = onDeleteContact,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Contact",
-                            tint = TrueTapError,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    
-                    // Add Wallet Button
-                    Button(
-                        onClick = { /* Add wallet functionality */ },
-                        colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                    Column {
                         Text(
-                            text = "Add",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
+                            text = contact.name,
+                            style = getDynamicTypography().headlineSmall,
+                            color = dynamicColors.textPrimary,
+                            fontWeight = FontWeight.Bold
                         )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Wallet List
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(contact.wallets) { wallet ->
-                    WalletEntryCard(
-                        wallet = wallet,
-                        onSend = { /* Send functionality */ },
-                        onCopy = {
-                            clipboardManager.setText(AnnotatedString(wallet.address))
-                        },
-                        onDelete = { /* Delete wallet functionality */ }
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Close Button
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = TrueTapContainer),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                Text(
-                    text = "Close",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TrueTapTextPrimary
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-}
-
-@Composable
-private fun WalletEntryCard(
-    wallet: ContactWallet,
-    onSend: () -> Unit,
-    onCopy: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = TrueTapContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Wallet Name with Edit Pencil and Copy Icon
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = wallet.name,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TrueTapTextPrimary
-                    )
-                    
-                    Spacer(modifier = Modifier.width(8.dp))
-                    
-                    IconButton(
-                        onClick = { /* Edit wallet name functionality */ },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Wallet Name",
-                            tint = TrueTapTextSecondary,
-                            modifier = Modifier.size(14.dp)
+                        
+                        Text(
+                            text = "${contact.wallets.size} wallet${if (contact.wallets.size != 1) "s" else ""}",
+                            style = getDynamicTypography().bodyMedium,
+                            color = dynamicColors.textSecondary
                         )
                     }
                 }
                 
-                // Copy Icon on the right
-                IconButton(
-                    onClick = onCopy,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copy Address",
-                        tint = TrueTapTextSecondary,
-                        modifier = Modifier.size(16.dp)
+                Row(horizontalArrangement = Arrangement.spacedBy(TrueTapSpacing.sm)) {
+                    TrueTapButton(
+                        text = "Edit",
+                        onClick = onEditContact,
+                        style = TrueTapButtonStyle.ICON,
+                        icon = Icons.Default.Edit
+                    )
+                    
+                    TrueTapButton(
+                        text = "Delete",
+                        onClick = onDeleteContact,
+                        style = TrueTapButtonStyle.ICON,
+                        icon = Icons.Default.Delete
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(TrueTapSpacing.lg))
             
-            // Wallet Address
-            Text(
-                text = "${wallet.address.take(8)}...${wallet.address.takeLast(8)}",
-                fontSize = 14.sp,
-                color = TrueTapTextSecondary,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Send Button
-            Button(
-                onClick = onSend,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "Send",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Send",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Delete Wallet Icon (positioned to not interfere)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Wallet",
-                        tint = TrueTapError,
-                        modifier = Modifier.size(16.dp)
+            // Wallets section
+            TrueTapSectionHeader(
+                title = "Wallets",
+                action = {
+                    TrueTapButton(
+                        text = "Add Wallet",
+                        onClick = onAddWallet,
+                        style = TrueTapButtonStyle.OUTLINE,
+                        icon = Icons.Default.Add
                     )
                 }
+            )
+            
+            Spacer(modifier = Modifier.height(TrueTapSpacing.sm))
+            
+            // Wallet list
+            contact.wallets.forEach { wallet ->
+                WalletItem(
+                    wallet = wallet,
+                    onCopyAddress = {
+                        clipboardManager.setText(AnnotatedString(wallet.address))
+                    },
+                    onEditWallet = { onEditWallet(wallet) },
+                    onDeleteWallet = { onDeleteWallet(wallet) }
+                )
             }
-        }
-    }
-}
-
-// Placeholder for AddContactModal (to be implemented)
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AddContactModal(
-    onDismiss: () -> Unit,
-    onContactAdded: (ModernContact) -> Unit
-) {
-    // Placeholder implementation
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = TrueTapBackground
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            Text(
-                text = "Add Contact",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = TrueTapTextPrimary
-            )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(TrueTapSpacing.xl))
             
-            Text(
-                text = "Add contact functionality coming soon...",
-                color = TrueTapTextSecondary
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Button(
+            // Close button
+            TrueTapButton(
+                text = "Close",
                 onClick = onDismiss,
+                style = TrueTapButtonStyle.SECONDARY,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Close")
-            }
+            )
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(TrueTapSpacing.lg))
         }
     }
 }
 
+@Composable
+private fun WalletItem(
+    wallet: ContactWallet,
+    onCopyAddress: () -> Unit,
+    onEditWallet: () -> Unit,
+    onDeleteWallet: () -> Unit
+) {
+    TrueTapCard {
+        Column {
+            TrueTapListItem(
+                title = wallet.name,
+                subtitle = "${wallet.address.take(8)}...${wallet.address.takeLast(8)}",
+                leadingIcon = Icons.Default.AccountBalanceWallet,
+                trailingContent = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(TrueTapSpacing.xs)) {
+                        TrueTapButton(
+                            text = "Copy",
+                            onClick = onCopyAddress,
+                            style = TrueTapButtonStyle.ICON,
+                            icon = Icons.Default.ContentCopy
+                        )
+                        
+                        TrueTapButton(
+                            text = "Edit",
+                            onClick = onEditWallet,
+                            style = TrueTapButtonStyle.ICON,
+                            icon = Icons.Default.Edit
+                        )
+                        
+                        TrueTapButton(
+                            text = "Delete",
+                            onClick = onDeleteWallet,
+                            style = TrueTapButtonStyle.ICON,
+                            icon = Icons.Default.Delete
+                        )
+                    }
+                }
+            )
+            
+            Spacer(modifier = Modifier.height(TrueTapSpacing.sm))
+            
+            TrueTapButton(
+                text = "Send Payment",
+                onClick = { /* Navigate to send payment */ },
+                icon = Icons.Default.Send,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}

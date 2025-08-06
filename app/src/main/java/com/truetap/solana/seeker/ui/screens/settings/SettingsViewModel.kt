@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.truetap.solana.seeker.repository.SettingsRepository
 
 /**
  * ViewModel for Settings Screen
@@ -58,6 +59,12 @@ data class SettingsUiState(
     val themeMode: String = "light",
     val language: String = "English",
     
+    // Accessibility settings
+    val highContrastMode: Boolean = false,
+    val largeButtonMode: Boolean = false,
+    val audioConfirmations: Boolean = false,
+    val simplifiedUIMode: Boolean = false,
+    
     // Modal states
     val showPinModal: Boolean = false,
     val pinStep: PinStep = PinStep.INPUT,
@@ -69,10 +76,7 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    // TODO: Inject actual services when available
-    // private val dataStoreService: DataStoreService,
-    // private val biometricService: BiometricService,
-    // private val walletService: WalletService
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -94,11 +98,37 @@ class SettingsViewModel @Inject constructor(
                     isError = false,
                     onConfirm = {
                         _uiState.value = _uiState.value.copy(biometricEnabled = false)
+                        settingsRepository.updateBiometricEnabled(false)
                         saveSettings()
                     }
                 )
             )
         }
+    }
+    
+    // Accessibility toggle functions
+    fun toggleHighContrast(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(highContrastMode = enabled)
+        settingsRepository.updateHighContrastMode(enabled)
+        saveSettings()
+    }
+    
+    fun toggleLargeButtons(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(largeButtonMode = enabled)
+        settingsRepository.updateLargeButtonMode(enabled)
+        saveSettings()
+    }
+    
+    fun toggleAudioConfirmations(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(audioConfirmations = enabled)
+        settingsRepository.updateAudioConfirmations(enabled)
+        saveSettings()
+    }
+    
+    fun toggleSimplifiedUI(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(simplifiedUIMode = enabled)
+        settingsRepository.updateSimplifiedUIMode(enabled)
+        saveSettings()
     }
     
     fun showPinModal() {
@@ -186,6 +216,7 @@ class SettingsViewModel @Inject constructor(
                     content = "PIN code has been set successfully"
                 )
             )
+            settingsRepository.updatePinCode(currentState.pinInput)
             saveSettings()
         }
     }
@@ -202,19 +233,26 @@ class SettingsViewModel @Inject constructor(
     fun selectOption(modalType: SelectionModalType, value: String) {
         when (modalType) {
             SelectionModalType.BIOMETRIC_METHOD -> {
+                val biometric = if (value == "Face ID") "face" else "fingerprint"
                 _uiState.value = _uiState.value.copy(
-                    preferredBiometric = if (value == "Face ID") "face" else "fingerprint",
+                    preferredBiometric = biometric,
                     biometricEnabled = true
                 )
+                settingsRepository.updatePreferredBiometric(biometric)
+                settingsRepository.updateBiometricEnabled(true)
             }
             SelectionModalType.DEFAULT_CURRENCY -> {
                 _uiState.value = _uiState.value.copy(defaultCurrency = value)
+                settingsRepository.updateDefaultCurrency(value)
             }
             SelectionModalType.THEME -> {
-                _uiState.value = _uiState.value.copy(themeMode = value.lowercase())
+                val theme = value.lowercase()
+                _uiState.value = _uiState.value.copy(themeMode = theme)
+                settingsRepository.updateThemeMode(theme)
             }
             SelectionModalType.LANGUAGE -> {
                 _uiState.value = _uiState.value.copy(language = value)
+                settingsRepository.updateLanguage(value)
             }
         }
         saveSettings()

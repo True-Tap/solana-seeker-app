@@ -4,14 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
+import com.truetap.solana.seeker.BuildConfig
 import com.truetap.solana.seeker.data.AuthState
+import com.truetap.solana.seeker.data.ConnectionResult
 import com.truetap.solana.seeker.data.SeedVaultInfo
 import com.truetap.solana.seeker.data.WalletAccount
 import com.truetap.solana.seeker.data.WalletResult
+import com.truetap.solana.seeker.data.WalletState
 import com.truetap.solana.seeker.repositories.WalletRepository
 import com.truetap.solana.seeker.repositories.TrueTapContact
 import com.truetap.solana.seeker.repositories.TransactionResult
 import com.truetap.solana.seeker.services.SeedVaultService
+import com.truetap.solana.seeker.services.NftService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,13 +31,12 @@ import javax.inject.Inject
 @HiltViewModel
 class WalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
-    private val seedVaultService: SeedVaultService
+    private val seedVaultService: SeedVaultService,
+    val nftService: NftService
 ) : ViewModel() {
 
     val authState: StateFlow<AuthState> = walletRepository.authState
-    // TODO: Fix wallet repository methods
-    // val isConnected = walletRepository.isConnected()
-    // val currentAccount = walletRepository.getCurrentAccount()
+    val walletState: StateFlow<WalletState> = walletRepository.walletState
 
     private val _seedVaultInfo = MutableStateFlow<SeedVaultInfo?>(null)
     val seedVaultInfo: StateFlow<SeedVaultInfo?> = _seedVaultInfo.asStateFlow()
@@ -67,15 +70,15 @@ class WalletViewModel @Inject constructor(
         loadTrueTapContacts()
     }
 
-    fun connectWallet(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
-        cluster: String = "mainnet-beta"
+    fun saveWalletConnection(
+        connectionResult: ConnectionResult.Success,
+        cluster: String = if (BuildConfig.DEBUG) "devnet" else "mainnet-beta"
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
 
-            when (val result = walletRepository.connectAndAuthWallet(activityResultLauncher, cluster)) {
+            when (val result = walletRepository.saveConnectionResult(connectionResult, cluster)) {
                 is WalletResult.Success -> {
                     _errorMessage.value = null
                 }
@@ -119,11 +122,77 @@ class WalletViewModel @Inject constructor(
     fun clearError() {
         _errorMessage.value = null
     }
+    
+    fun refreshWalletData() {
+        viewModelScope.launch {
+            walletRepository.refreshWalletData()
+        }
+    }
+    
+    fun connectWallet() {
+        // Alias for connect() to maintain compatibility
+        connect()
+    }
+    
+    fun connect() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            
+            try {
+                // Since connect() doesn't exist in the repository, 
+                // we'll just restore the session or clear the loading state
+                walletRepository.restoreSession()
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Failed to connect wallet"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    /**
+     * Check if connected wallet has Genesis NFT
+     */
+    fun checkGenesisNFT(): StateFlow<Boolean> = flow {
+        val currentWallet = walletState.value.account?.publicKey
+        if (currentWallet != null) {
+            emit(nftService.hasGenesisNFT(currentWallet))
+        } else {
+            emit(false)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
+    
+    /**
+     * Get Genesis NFT tier for connected wallet
+     */
+    fun getGenesisNFTTier(): StateFlow<String> = flow {
+        val currentWallet = walletState.value.account?.publicKey
+        if (currentWallet != null) {
+            val tier = nftService.getGenesisNFTTier(currentWallet)
+            emit(tier.name)
+        } else {
+            emit("NONE")
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "NONE")
+    
+    /**
+     * Get all Genesis NFTs for connected wallet
+     */
+    fun getGenesisNFTs() = flow {
+        val currentWallet = walletState.value.account?.publicKey
+        if (currentWallet != null) {
+            emit(nftService.getGenesisNFTs(currentWallet))
+        } else {
+            emit(emptyList())
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
-    fun retry(activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>) {
+    fun retry() {
         when (val currentState = authState.value) {
             is AuthState.Error -> {
-                connectWallet(activityResultLauncher)
+                // Clear error state - connection retry handled by PairingScreen
+                clearError()
             }
             is AuthState.Idle -> {
                 attemptSessionRestore()

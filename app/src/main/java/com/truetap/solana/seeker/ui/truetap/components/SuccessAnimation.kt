@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.truetap.solana.seeker.repositories.TransactionResult
 import com.truetap.solana.seeker.ui.theme.TrueTapPrimary
-import com.truetap.solana.seeker.ui.theme.TrueTapContainer
+import com.truetap.solana.seeker.ui.theme.TrueTapBackground
 import com.truetap.solana.seeker.ui.theme.TrueTapTextPrimary
 import com.truetap.solana.seeker.ui.theme.TrueTapTextSecondary
 import com.truetap.solana.seeker.ui.theme.TrueTapSuccess
@@ -73,49 +73,36 @@ fun SuccessAnimation(
             color = TrueTapTextPrimary
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = TrueTapContainer
-            )
+        // Transaction ID without container
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Text(
+                "Transaction ID",
+                style = MaterialTheme.typography.bodySmall,
+                color = TrueTapTextSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "${transaction.txId.take(8)}...${transaction.txId.takeLast(8)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = TrueTapTextPrimary,
+                textAlign = TextAlign.Center
+            )
+            
+            if (transaction.message?.isNotEmpty() == true) {
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    "Transaction ID",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Message: ${transaction.message}",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = TrueTapTextSecondary,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "${transaction.txId.take(8)}...${transaction.txId.takeLast(8)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = TrueTapTextPrimary,
-                    textAlign = TextAlign.Center
-                )
-                
-                if (transaction.message?.isNotEmpty() == true) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Message: ${transaction.message}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TrueTapTextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
             }
         }
         

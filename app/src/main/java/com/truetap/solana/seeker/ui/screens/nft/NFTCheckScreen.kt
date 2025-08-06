@@ -18,11 +18,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.min as minOf
 import kotlin.math.max as maxOf
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
+import com.truetap.solana.seeker.viewmodels.WalletViewModel
+import com.truetap.solana.seeker.services.NftService
+import com.truetap.solana.seeker.services.GenesisNFTTier
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /**
  * NFT Check Screen - Jetpack Compose
@@ -33,7 +42,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun NFTCheckScreen(
     onNavigateToSuccess: () -> Unit,
-    onNavigateToFailure: () -> Unit
+    onNavigateToFailure: () -> Unit,
+    walletViewModel: WalletViewModel = hiltViewModel()
 ) {
     // Screen dimensions for responsive design
     val configuration = LocalConfiguration.current
@@ -156,16 +166,104 @@ fun NFTCheckScreen(
         label = "Dot3Scale"
     )
     
-    // Auto navigation effect
-    LaunchedEffect(Unit) {
-        delay(4000) // Wait 4 seconds
-        // TODO: Replace with actual NFT check logic
-        val hasNFTs = true // Simulate successful verification
+    // Get wallet state from ViewModel
+    val walletState by walletViewModel.walletState.collectAsStateWithLifecycle()
+    
+    // State for Genesis NFT detection
+    var genesisCheckResult by remember { mutableStateOf<GenesisNFTTier?>(null) }
+    var isCheckingGenesis by remember { mutableStateOf(false) }
+    var debugMessage by remember { mutableStateOf("Initializing Genesis NFT check...") }
+    
+    // Use rememberCoroutineScope for better lifecycle management
+    val coroutineScope = rememberCoroutineScope()
+    var genesisCheckJob by remember { mutableStateOf<Job?>(null) }
+    
+    // Auto navigation effect with comprehensive Genesis NFT verification using NftService
+    LaunchedEffect(walletState.account?.publicKey) {
+        // Cancel any existing job
+        genesisCheckJob?.cancel()
         
-        if (hasNFTs) {
-            onNavigateToSuccess()
-        } else {
+        delay(2000) // Give some time for animations
+        
+        // Check if wallet is connected and not already checking
+        val walletAddress = walletState.account?.publicKey
+        if (walletAddress != null && !isCheckingGenesis) {
+            
+            genesisCheckJob = coroutineScope.launch {
+                isCheckingGenesis = true
+                debugMessage = "Starting Genesis NFT verification..."
+                
+                try {
+                    // Add a screen-level timeout of 35 seconds (longer than NftService timeout to see what happens)
+                    withTimeout(35_000L) {
+                        android.util.Log.d("NFTCheckScreen", "Starting Genesis NFT check for: $walletAddress")
+                        debugMessage = "Checking wallet: ${walletAddress.take(8)}..."
+                        
+                        // Call NftService methods directly to avoid StateFlow scope issues
+                        val nftService = walletViewModel.nftService
+                        val hasGenesisNFT = nftService.hasGenesisNFT(walletAddress)
+                        val genesisNFTTier = if (hasGenesisNFT) {
+                            nftService.getGenesisNFTTier(walletAddress).name
+                        } else {
+                            "NONE"
+                        }
+                        
+                        debugMessage = if (hasGenesisNFT) {
+                            "Genesis NFT found! Tier: $genesisNFTTier"
+                        } else {
+                            "No Genesis NFT found"
+                        }
+                        
+                        android.util.Log.d("NFTCheckScreen", "Genesis NFT check result: hasNFT=$hasGenesisNFT, tier=$genesisNFTTier")
+                        
+                        genesisCheckResult = if (hasGenesisNFT) {
+                            GenesisNFTTier.valueOf(genesisNFTTier)
+                        } else {
+                            GenesisNFTTier.NONE
+                        }
+                        
+                        delay(1000) // Show result for a moment
+                        
+                        if (genesisCheckResult != GenesisNFTTier.NONE) {
+                            android.util.Log.d("NFTCheckScreen", "Navigating to success with tier: $genesisCheckResult")
+                            onNavigateToSuccess()
+                        } else {
+                            android.util.Log.d("NFTCheckScreen", "Navigating to failure - no Genesis NFT")
+                            onNavigateToFailure()
+                        }
+                    }
+                    
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    android.util.Log.d("NFTCheckScreen", "Genesis NFT check was cancelled")
+                    // Don't navigate on cancellation - user likely navigated away
+                } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                    android.util.Log.w("NFTCheckScreen", "Genesis NFT check timed out after 35 seconds")
+                    debugMessage = "Genesis NFT check timed out"
+                    genesisCheckResult = GenesisNFTTier.NONE
+                    delay(1000)
+                    onNavigateToFailure()
+                } catch (e: Exception) {
+                    android.util.Log.e("NFTCheckScreen", "Genesis NFT check failed", e)
+                    debugMessage = "Genesis NFT check failed: ${e.message}"
+                    genesisCheckResult = GenesisNFTTier.NONE
+                    delay(1000)
+                    onNavigateToFailure()
+                } finally {
+                    isCheckingGenesis = false
+                }
+            }
+        } else if (walletAddress == null) {
+            // No wallet connected, navigate to failure
+            debugMessage = "No wallet connected"
+            delay(2000)
             onNavigateToFailure()
+        }
+    }
+    
+    // Clean up job on dispose
+    DisposableEffect(Unit) {
+        onDispose {
+            genesisCheckJob?.cancel()
         }
     }
     
@@ -222,7 +320,22 @@ fun NFTCheckScreen(
                 )
             }
             
-            Spacer(modifier = Modifier.height(screenHeight * 0.09f))
+            Spacer(modifier = Modifier.height(screenHeight * 0.04f))
+            
+            // Debug message
+            Box(
+                modifier = Modifier.graphicsLayer { alpha = textFade }
+            ) {
+                Text(
+                    text = debugMessage,
+                    fontSize = (titleSize.value * 0.7f).sp,
+                    color = TrueTapTextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(screenHeight * 0.05f))
             
             // Loading Dots
             Row(
@@ -281,7 +394,9 @@ fun NFTCheckScreen(
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "DYw8...hxGo",
+                text = walletState.account?.publicKey?.let { address ->
+                    "${address.take(4)}...${address.takeLast(4)}"
+                } ?: "No wallet connected",
                 fontSize = walletAddressSize,
                 fontWeight = FontWeight.Medium,
                 color = TrueTapPrimary,

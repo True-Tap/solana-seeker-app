@@ -67,7 +67,7 @@ data class Transaction(
 )
 
 enum class TransactionType {
-    SENT, RECEIVED
+    SENT, RECEIVED, SWAPPED
 }
 
 enum class TransactionStatus {
@@ -90,4 +90,34 @@ data class ContactDetailsUiState(
     val showEditDialog: Boolean = false,
     val editedContact: Contact? = null,
     val showDeleteDialog: Boolean = false
+)
+
+// NFC related models
+enum class NfcRole {
+    SENDER, RECEIVER
+}
+
+sealed class TransactionResult {
+    object Success : TransactionResult()
+    data class Error(val message: String) : TransactionResult()
+    object Processing : TransactionResult()
+}
+
+data class NfcUiState(
+    val role: NfcRole = NfcRole.SENDER,
+    val amount: String = "",
+    val recipient: String = "",
+    val isProcessing: Boolean = false,
+    val transactionResult: TransactionResult? = null,
+    val errorMessage: String? = null,
+    val isNfcEnabled: Boolean = true,
+    val showSuccessAnimation: Boolean = false,
+    val showErrorAnimation: Boolean = false
+)
+
+// Blockchain/Solana related models
+data class TokenAccountInfo(
+    val mint: String,
+    val amount: String,
+    val decimals: Int
 )

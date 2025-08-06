@@ -58,7 +58,7 @@ fun SolanaseekerappTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = TrueTapTypography,
+        typography = DefaultMaterial3Typography,
         content = content
     )
 }

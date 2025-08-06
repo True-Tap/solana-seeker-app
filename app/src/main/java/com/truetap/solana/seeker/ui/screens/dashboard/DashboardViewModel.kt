@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import com.truetap.solana.seeker.BuildConfig
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -47,34 +48,10 @@ class DashboardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
     
-    // Sample transactions for demo
-    private val sampleTransactions = listOf(
-        Transaction(
-            id = "1",
-            type = TransactionType.RECEIVED,
-            amount = "+25.5 SOL",
-            recipient = "From Les Grossman",
-            time = "2 min ago"
-        ),
-        Transaction(
-            id = "2",
-            type = TransactionType.SENT,
-            amount = "-12 SOL",
-            recipient = "To Sarah Kim",
-            time = "1 hour ago"
-        ),
-        Transaction(
-            id = "3",
-            type = TransactionType.RECEIVED,
-            amount = "+8.75 SOL",
-            recipient = "From Mike Johnson",
-            time = "3 hours ago"
-        )
-    )
+    // No sample transactions - will load real data when wallet is connected
     
     init {
         updateGreeting()
-        loadSampleData()
     }
     
     fun startAnimations() {
@@ -88,20 +65,15 @@ class DashboardViewModel @Inject constructor(
                 // val walletService = WalletFactory.getInstance() as SolanaWalletService
                 // val isConnected = walletService.isWalletConnected()
                 
-                // Simulate wallet data loading
-                delay(500)
-                
+                // TODO: Implement real wallet data loading
+                // For now, just set connected state to false until real wallet integration
                 _uiState.update { currentState ->
                     currentState.copy(
-                        isWalletConnected = true,
-                        walletBalance = 125.4567,
-                        walletPublicKey = "9WzDXwBbkk8QkbwvQp2cK3xYzYtAWWM",
-                        tokenBalances = listOf(
-                            TokenBalance("USDC", 1000.0, 1000.0),
-                            TokenBalance("BONK", 50000.0, 50000.0),
-                            TokenBalance("ORCA", 25.5, 25.5)
-                        ),
-                        transactions = sampleTransactions
+                        isWalletConnected = false,
+                        walletBalance = 0.0,
+                        walletPublicKey = "",
+                        tokenBalances = emptyList(),
+                        transactions = emptyList()
                     )
                 }
                 
@@ -168,7 +140,8 @@ class DashboardViewModel @Inject constructor(
     
     fun openExplorer(hash: String) {
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://explorer.solana.com/tx/$hash"))
+            val clusterParam = if (BuildConfig.DEBUG) "?cluster=devnet" else ""
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://explorer.solana.com/tx/$hash$clusterParam"))
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         } catch (error: Exception) {
@@ -204,12 +177,4 @@ class DashboardViewModel @Inject constructor(
         return formatter.format(date)
     }
     
-    private fun loadSampleData() {
-        _uiState.update { 
-            it.copy(
-                transactions = sampleTransactions,
-                subtitle = getCurrentDate()
-            )
-        }
-    }
 }

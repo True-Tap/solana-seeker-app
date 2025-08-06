@@ -6,6 +6,7 @@
 package com.truetap.solana.seeker.ui.screens.contacts
 
 import com.truetap.solana.seeker.data.models.*
+import com.truetap.solana.seeker.repositories.ContactsRepository
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -19,6 +20,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -27,12 +30,32 @@ data class ManualContact(
     val address: String = ""
 )
 
+// Contact data with multiple wallets support
+data class ModernContact(
+    val id: String,
+    val name: String,
+    val initials: String,
+    val wallets: List<ContactWallet>,
+    val isFavorite: Boolean = false
+)
+
+data class ContactWallet(
+    val id: String,
+    val name: String,
+    val address: String,
+    val type: WalletType
+)
+
+enum class AddContactMethod {
+    NFC, BLUETOOTH, QR_CODE, SEND_LINK, MANUAL
+}
+
 data class ContactsUiState(
-    val contacts: List<Contact> = emptyList(),
-    val filteredContacts: List<Contact> = emptyList(),
-    val groupedContacts: Map<String, List<Contact>> = emptyMap(),
+    val contacts: List<ModernContact> = emptyList(),
+    val filteredContacts: List<ModernContact> = emptyList(),
+    val groupedContacts: Map<String, List<ModernContact>> = emptyMap(),
     val searchQuery: String = "",
-    val selectedContact: Contact? = null,
+    val selectedContact: ModernContact? = null,
     val showAddModal: Boolean = false,
     val selectedAddMethod: AddContactMethod? = null,
     val showMoreOptions: Boolean = false,
@@ -42,101 +65,159 @@ data class ContactsUiState(
     val qrMode: QRMode? = null,
     val shareLink: String = "https://truetap.app/contact/invite/abc123",
     val manualContact: ManualContact = ManualContact(),
-    val copiedAddress: String? = null
+    val copiedAddress: String? = null,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null
 )
 
 @HiltViewModel
 class ContactsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val contactsRepository: ContactsRepository
 ) : ViewModel() {
     
+    private val _searchQuery = MutableStateFlow("")
     private val _uiState = MutableStateFlow(ContactsUiState())
     val uiState: StateFlow<ContactsUiState> = _uiState.asStateFlow()
     
-    // Sample contacts data
-    private val sampleContacts = listOf(
-        Contact(
-            id = "1",
-            name = "Alex Chen",
-            initials = "AC",
-            seekerActive = true,
-            wallets = listOf(
-                Wallet(1, "Personal", "9WzDXwBbkk...9zYtAWWM", WalletType.PERSONAL),
-                Wallet(2, "Business", "7WzDXwBbkk...9zYtAWWM", WalletType.BUSINESS)
-            ),
-            favorite = false,
-            walletAddress = "9WzDXwBbkk...9zYtAWWM"
-        ),
-        Contact(
-            id = "2",
-            name = "Sarah Johnson",
-            initials = "SJ",
-            seekerActive = false,
-            wallets = listOf(
-                Wallet(3, "Main Wallet", "8XyPQwBbkk...7yZtBXXN", WalletType.PERSONAL)
-            ),
-            favorite = true,
-            walletAddress = "8XyPQwBbkk...7yZtBXXN"
-        ),
-        Contact(
-            id = "3",
-            name = "Mike Davis",
-            initials = "MD",
-            seekerActive = true,
-            wallets = listOf(
-                Wallet(4, "Work", "6ZaPQwBbkk...8yZtCYYO", WalletType.BUSINESS),
-                Wallet(5, "Personal", "5YbPQwBbkk...9yZtDZZP", WalletType.PERSONAL)
-            ),
-            favorite = false,
-            walletAddress = "6ZaPQwBbkk...8yZtCYYO"
-        )
-    )
-    
     init {
+        initializeData()
         loadContacts()
     }
     
+    private fun initializeData() {
+        viewModelScope.launch {
+            try {
+                contactsRepository.initializeSampleDataIfEmpty()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
+        }
+    }
+    
     private fun loadContacts() {
-        _uiState.update { currentState ->
-            val filtered = filterContacts(sampleContacts, currentState.searchQuery)
-            currentState.copy(
-                contacts = sampleContacts,
-                filteredContacts = filtered,
-                groupedContacts = groupContacts(filtered)
-            )
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+                
+                // Combine contacts flow with search query
+                combine(
+                    contactsRepository.getContactsFlow(),
+                    _searchQuery
+                ) { contacts, query ->
+                    val filtered = filterContacts(contacts, query)
+                    ContactsUiState(
+                        contacts = contacts,
+                        filteredContacts = filtered,
+                        groupedContacts = groupContacts(filtered),
+                        searchQuery = query,
+                        isLoading = false
+                    )
+                }.collect { newState ->
+                    _uiState.update { currentState ->
+                        newState.copy(
+                            selectedContact = currentState.selectedContact,
+                            showAddModal = currentState.showAddModal,
+                            selectedAddMethod = currentState.selectedAddMethod,
+                            showMoreOptions = currentState.showMoreOptions,
+                            nfcScanning = currentState.nfcScanning,
+                            bluetoothEnabled = currentState.bluetoothEnabled,
+                            bluetoothDevices = currentState.bluetoothDevices,
+                            qrMode = currentState.qrMode,
+                            shareLink = currentState.shareLink,
+                            manualContact = currentState.manualContact,
+                            copiedAddress = currentState.copiedAddress,
+                            errorMessage = currentState.errorMessage
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+            }
         }
     }
     
     fun updateSearchQuery(query: String) {
-        _uiState.update { currentState ->
-            val filtered = filterContacts(currentState.contacts, query)
-            currentState.copy(
-                searchQuery = query,
-                filteredContacts = filtered,
-                groupedContacts = groupContacts(filtered)
-            )
-        }
+        _searchQuery.update { query }
     }
     
-    fun selectContact(contact: Contact) {
+    fun selectContact(contact: ModernContact?) {
         _uiState.update { it.copy(selectedContact = contact) }
     }
     
     fun toggleFavorite(contactId: String) {
-        _uiState.update { currentState ->
-            val updatedContacts = currentState.contacts.map { contact ->
-                if (contact.id == contactId) {
-                    contact.copy(favorite = !contact.favorite)
-                } else {
-                    contact
+        viewModelScope.launch {
+            try {
+                val currentContacts = contactsRepository.getContacts()
+                val contactToUpdate = currentContacts.find { it.id == contactId }
+                contactToUpdate?.let { contact ->
+                    val updatedContact = contact.copy(isFavorite = !contact.isFavorite)
+                    contactsRepository.updateContact(updatedContact)
                 }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
             }
-            val filtered = filterContacts(updatedContacts, currentState.searchQuery)
-            currentState.copy(
-                contacts = updatedContacts,
-                filteredContacts = filtered,
-                groupedContacts = groupContacts(filtered)
-            )
+        }
+    }
+    
+    fun addContact(contact: ModernContact) {
+        viewModelScope.launch {
+            try {
+                contactsRepository.addContact(contact)
+                hideAddContactModal()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
+        }
+    }
+    
+    fun updateContact(contact: ModernContact) {
+        viewModelScope.launch {
+            try {
+                contactsRepository.updateContact(contact)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
+        }
+    }
+    
+    fun deleteContact(contactId: String) {
+        viewModelScope.launch {
+            try {
+                contactsRepository.deleteContact(contactId)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
+        }
+    }
+    
+    fun addWalletToContact(contactId: String, wallet: ContactWallet) {
+        viewModelScope.launch {
+            try {
+                contactsRepository.addWalletToContact(contactId, wallet)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
+        }
+    }
+    
+    fun updateWalletInContact(contactId: String, wallet: ContactWallet) {
+        viewModelScope.launch {
+            try {
+                contactsRepository.updateWalletInContact(contactId, wallet)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
+        }
+    }
+    
+    fun deleteWalletFromContact(contactId: String, walletId: String) {
+        viewModelScope.launch {
+            try {
+                contactsRepository.deleteWalletFromContact(contactId, walletId)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
         }
     }
     
@@ -216,10 +297,21 @@ class ContactsViewModel @Inject constructor(
             delay(2000)
             
             // Simulate successful connection and contact addition
-            addContact(
+            val newContact = ModernContact(
+                id = java.util.UUID.randomUUID().toString(),
                 name = device.name.replace("'s iPhone", "").replace("'s Android", ""),
-                address = "9WzDXwBbkk...9zYtAWWM" // Mock address
+                initials = device.name.take(2).uppercase(),
+                wallets = listOf(
+                    ContactWallet(
+                        id = java.util.UUID.randomUUID().toString(),
+                        name = "Main Wallet",
+                        address = "9WzDXwBbkk...9zYtAWWM", // Mock address
+                        type = WalletType.PERSONAL
+                    )
+                ),
+                isFavorite = false
             )
+            addContact(newContact)
             
             hideAddContactModal()
         }
@@ -240,8 +332,21 @@ class ContactsViewModel @Inject constructor(
         val contact = currentState.manualContact
         
         if (contact.name.isNotBlank() && contact.address.isNotBlank()) {
-            addContact(contact.name, contact.address)
-            hideAddContactModal()
+            val newContact = ModernContact(
+                id = java.util.UUID.randomUUID().toString(),
+                name = contact.name,
+                initials = contact.name.split(" ").mapNotNull { it.firstOrNull()?.uppercase() }.take(2).joinToString(""),
+                wallets = listOf(
+                    ContactWallet(
+                        id = java.util.UUID.randomUUID().toString(),
+                        name = "Main Wallet",
+                        address = contact.address,
+                        type = WalletType.PERSONAL
+                    )
+                ),
+                isFavorite = false
+            )
+            addContact(newContact)
         }
     }
     
@@ -300,7 +405,21 @@ class ContactsViewModel @Inject constructor(
             println("NFC Contact Found: Alex Chen would like to share their contact info. Accept?")
             
             // Simulate adding contact
-            addContact("Alex Chen", "9WzDXwBbkk...9zYtAWWM")
+            val newContact = ModernContact(
+                id = java.util.UUID.randomUUID().toString(),
+                name = "Alex Chen",
+                initials = "AC",
+                wallets = listOf(
+                    ContactWallet(
+                        id = java.util.UUID.randomUUID().toString(),
+                        name = "Main Wallet",
+                        address = "9WzDXwBbkk...9zYtAWWM",
+                        type = WalletType.PERSONAL
+                    )
+                ),
+                isFavorite = false
+            )
+            addContact(newContact)
             
             hideAddContactModal()
         }
@@ -314,49 +433,25 @@ class ContactsViewModel @Inject constructor(
         }
     }
     
-    private fun addContact(name: String, address: String) {
-        val newContact = Contact(
-            id = java.util.UUID.randomUUID().toString(),
-            name = name,
-            initials = name.split(" ").mapNotNull { it.firstOrNull()?.uppercase() }.take(2).joinToString(""),
-            seekerActive = true,
-            wallets = listOf(
-                Wallet(
-                    id = 1,
-                    name = "Main Wallet",
-                    address = address,
-                    type = WalletType.PERSONAL
-                )
-            ),
-            favorite = false,
-            walletAddress = address
-        )
-        
-        _uiState.update { currentState ->
-            val updatedContacts = currentState.contacts + newContact
-            val filtered = filterContacts(updatedContacts, currentState.searchQuery)
-            currentState.copy(
-                contacts = updatedContacts,
-                filteredContacts = filtered,
-                groupedContacts = groupContacts(filtered),
-                manualContact = ManualContact() // Reset manual contact form
-            )
-        }
-    }
     
-    private fun filterContacts(contacts: List<Contact>, query: String): List<Contact> {
+    private fun filterContacts(contacts: List<ModernContact>, query: String): List<ModernContact> {
         return if (query.isBlank()) {
             contacts
         } else {
             contacts.filter { contact ->
-                contact.name.contains(query, ignoreCase = true)
+                contact.name.contains(query, ignoreCase = true) ||
+                contact.wallets.any { it.address.contains(query, ignoreCase = true) }
             }
         }
     }
     
-    private fun groupContacts(contacts: List<Contact>): Map<String, List<Contact>> {
+    private fun groupContacts(contacts: List<ModernContact>): Map<String, List<ModernContact>> {
         return contacts.groupBy { contact ->
             contact.name.firstOrNull()?.uppercase() ?: "#"
         }.toSortedMap()
+    }
+    
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 }

@@ -106,10 +106,7 @@ fun WalletSuccessScreen(
         animationStarted = true
         delay(1000) // Wait for logo to appear
         checkmarkVisible = true
-        
-        // Auto navigate after success animation
-        delay(3000)
-        onNavigateToNext()
+        // Removed auto-navigation - user must press button to continue
     }
     
     Surface(
@@ -239,7 +236,7 @@ fun WalletSuccessScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Continue to TrueTap",
+                            text = "Continue to Genesis Token",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,

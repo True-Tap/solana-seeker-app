@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import com.truetap.solana.seeker.ui.theme.TrueTapContainer
+import com.truetap.solana.seeker.ui.theme.TrueTapBackground
 import com.truetap.solana.seeker.ui.truetap.components.*
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
 
@@ -38,7 +38,7 @@ fun TrueTapBottomSheet(
             onDismiss()
         },
         sheetState = sheetState,
-        containerColor = TrueTapContainer
+        containerColor = TrueTapBackground
     ) {
         AnimatedContent(
             targetState = currentStep,

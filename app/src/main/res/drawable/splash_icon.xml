@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+    Adaptive splash screen icon that prevents clipping
+    Android 12+ splash screen API has specific size constraints (288dp max)
+    Using vector drawable ensures proper scaling across all devices
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background layer - matches app theme -->
+    <background android:drawable="@color/truetap_background" />
+    
+    <!-- Foreground layer - TrueTap logo with proper padding to prevent clipping -->
+    <foreground>
+        <inset android:insetLeft="25%" 
+               android:insetTop="25%" 
+               android:insetRight="25%" 
+               android:insetBottom="25%">
+            <bitmap 
+                android:src="@drawable/truetap_logo"
+                android:gravity="center" />
+        </inset>
+    </foreground>
+</adaptive-icon>

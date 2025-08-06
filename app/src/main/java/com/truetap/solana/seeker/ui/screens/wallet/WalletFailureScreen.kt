@@ -113,8 +113,19 @@ fun WalletFailureScreen(
         return when (id) {
             "phantom" -> "Phantom"
             "solflare" -> "Solflare"
+            "external" -> "External Wallet"
             "solana" -> "Solana Seeker"
             else -> "Unknown Wallet"
+        }
+    }
+    
+    // Get wallet category-specific error message
+    fun getCategorySpecificErrorMessage(id: String?, errorMessage: String?): String {
+        return when {
+            errorMessage != null -> errorMessage
+            id == "external" -> "Unable to connect to your external wallet. Please ensure you have a compatible wallet like Phantom or Solflare installed and try again."
+            id == "solana" -> "Unable to connect to your Solana Seeker hardware wallet. Please check your device connection and try again."
+            else -> "Unable to connect to your wallet. Please check your connection and try again."
         }
     }
     
@@ -209,7 +220,7 @@ fun WalletFailureScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = errorMessage ?: "Unable to connect to your wallet. Please check your connection and try again.",
+                    text = getCategorySpecificErrorMessage(walletId, errorMessage),
                     fontSize = 18.sp,
                     color = TrueTapTextSecondary,
                     textAlign = TextAlign.Center,

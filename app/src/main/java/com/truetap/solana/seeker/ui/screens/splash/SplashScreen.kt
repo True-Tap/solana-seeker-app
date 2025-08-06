@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
@@ -35,22 +36,38 @@ fun SplashScreen(
     onSplashComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var startAnimation by remember { mutableStateOf(false) }
-    val alphaAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 2000),
-        label = "splash_alpha"
+    var startTextAnimation by remember { mutableStateOf(false) }
+    
+    // Logo fade-in animation - immediate since no system icon
+    val logoAlphaAnim = animateFloatAsState(
+        targetValue = if (startTextAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 600),
+        label = "logo_alpha"
     )
     
-    val scaleAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0.3f,
-        animationSpec = tween(durationMillis = 1000),
-        label = "splash_scale"
+    // Text fade-in animation - delayed after logo appears
+    val textAlphaAnim = animateFloatAsState(
+        targetValue = if (startTextAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 800, delayMillis = 300),
+        label = "text_alpha"
+    )
+    
+    // Subtle scale animation for logo  
+    val logoScaleAnim = animateFloatAsState(
+        targetValue = if (startTextAnimation) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 600),
+        label = "logo_scale"
     )
     
     LaunchedEffect(key1 = true) {
-        startAnimation = true
-        delay(2500)
+        android.util.Log.d("SplashScreen", "Starting custom splash screen animations - no system icon")
+        
+        // Immediate animation start since we disabled system splash icon
+        startTextAnimation = true
+        
+        // Complete splash after animations finish
+        delay(2200)
+        android.util.Log.d("SplashScreen", "Custom splash screen complete, navigating to next screen")
         onSplashComplete()
     }
     
@@ -67,25 +84,28 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // TrueTap Logo - no box, no shadow, clean
+            // TrueTap Logo - full size since we're not constrained by system splash
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.truetap_logo),
                 contentDescription = "TrueTap Logo",
-                modifier = Modifier.size(160.dp),
+                modifier = Modifier
+                    .size(160.dp) // Back to original size for better visibility
+                    .scale(logoScaleAnim.value)
+                    .alpha(logoAlphaAnim.value), // Add fade-in animation
                 contentScale = ContentScale.Fit
             )
             
-            // Brand Name with gradient - no spacing
+            // Brand Name with gradient - fades in after system splash
             GradientText(
-                text = "TrueTap",
+                text = "Welcome to TrueTap",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.alpha(alphaAnim.value)
+                modifier = Modifier.alpha(textAlphaAnim.value)
             )
             
             Spacer(modifier = Modifier.height(Spacing.medium))
             
-            // Tagline - bigger and more prominent
+            // Tagline - fades in with the brand name
             Text(
                 text = "Payments. Reimagined.",
                 color = TrueTapTextSecondary,
@@ -93,7 +113,7 @@ fun SplashScreen(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Medium
                 ),
-                modifier = Modifier.alpha(alphaAnim.value)
+                modifier = Modifier.alpha(textAlphaAnim.value)
             )
         }
     }

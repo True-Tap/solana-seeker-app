@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Solanaseekerapp" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Solanaseekerapp" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Custom splash screen configuration for seamless transition -->
+        
+        <!-- Set the splash screen background to match our app theme -->
+        <item name="android:windowSplashScreenBackground">@color/truetap_background</item>
+        
+        <!-- Disable animated icon to prevent clipping - let custom splash handle logo -->
+        <item name="android:windowSplashScreenAnimatedIcon">@null</item>
+        
+        <!-- Minimal animation duration since we're not showing system icon -->
+        <item name="android:windowSplashScreenAnimationDuration">200</item>
+        
+        <!-- Keep background color consistent -->
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/truetap_background</item>
+        
+        <!-- Set the window background to match for continuity -->
+        <item name="android:windowBackground">@color/truetap_background</item>
+        
+        <!-- Enable splash screen -->
+        <item name="android:enableOnBackInvokedCallback">true</item>
+    </style>
 </resources>

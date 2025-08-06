@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.truetap.solana.seeker.repositories.TrueTapContact
 import com.truetap.solana.seeker.ui.theme.TrueTapPrimary
-import com.truetap.solana.seeker.ui.theme.TrueTapContainer
+import com.truetap.solana.seeker.ui.theme.TrueTapBackground
 import com.truetap.solana.seeker.ui.theme.TrueTapTextPrimary
 import com.truetap.solana.seeker.ui.theme.TrueTapTextSecondary
 import com.truetap.solana.seeker.ui.truetap.components.format
@@ -44,7 +44,7 @@ fun SwipeToSend(
         modifier = Modifier.fillMaxWidth()
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -55,7 +55,7 @@ fun SwipeToSend(
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             colors = CardDefaults.cardColors(
-                containerColor = TrueTapContainer
+                containerColor = TrueTapBackground
             )
         ) {
             Column(
@@ -80,10 +80,19 @@ fun SwipeToSend(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    "${amount.format(2)} SOL",
+                    "${amount.format(4)} SOL",
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
                     color = TrueTapPrimary
+                )
+                
+                // USD equivalent
+                val solPrice = 150.0 // Mock SOL price - should match AmountInput
+                val usdEquivalent = amount * solPrice
+                Text(
+                    "≈ $${usdEquivalent.format(2)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TrueTapTextSecondary
                 )
                 
                 if (message.isNotEmpty()) {
@@ -121,9 +130,9 @@ fun SwipeToSend(
                 label = "button_offset"
             )
             
-            // Trigger send when swipe is complete
+            // Trigger send when swipe is complete (Apple-style threshold)
             LaunchedEffect(swipeProgress, isLoading) {
-                if (swipeProgress >= 0.95f && !isLoading) {
+                if (swipeProgress >= 0.85f && !isLoading) {
                     onSend()
                 }
             }
@@ -148,11 +157,11 @@ fun SwipeToSend(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                if (swipeProgress > 0.5f) {
+                if (swipeProgress > 0.4f) {
                     Text(
                         "Release to send",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = TrueTapPrimary.copy(alpha = (swipeProgress - 0.5f) * 2f),
+                        color = TrueTapPrimary.copy(alpha = (swipeProgress - 0.4f) * 1.67f),
                         fontWeight = FontWeight.Bold
                     )
                 } else {
@@ -175,8 +184,11 @@ fun SwipeToSend(
                                 offsetX = (offsetX + delta).coerceIn(0f, maxSwipeDistance)
                             }
                         },
-                        onDragStopped = {
-                            if (offsetX < maxSwipeDistance * 0.95f) {
+                        onDragStopped = { velocity ->
+                            // Apple-style swipe: if velocity is high enough or distance is far enough, complete the action
+                            if (velocity > 300f || offsetX > maxSwipeDistance * 0.6f) {
+                                offsetX = maxSwipeDistance
+                            } else {
                                 offsetX = 0f
                             }
                         }
@@ -195,7 +207,7 @@ fun SwipeToSend(
                     )
                 } else {
                     Icon(
-                        Icons.Default.ArrowForward,
+                        Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Swipe to send",
                         modifier = Modifier.align(Alignment.Center),
                         tint = Color.White

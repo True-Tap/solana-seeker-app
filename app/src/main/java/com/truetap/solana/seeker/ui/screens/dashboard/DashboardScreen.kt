@@ -15,6 +15,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,7 +119,10 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = Spacing.screenHorizontal),
-                contentPadding = PaddingValues(vertical = Spacing.large)
+                contentPadding = PaddingValues(
+                    top = Spacing.large,
+                    bottom = Spacing.large + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                )
             ) {
                 // Header with Tappy and Greeting
                 item {
