@@ -9,7 +9,8 @@ import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
-import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
+import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.AuthorizationResult
+import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.AuthorizedAccount
 import kotlinx.coroutines.delay
 import com.truetap.solana.seeker.data.ConnectionResult
 import com.truetap.solana.seeker.data.WalletType
@@ -57,16 +58,15 @@ class MobileWalletAdapterService @Inject constructor(
             
             // Handle MWA connect result
             when (connectResult) {
-                is TransactionResult.Success<*> -> {
+                is TransactionResult.Success<AuthorizationResult> -> {
                     Log.d(TAG, "MWA authorization successful for ${walletType.displayName}")
                     
-                    // Extract real auth data from connectResult
-                    val authResult = connectResult.result as? MobileWalletAdapterClient.AuthorizationResult
-                    if (authResult != null && authResult.accounts.isNotEmpty()) {
-                        val account = authResult.accounts.first()
+                    // Extract auth data from connectResult
+                    val authResult = connectResult.result
+                    authResult.accounts.firstOrNull()?.let { account ->
                         val publicKey = Base58.encode(account.publicKey)
                         val accountLabel = account.accountLabel ?: "${walletType.displayName} Wallet"
-                        val authToken = Base58.encode(authResult.authToken)
+                        val authToken = authResult.authToken
                         
                         Log.d(TAG, "Real auth data - publicKey: $publicKey, label: $accountLabel")
                         
@@ -76,7 +76,7 @@ class MobileWalletAdapterService @Inject constructor(
                             walletType = walletType,
                             authToken = authToken
                         )
-                    } else {
+                    } ?: run {
                         Log.e(TAG, "Authorization result missing account data")
                         ConnectionResult.Failure(
                             error = "Authorization succeeded but no account data received",
