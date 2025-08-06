@@ -9,6 +9,8 @@ import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.truetap.solana.seeker.data.ConnectionResult
 import com.truetap.solana.seeker.data.WalletType
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,17 +31,19 @@ class MobileWalletAdapterService @Inject constructor(
         return try {
             Log.d(TAG, "Initiating MWA connection for ${walletType.displayName} at ${System.currentTimeMillis()}")
             
-            // Create MWA instance with proper app identification
+            // Create MWA instance with proper app identification  
             val connectionIdentity = ConnectionIdentity(
                 identityUri = Uri.parse("https://truetap.app"),
-                iconUri = Uri.parse("android.resource://com.truetap.solana.seeker/drawable/truetap_logo"),
+                iconUri = Uri.parse("https://truetap.app/favicon.ico"), // Try absolute URL
                 identityName = "TrueTap"
             )
             val mobileWalletAdapter = MobileWalletAdapter(connectionIdentity)
             
-            // Let MWA handle wallet discovery and authorization - this should trigger the popup
-            Log.d(TAG, "Calling MWA connect() - this should trigger wallet selection and authorization")
-            val connectResult = mobileWalletAdapter.connect(activityResultSender)
+            // Call MWA connect on Main dispatcher to ensure proper activity lifecycle integration
+            Log.d(TAG, "Calling MWA connect() on Main thread - this should trigger wallet popup immediately")
+            val connectResult = withContext(Dispatchers.Main) {
+                mobileWalletAdapter.connect(activityResultSender)
+            }
             Log.d(TAG, "MWA connect completed for ${walletType.displayName}")
             
             // Handle MWA connect result

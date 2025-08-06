@@ -236,7 +236,7 @@ class SettingsViewModel @Inject constructor(
         // In a real app, this would open a WebView or external browser
         _uiState.update { it.copy(
             showPrivacyPolicy = true,
-            dialogMessage = "Privacy Policy\n\nWe value your privacy. Your data is stored locally and encrypted. We do not collect personal information without your consent.\n\nFor the full privacy policy, visit: https://truetap.com/privacy"
+            dialogMessage = "Privacy Policy\n\nWe value your privacy. Your data is stored locally and encrypted. We do not collect personal information without your consent.\n\nFor the full privacy policy, visit: https://truetap.app/privacy"
         ) }
     }
     

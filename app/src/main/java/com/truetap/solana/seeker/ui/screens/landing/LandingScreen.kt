@@ -122,17 +122,18 @@ fun LandingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // Top Safe Area Padding
-            Spacer(modifier = Modifier.height(64.dp))
-            
-            // Bouncing Tappy with Realistic Shadow
-            BouncingTappyWithShadow(
+            // Static Tappy to match SplashScreen positioning
+            androidx.compose.foundation.Image(
+                painter = painterResource(id = R.drawable.truetap_logo),
+                contentDescription = "TrueTap Logo",
                 modifier = Modifier
+                    .size(logoSize)
                     .alpha(fadeAnim.value)
                     .scale(scaleAnim.value),
-                tappySize = logoSize
+                contentScale = ContentScale.Fit
             )
 
             // Welcome to TrueTap - no spacing, directly under Tappy container
@@ -156,8 +157,8 @@ fun LandingScreen(
                 modifier = Modifier.alpha(fadeAnim.value)
             )
 
-            // Push content to create space before connect section
-            Spacer(modifier = Modifier.weight(1f))
+            // Spacing before connect section
+            Spacer(modifier = Modifier.height(80.dp))
 
             // Connect Wallet Button
             Button(
@@ -250,7 +251,7 @@ fun LandingScreen(
                                 lineHeight = 20.sp
                             ),
                             modifier = Modifier.clickable {
-                                uriHandler.openUri("https://truetap.com/terms")
+                                uriHandler.openUri("https://truetap.app/terms")
                             }
                         )
                         Text(
@@ -272,14 +273,14 @@ fun LandingScreen(
                             lineHeight = 20.sp
                         ),
                         modifier = Modifier.clickable {
-                            uriHandler.openUri("https://truetap.com/privacy")
+                            uriHandler.openUri("https://truetap.app/privacy")
                         }
                     )
                 }
             }
             
-            // Push features and "Powered by" text to bottom just above swipe bar
-            Spacer(modifier = Modifier.weight(1f))
+            // Spacing before features
+            Spacer(modifier = Modifier.height(40.dp))
             
             // Feature Icons Row - FULL screen width, icons above text, 1/3 distribution
             Row(
