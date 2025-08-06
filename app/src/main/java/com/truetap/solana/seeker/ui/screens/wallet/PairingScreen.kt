@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.EntryPointAccessors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.data.AuthState
@@ -57,7 +58,8 @@ data class WalletConfig(
     val name: String,
     val logoRes: Int,
     val gradient: List<Color>,
-    val description: String
+    val description: String,
+    val deepLinkBase: String? = null // Base URL for wallet-specific deep links
 )
 
 sealed class PairingConnectionState {
@@ -76,23 +78,30 @@ object WalletConnectionHelper {
         activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>?,
         context: Context? = null,
         activityResultSender: ActivityResultSender? = null,
-        retryCount: Int = 0
+        retryCount: Int = 0,
+        walletConfig: WalletConfig? = null,
+        mwaService: com.truetap.solana.seeker.services.MobileWalletAdapterService? = null
     ): ConnectionResult {
         println("WalletConnectionHelper: Attempting connection for ${walletType.displayName}, retry: $retryCount")
         android.util.Log.d("WalletConnectionHelper", "Attempting connection for ${walletType.displayName}, retry: $retryCount")
         
         return try {
             val result = when (walletType) {
-                WalletType.SOLFLARE, WalletType.EXTERNAL -> {
-                    if (activityResultSender != null) {
+                WalletType.SOLFLARE, WalletType.PHANTOM, WalletType.EXTERNAL -> {
+                    // Check if this wallet has a deep link configured for wallet-specific targeting
+                    if (walletConfig?.deepLinkBase != null && context != null) {
+                        println("WalletConnectionHelper: Using deep link for ${walletType.displayName}")
+                        android.util.Log.d("WalletConnectionHelper", "Using deep link for ${walletType.displayName}")
+                        connectWithWalletDeepLink(walletType, walletConfig.deepLinkBase, context)
+                    } else if (activityResultSender != null && mwaService != null) {
                         println("WalletConnectionHelper: Using Mobile Wallet Adapter for ${walletType.displayName}")
                         android.util.Log.d("WalletConnectionHelper", "Using Mobile Wallet Adapter for ${walletType.displayName}")
-                        connectWithMobileWalletAdapter(walletType, activityResultSender)
+                        connectWithMobileWalletAdapter(walletType, activityResultSender, mwaService)
                     } else {
-                        println("WalletConnectionHelper: Missing ActivityResultSender for MWA")
-                        android.util.Log.e("WalletConnectionHelper", "Missing ActivityResultSender for MWA")
+                        println("WalletConnectionHelper: Missing ActivityResultSender or MWA service for MWA")
+                        android.util.Log.e("WalletConnectionHelper", "Missing ActivityResultSender or MWA service for MWA")
                         ConnectionResult.Failure(
-                            error = "Mobile Wallet Adapter setup error. Please restart the app.",
+                            error = "Mobile Wallet Adapter is not properly configured. Please restart the app.",
                             walletType = walletType
                         )
                     }
@@ -109,7 +118,7 @@ object WalletConnectionHelper {
             if (retryCount < 2) {
                 println("WalletConnectionHelper: Retrying in 1 second...")
                 delay(1000) // Wait 1 second before retry
-                attemptWalletConnection(walletType, activityResultLauncher, context, activityResultSender, retryCount + 1)
+                attemptWalletConnection(walletType, activityResultLauncher, context, activityResultSender, retryCount + 1, walletConfig, mwaService)
             } else {
                 ConnectionResult.Failure(
                     error = "Connection failed after ${retryCount + 1} attempts: ${e.message}",
@@ -122,144 +131,21 @@ object WalletConnectionHelper {
     
     private suspend fun connectWithMobileWalletAdapter(
         walletType: WalletType,
-        activityResultSender: ActivityResultSender
+        activityResultSender: ActivityResultSender,
+        mwaService: com.truetap.solana.seeker.services.MobileWalletAdapterService
     ): ConnectionResult {
         return try {
             withTimeout(MWA_CONNECTION_TIMEOUT) {
-                suspendCancellableCoroutine { continuation ->
-            try {
-                println("WalletConnectionHelper: Starting Mobile Wallet Adapter connection for ${walletType.displayName}")
-                android.util.Log.d("WalletConnectionHelper", "Starting Mobile Wallet Adapter connection for ${walletType.displayName}")
+                println("WalletConnectionHelper: Starting MWA connection for ${walletType.displayName}")
+                android.util.Log.d("WalletConnectionHelper", "Starting MWA connection for ${walletType.displayName}")
                 
-                // Create connection identity for MWA
-                val connectionIdentity = com.solana.mobilewalletadapter.clientlib.ConnectionIdentity(
-                    identityUri = android.net.Uri.parse("https://truetap.app"),
-                    iconUri = android.net.Uri.parse(""), // Empty URI to avoid validation issues
-                    identityName = "TrueTap"
-                )
+                val result = mwaService.connectToWallet(walletType, activityResultSender)
                 
-                println("WalletConnectionHelper: Creating MobileWalletAdapter instance")
-                android.util.Log.d("WalletConnectionHelper", "Creating MobileWalletAdapter instance")
-                val mobileWalletAdapter = com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter(connectionIdentity)
+                println("WalletConnectionHelper: MWA result: $result")
+                android.util.Log.d("WalletConnectionHelper", "MWA result: $result")
                 
-                println("WalletConnectionHelper: Launching MWA for authorization")
-                android.util.Log.d("WalletConnectionHelper", "Launching MWA for authorization")
-                
-                // Use a coroutine to handle the MWA transact call
-                CoroutineScope(Dispatchers.Main).launch {
-                    try {
-                        // Launch MWA with proper callback block for authorization
-                        val result = mobileWalletAdapter.transact(activityResultSender) { authResult ->
-                            println("WalletConnectionHelper: MWA authorization callback triggered")
-                            println("WalletConnectionHelper: Auth result accounts: ${authResult.accounts.size}")
-                            
-                            // Get the first authorized account's public key
-                            if (authResult.accounts.isNotEmpty()) {
-                                val account = authResult.accounts.first()
-                                val publicKey = account.publicKey
-                                val accountLabel = account.accountLabel
-                                val authToken = authResult.authToken
-                                
-                                println("WalletConnectionHelper: Got public key bytes: ${publicKey.size} bytes")
-                                println("WalletConnectionHelper: Account label: $accountLabel")
-                                
-                                // Convert public key bytes to base58 string (proper Solana format)
-                                val publicKeyBase58 = try {
-                                    // Use proper base58 encoding for Solana public keys
-                                    encodeBase58(publicKey)
-                                } catch (e: Exception) {
-                                    println("WalletConnectionHelper: Failed to encode public key: ${e.message}")
-                                    android.util.Base64.encodeToString(publicKey, android.util.Base64.NO_WRAP)
-                                }
-                                
-                                println("WalletConnectionHelper: Encoded public key: $publicKeyBase58")
-                                
-                                // Resume the coroutine with success result
-                                if (continuation.isActive) {
-                                    continuation.resume(
-                                        ConnectionResult.Success(
-                                            publicKey = publicKeyBase58,
-                                            accountLabel = accountLabel ?: "${walletType.displayName} Wallet",
-                                            walletType = walletType,
-                                            authToken = authToken
-                                        )
-                                    )
-                                }
-                            } else {
-                                println("WalletConnectionHelper: No accounts in auth result")
-                                if (continuation.isActive) {
-                                    continuation.resume(
-                                        ConnectionResult.Failure(
-                                            error = "No accounts were authorized by the wallet",
-                                            walletType = walletType
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // Handle the overall transaction result
-                        when (result) {
-                            is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success -> {
-                                println("WalletConnectionHelper: MWA transaction completed successfully")
-                                // Success case is already handled in the callback above
-                            }
-                            is com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure -> {
-                                println("WalletConnectionHelper: MWA transaction failed: ${result.e.message}")
-                                if (continuation.isActive) {
-                                    continuation.resume(
-                                        ConnectionResult.Failure(
-                                            error = "Wallet connection failed: ${result.e.localizedMessage ?: result.e.message}",
-                                            exception = result.e,
-                                            walletType = walletType
-                                        )
-                                    )
-                                }
-                            }
-                            is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound -> {
-                                println("WalletConnectionHelper: No MWA compatible wallet found")
-                                if (continuation.isActive) {
-                                    continuation.resume(
-                                        ConnectionResult.Failure(
-                                            error = "No compatible Solana wallet found. Please install ${walletType.displayName} or another MWA-compatible wallet.",
-                                            walletType = walletType
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    } catch (e: Exception) {
-                        println("WalletConnectionHelper: MWA transact exception: ${e.message}")
-                        e.printStackTrace()
-                        
-                        if (continuation.isActive) {
-                            continuation.resume(
-                                ConnectionResult.Failure(
-                                    error = "Mobile Wallet Adapter error: ${e.localizedMessage ?: e.message}. Please ensure you have ${walletType.displayName} or another compatible Solana wallet installed.",
-                                    exception = e,
-                                    walletType = walletType
-                                )
-                            )
-                        }
-                    }
-                }
-                
-            } catch (e: Exception) {
-                println("WalletConnectionHelper: MWA connection exception: ${e.message}")
-                e.printStackTrace()
-                
-                if (continuation.isActive) {
-                    continuation.resume(
-                        ConnectionResult.Failure(
-                            error = "Mobile Wallet Adapter error: ${e.localizedMessage ?: e.message}. Please ensure you have ${walletType.displayName} or another compatible Solana wallet installed.",
-                            exception = e,
-                            walletType = walletType
-                        )
-                    )
-                }
+                result
             }
-                } // End of suspendCancellableCoroutine
-            } // End of withTimeout
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             android.util.Log.w("WalletConnectionHelper", "MWA connection timed out after ${MWA_CONNECTION_TIMEOUT}ms")
             ConnectionResult.Failure(
@@ -313,11 +199,152 @@ object WalletConnectionHelper {
         return encoded.reversed().joinToString("")
     }
 
-    // Helper function to generate encryption key pair for Solflare
-    private fun generateEncryptionKeyPair(): java.security.KeyPair {
-        val keyGen = java.security.KeyPairGenerator.getInstance("RSA")
-        keyGen.initialize(2048)
-        return keyGen.generateKeyPair()
+    
+    /**
+     * Parse a wallet deep link response with support for encrypted Solflare responses
+     */
+    fun parseWalletDeepLinkResponse(
+        responseUri: Uri,
+        walletType: WalletType
+    ): ConnectionResult {
+        return try {
+            // Check for error first
+            val errorCode = responseUri.getQueryParameter("errorCode")
+            if (errorCode != null) {
+                val errorMessage = responseUri.getQueryParameter("errorMessage") ?: "Unknown error"
+                return ConnectionResult.Failure(
+                    error = "Wallet error ($errorCode): $errorMessage",
+                    walletType = walletType
+                )
+            }
+            
+            if (walletType == WalletType.SOLFLARE) {
+                // Handle encrypted Solflare response
+                return parseSolflareEncryptedResponse(responseUri, walletType)
+            } else {
+                // Handle other wallet responses (simplified)
+                val publicKey = responseUri.getQueryParameter("public_key")
+                    ?: responseUri.getQueryParameter("publicKey")
+                    ?: return ConnectionResult.Failure(
+                        error = "Missing public key in wallet response",
+                        walletType = walletType
+                    )
+                
+                val session = responseUri.getQueryParameter("session")
+                    ?: responseUri.getQueryParameter("authToken")
+                
+                ConnectionResult.Success(
+                    publicKey = publicKey,
+                    accountLabel = "${walletType.displayName} Wallet",
+                    walletType = walletType,
+                    authToken = session
+                )
+            }
+            
+        } catch (e: Exception) {
+            ConnectionResult.Failure(
+                error = "Failed to parse wallet response: ${e.localizedMessage ?: e.message}",
+                exception = e,
+                walletType = walletType
+            )
+        }
+    }
+    
+    /**
+     * Parse encrypted Solflare response
+     * Note: This is now deprecated in favor of MWA, but kept for legacy deep link support
+     */
+    private fun parseSolflareEncryptedResponse(
+        responseUri: Uri,
+        walletType: WalletType
+    ): ConnectionResult {
+        return try {
+            // Check for unencrypted parameters as fallback
+            val publicKey = responseUri.getQueryParameter("public_key")
+                ?: responseUri.getQueryParameter("publicKey")
+                ?: return ConnectionResult.Failure(
+                    error = "Legacy Solflare deep link not supported. Please use Mobile Wallet Adapter.",
+                    walletType = walletType
+                )
+            
+            val session = responseUri.getQueryParameter("session")
+            
+            ConnectionResult.Success(
+                publicKey = publicKey,
+                accountLabel = "${walletType.displayName} Wallet",
+                walletType = walletType,
+                authToken = session
+            )
+            
+        } catch (e: Exception) {
+            android.util.Log.e("WalletConnectionHelper", "Error parsing Solflare response", e)
+            ConnectionResult.Failure(
+                error = "Failed to parse Solflare response: ${e.localizedMessage ?: e.message}. Please use Mobile Wallet Adapter.",
+                exception = e,
+                walletType = walletType
+            )
+        }
+    }
+
+    /**
+     * Connect to a specific wallet using its deep link URL
+     * This enables true wallet-specific targeting (Phantom opens only Phantom, Solflare opens only Solflare)
+     */
+    suspend fun connectWithWalletDeepLink(
+        walletType: WalletType,
+        deepLinkBase: String,
+        context: Context
+    ): ConnectionResult {
+        return try {
+            println("WalletConnectionHelper: Attempting deep link connection to ${walletType.displayName}")
+            android.util.Log.d("WalletConnectionHelper", "Deep link connection to ${walletType.displayName} at $deepLinkBase")
+            
+            val redirectLink = "truetap://onConnect" // Our app's custom scheme
+            val appUrl = "https://truetap.app" // Our dApp's website
+            val cluster = if (com.truetap.solana.seeker.BuildConfig.DEBUG) "devnet" else "mainnet-beta"
+            
+            // Note: Deep links are now deprecated in favor of MWA
+            // This is kept for legacy compatibility but may not work reliably
+            val deepLinkUri = Uri.parse(deepLinkBase + "connect").buildUpon()
+                .appendQueryParameter("cluster", cluster)
+                .appendQueryParameter("app_url", appUrl)
+                .appendQueryParameter("redirect_link", redirectLink)
+                .build()
+            
+            println("WalletConnectionHelper: Opening deep link: $deepLinkUri")
+            android.util.Log.d("WalletConnectionHelper", "Opening deep link: $deepLinkUri")
+            
+            // Launch the deep link
+            val intent = Intent(Intent.ACTION_VIEW, deepLinkUri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            
+            // Check if the wallet app can handle this intent
+            val packageManager = context.packageManager
+            if (intent.resolveActivity(packageManager) != null) {
+                context.startActivity(intent)
+                
+                // Return pending result - the actual connection will be handled by the deep link response
+                ConnectionResult.Pending(
+                    message = "Opening ${walletType.displayName}...",
+                    walletType = walletType
+                )
+            } else {
+                // Wallet app is not installed
+                ConnectionResult.Failure(
+                    error = "${walletType.displayName} app is not installed. Please install it from the Play Store.",
+                    walletType = walletType
+                )
+            }
+        } catch (e: Exception) {
+            println("WalletConnectionHelper: Deep link connection error: ${e.message}")
+            android.util.Log.e("WalletConnectionHelper", "Deep link connection error", e)
+            ConnectionResult.Failure(
+                error = "Failed to open ${walletType.displayName}: ${e.localizedMessage ?: e.message}",
+                exception = e,
+                walletType = walletType
+            )
+        }
     }
     
     private suspend fun connectWithSeedVault(walletType: WalletType): ConnectionResult {
@@ -359,39 +386,56 @@ fun PairingScreen(
     activityResultSender: ActivityResultSender? = null,
     pendingWalletConnection: Uri? = null,
     onWalletConnectionHandled: () -> Unit = {},
-    viewModel: WalletViewModel = hiltViewModel()
+    viewModel: WalletViewModel = hiltViewModel(),
+    mwaService: com.truetap.solana.seeker.services.MobileWalletAdapterService? = null
 ) {
     val context = LocalContext.current
     var connectionState by remember { mutableStateOf<PairingConnectionState>(PairingConnectionState.Connecting) }
     var debugMessage by remember { mutableStateOf("Initializing...") }
+    
+    // Get MWA service instance - create directly for now
+    val actualMwaService = remember { 
+        mwaService ?: com.truetap.solana.seeker.services.MobileWalletAdapterService(context)
+    }
     
     // ActivityResultSender is now passed from MainActivity (created during onCreate)
     
     // Observe ViewModel state
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     
-    // Wallet configurations
+    // Wallet configurations - now prioritize MWA over deep links
     val walletConfigs = mapOf(
         "solflare" to WalletConfig(
             id = "solflare", 
             name = "Solflare",
             logoRes = R.drawable.solflare,
             gradient = listOf(Color(0xFFFFC107), Color(0xFFFF6B00)),
-            description = "Feature-rich Solana wallet"
+            description = "Feature-rich Solana wallet",
+            deepLinkBase = null // Use MWA instead of deep links
+        ),
+        "phantom" to WalletConfig(
+            id = "phantom",
+            name = "Phantom",
+            logoRes = R.drawable.phantom,
+            gradient = listOf(Color(0xFF9945FF), Color(0xFF14F195)),
+            description = "Popular Solana wallet",
+            deepLinkBase = null // Use MWA instead of deep links
         ),
         "external" to WalletConfig(
             id = "external",
             name = "External Wallet",
             logoRes = R.drawable.ic_wallet,
             gradient = listOf(TrueTapPrimary, TrueTapPrimary.copy(alpha = 0.8f)),
-            description = "Compatible external wallets"
+            description = "Compatible external wallets",
+            deepLinkBase = null // Uses generic MWA
         ),
         "solana" to WalletConfig(
             id = "solana",
             name = "Solana Seeker",
             logoRes = R.drawable.skr,
             gradient = listOf(Color(0xFF00D4FF), Color(0xFF00FFA3)),
-            description = "Official Solana wallet"
+            description = "Official Solana wallet",
+            deepLinkBase = null // Uses Seed Vault, not MWA
         )
     )
     
@@ -452,7 +496,14 @@ fun PairingScreen(
             println("PairingScreen: Processing pending wallet connection: $pendingWalletConnection")
             
             try {
-                val connectionResult = SolflareDeepLinkParser.parseWalletConnectionResponse(pendingWalletConnection)
+                // Check if this is a new wallet-specific deep link or legacy Solflare
+                val connectionResult = if (pendingWalletConnection.path == "/onConnect") {
+                    // New wallet-specific deep link
+                    WalletConnectionHelper.parseWalletDeepLinkResponse(pendingWalletConnection, walletType ?: WalletType.EXTERNAL)
+                } else {
+                    // Legacy Solflare deep link
+                    SolflareDeepLinkParser.parseWalletConnectionResponse(pendingWalletConnection)
+                }
                 debugMessage = "Deep link parsed: $connectionResult"
                 println("PairingScreen: Deep link parsed result: $connectionResult")
                 
@@ -506,7 +557,7 @@ fun PairingScreen(
         }
     }
     
-    // Trigger wallet connection when screen loads
+    // Trigger wallet connection when screen loads - use viewModelScope for suspend calls
     LaunchedEffect(walletId) {
         debugMessage = "LaunchedEffect triggered with walletId: $walletId"
         println("PairingScreen: LaunchedEffect triggered with walletId: $walletId")
@@ -521,7 +572,9 @@ fun PairingScreen(
                     walletType = walletType,
                     activityResultLauncher = activityResultLauncher,
                     context = context,
-                    activityResultSender = activityResultSender
+                    activityResultSender = activityResultSender,
+                    walletConfig = walletConfig,
+                    mwaService = actualMwaService
                 )
                 
                 debugMessage = "Connection result: $result"
