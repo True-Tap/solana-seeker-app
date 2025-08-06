@@ -59,7 +59,7 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 solana-seed-vault = { group = "com.solanamobile", name = "seedvault-wallet-sdk", version.ref = "solanaSeedVault" }
-mobile-wallet-adapter = { group = "com.solanamobile", name = "mobile-wallet-adapter-clientlib-ktx", version.ref = "mobileWalletAdapter" }
+# mobile-wallet-adapter = { group = "com.solanamobile", name = "mobile-wallet-adapter-clientlib-ktx", version.ref = "mobileWalletAdapter" }
 solana-kmp = { group = "foundation.metaplex", name = "solana", version.ref = "solanaKmp" }
 fake-seed-vault-provider = { group = "com.solanamobile", name = "seedvault-wallet-sdk", version.ref = "fakeSeedVaultProvider" }
 phosphor-icons = { group = "com.adamglin", name = "phosphor-icon-android", version.ref = "phosphorIcons" }

@@ -121,26 +121,30 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent) {
         Log.d(TAG, "Handling intent: ${intent.action}, data: ${intent.data}")
         
-        // Check if this is a deep link from Solflare wallet connection
+        // Check if this is a deep link from wallet connection
         if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
             val uri = intent.data!!
             Log.d(TAG, "Processing deep link: $uri")
             
             // Check if this is the wallet connection response
-            if (uri.scheme == "truetap" && uri.host == "wallet-connected") {
-                Log.d(TAG, "Wallet connection deep link detected")
-                pendingWalletConnection = uri
+            if (uri.scheme == "truetap") {
+                when {
+                    // Legacy Solflare connection (existing)
+                    uri.host == "wallet-connected" -> {
+                        Log.d(TAG, "Legacy wallet connection deep link detected")
+                        pendingWalletConnection = uri
+                    }
+                    // New wallet-specific deep link connections
+                    uri.path == "/onConnect" -> {
+                        Log.d(TAG, "Wallet-specific deep link connection detected")
+                        pendingWalletConnection = uri
+                    }
+                }
             }
         }
     }
     
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        
-        // Forward activity results to SeedVaultManager
-        seedVaultManager.handleActivityResult(requestCode, resultCode, data)
-    }
+    // Removed deprecated onActivityResult - using registerForActivityResult instead
 }
 
 @Composable

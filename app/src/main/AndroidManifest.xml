@@ -37,6 +37,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="truetap" android:host="wallet-connected" />
             </intent-filter>
+            
+            <!-- Deep link intent filter for wallet-specific deep link connections -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="truetap" android:path="/onConnect" />
+            </intent-filter>
         </activity>
     </application>
 

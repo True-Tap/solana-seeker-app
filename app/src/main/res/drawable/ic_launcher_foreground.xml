@@ -4,44 +4,14 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     
-    <!-- TrueTap Logo - Centered and properly sized -->
+    <!-- Complete Tappy mascot scaled to show antenna -->
     <group
-        android:scaleX="0.6"
-        android:scaleY="0.6"
-        android:translateX="21.6"
-        android:translateY="21.6">
+        android:scaleX="0.7"
+        android:scaleY="0.7"
+        android:translateX="16.2"
+        android:translateY="16.2">
         
-        <!-- Tappy Mascot Body -->
-        <path
-            android:fillColor="#FF6B35"
-            android:pathData="M54,30 C54,30 45,30 45,40 C45,50 54,60 54,60 C54,60 63,50 63,40 C63,30 54,30 54,30 Z" />
-        
-        <!-- Tappy Mascot Head -->
-        <path
-            android:fillColor="#FF6B35"
-            android:pathData="M54,25 C54,25 48,25 48,35 C48,45 54,50 54,50 C54,50 60,45 60,35 C60,25 54,25 54,25 Z" />
-        
-        <!-- Eyes -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M51,32 C51,32 49,32 49,34 C49,36 51,38 51,38 C51,38 53,36 53,34 C53,32 51,32 51,32 Z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M57,32 C57,32 55,32 55,34 C55,36 57,38 57,38 C57,38 59,36 59,34 C59,32 57,32 57,32 Z" />
-        
-        <!-- Pupils -->
-        <path
-            android:fillColor="#000000"
-            android:pathData="M50.5,33.5 C50.5,33.5 49.5,33.5 49.5,34.5 C49.5,35.5 50.5,36.5 50.5,36.5 C50.5,36.5 51.5,35.5 51.5,34.5 C51.5,33.5 50.5,33.5 50.5,33.5 Z" />
-        <path
-            android:fillColor="#000000"
-            android:pathData="M56.5,33.5 C56.5,33.5 55.5,33.5 55.5,34.5 C55.5,35.5 56.5,36.5 56.5,36.5 C56.5,36.5 57.5,35.5 57.5,34.5 C57.5,33.5 56.5,33.5 56.5,33.5 Z" />
-        
-        <!-- Smile -->
-        <path
-            android:fillColor="#000000"
-            android:strokeColor="#000000"
-            android:strokeWidth="1"
-            android:pathData="M52,40 Q54,42 56,40" />
+        <!-- Use the PNG as a bitmap -->
+        <path android:pathData="M0,0h108v108h-108z" android:fillColor="@android:color/transparent"/>
     </group>
 </vector>

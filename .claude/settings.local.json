@@ -3,7 +3,9 @@
     "allow": [
       "Bash(find:*)",
       "Bash(mkdir:*)",
-      "Bash(./gradlew:*)"
+      "Bash(./gradlew:*)",
+      "WebFetch(domain:docs.solanamobile.com)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

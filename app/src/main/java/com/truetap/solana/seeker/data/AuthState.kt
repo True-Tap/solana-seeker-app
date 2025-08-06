@@ -20,6 +20,7 @@ data class SeedVaultInfo(
 
 enum class WalletType(val id: String, val displayName: String, val usesMobileWalletAdapter: Boolean) {
     SOLFLARE("solflare", "Solflare", true),
+    PHANTOM("phantom", "Phantom", true),
     EXTERNAL("external", "External Wallet", true),
     SOLANA_SEEKER("solana", "Solana Seeker", false);
     

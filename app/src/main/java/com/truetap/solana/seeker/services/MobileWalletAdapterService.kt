@@ -34,7 +34,7 @@ class MobileWalletAdapterService @Inject constructor(
             // Create MWA instance with proper app identification  
             val connectionIdentity = ConnectionIdentity(
                 identityUri = Uri.parse("https://truetap.app"),
-                iconUri = Uri.parse("https://truetap.app/favicon.ico"), // Try absolute URL
+                iconUri = Uri.parse("favicon.ico"), // MWA requires relative URI only
                 identityName = "TrueTap"
             )
             val mobileWalletAdapter = MobileWalletAdapter(connectionIdentity)

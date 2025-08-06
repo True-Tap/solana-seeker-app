@@ -8,6 +8,7 @@ import com.truetap.solana.seeker.repositories.ContactsRepository
 import com.truetap.solana.seeker.repositories.WalletRepository
 import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
+import com.truetap.solana.seeker.services.MobileWalletAdapterService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -60,5 +61,13 @@ object AppModule {
         @ApplicationContext context: Context
     ): DataStore<Preferences> {
         return context.dataStore
+    }
+
+    @Provides
+    @Singleton
+    fun provideMobileWalletAdapterService(
+        @ApplicationContext context: Context
+    ): MobileWalletAdapterService {
+        return MobileWalletAdapterService(context)
     }
 } 

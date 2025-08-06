@@ -145,8 +145,13 @@ dependencies {
     
     // Solana
     implementation(libs.solana.seed.vault)
-    implementation(libs.mobile.wallet.adapter)
+    implementation("com.solanamobile:mobile-wallet-adapter-clientlib:2.0.8")
+    implementation("com.solanamobile:mobile-wallet-adapter-common:2.0.8")
+    implementation("com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.8")
     implementation(libs.solana.kmp)
+    
+    // Deep Link Wallet Targeting  
+    implementation("org.bitcoinj:bitcoinj-core:0.16.3") // For base58 encoding/decoding
     
     // Fake Seed Vault Provider for development/testing
     "devImplementation"(libs.fake.seed.vault.provider)

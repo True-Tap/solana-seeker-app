@@ -30,6 +30,15 @@ class MainViewModel @Inject constructor(
 
     private fun determineStartDestination() {
         viewModelScope.launch {
+            // For debugging wallet selection flow, always start from splash
+            // TODO: Remove this debug override for production
+            if (com.truetap.solana.seeker.BuildConfig.DEBUG) {
+                // In debug mode, always start from splash to test wallet selection
+                _startDestination.value = "splash"
+                _isInitialized.value = true
+                return@launch
+            }
+            
             // Attempt to restore session
             val sessionResult = walletRepository.restoreSession()
             
