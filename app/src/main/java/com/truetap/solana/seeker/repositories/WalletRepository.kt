@@ -64,7 +64,8 @@ class WalletRepository @Inject constructor(
             val account = WalletAccount(
                 publicKey = connectionResult.publicKey,
                 cluster = cluster,
-                accountLabel = connectionResult.accountLabel
+                accountLabel = connectionResult.accountLabel,
+                walletType = connectionResult.walletType
             )
             
             // Generate auth token for session
@@ -104,7 +105,8 @@ class WalletRepository @Inject constructor(
             val authToken = prefs[AUTH_TOKEN]
 
             if (publicKey != null && cluster != null && authToken != null) {
-                val account = WalletAccount(publicKey, cluster, label)
+                val walletTypeEnum = walletType?.let { WalletType.fromId(it) }
+                val account = WalletAccount(publicKey, cluster, label, walletTypeEnum)
                 _authState.value = AuthState.Connected(account)
                 
                 // Update wallet state and fetch data

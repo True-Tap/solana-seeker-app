@@ -82,10 +82,17 @@ fun WalletDetailsScreen(
                     val currentAuthState = authState
                     when (currentAuthState) {
                         is AuthState.Connected -> {
+                            val walletTypeName = when (currentAuthState.account.walletType) {
+                                com.truetap.solana.seeker.data.WalletType.PHANTOM -> "Phantom Wallet"
+                                com.truetap.solana.seeker.data.WalletType.SOLFLARE -> "Solflare Wallet"
+                                com.truetap.solana.seeker.data.WalletType.EXTERNAL -> "External Wallet"
+                                com.truetap.solana.seeker.data.WalletType.SOLANA_SEEKER -> "Seed Vault"
+                                null -> "Unknown Wallet"
+                            }
                             WalletInfoCard(
                                 walletAddress = currentAuthState.account.publicKey,
                                 walletLabel = currentAuthState.account.accountLabel ?: "Connected Wallet",
-                                walletType = "Seed Vault"
+                                walletType = walletTypeName
                             )
                         }
                         else -> {
@@ -148,7 +155,16 @@ private fun WalletConnectionCard(authState: AuthState) {
             
             Text(
                 text = when (authState) {
-                    is AuthState.Connected -> "Connected to Solana Seed Vault"
+                    is AuthState.Connected -> {
+                        val walletName = when (authState.account.walletType) {
+                            com.truetap.solana.seeker.data.WalletType.PHANTOM -> "Phantom"
+                            com.truetap.solana.seeker.data.WalletType.SOLFLARE -> "Solflare"
+                            com.truetap.solana.seeker.data.WalletType.EXTERNAL -> "External Wallet"
+                            com.truetap.solana.seeker.data.WalletType.SOLANA_SEEKER -> "Seed Vault"
+                            null -> "Unknown Wallet"
+                        }
+                        "Connected to $walletName"
+                    }
                     is AuthState.Connecting -> "Connecting to wallet..."
                     else -> "No wallet connected"
                 },

@@ -29,6 +29,7 @@ import com.truetap.solana.seeker.services.NftService
 import com.truetap.solana.seeker.services.GenesisNFTTier
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.first
 import androidx.hilt.navigation.compose.hiltViewModel
 
 /**
@@ -189,8 +190,13 @@ fun NFTCheckScreen(
                     debugMessage = "Checking wallet: ${walletAddress.take(8)}..."
                     
                     // Use the WalletViewModel's NftService methods which have comprehensive timeout handling
-                    val hasGenesisNFT = walletViewModel.checkGenesisNFT().value
-                    val genesisNFTTier = walletViewModel.getGenesisNFTTier().value
+                    // Use first() to get single value without scope conflicts
+                    val hasGenesisNFT = walletViewModel.checkGenesisNFT().first()
+                    val genesisNFTTier = if (hasGenesisNFT) {
+                        walletViewModel.getGenesisNFTTier().first()
+                    } else {
+                        "NONE"
+                    }
                     
                     debugMessage = if (hasGenesisNFT) {
                         "Genesis NFT found! Tier: $genesisNFTTier"
