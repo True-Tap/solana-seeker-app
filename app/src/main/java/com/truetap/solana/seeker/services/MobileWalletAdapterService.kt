@@ -1,8 +1,6 @@
 package com.truetap.solana.seeker.services
 
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
@@ -31,15 +29,6 @@ class MobileWalletAdapterService @Inject constructor(
         return try {
             Log.d(TAG, "Initiating MWA connection for ${walletType.displayName} at ${System.currentTimeMillis()}")
             
-            // Check and launch wallet-specific app
-            val targetResult = checkAndLaunchWallet(walletType)
-            if (!targetResult) {
-                return ConnectionResult.Failure(
-                    error = "${walletType.displayName} is not installed. Install from Play Store?",
-                    walletType = walletType
-                )
-            }
-            
             // Create MWA instance with proper app identification
             val connectionIdentity = ConnectionIdentity(
                 identityUri = Uri.parse("https://truetap.app"),
@@ -48,10 +37,8 @@ class MobileWalletAdapterService @Inject constructor(
             )
             val mobileWalletAdapter = MobileWalletAdapter(connectionIdentity)
             
-            // Add delay after launch to ensure wallet is in foreground
-            delay(1000L)
-            
-            // Use connect for authorization - this triggers the wallet prompt
+            // Let MWA handle wallet discovery and authorization - this should trigger the popup
+            Log.d(TAG, "Calling MWA connect() - this should trigger wallet selection and authorization")
             val connectResult = mobileWalletAdapter.connect(activityResultSender)
             Log.d(TAG, "MWA connect completed for ${walletType.displayName}")
             
@@ -101,47 +88,6 @@ class MobileWalletAdapterService @Inject constructor(
         }
     }
     
-    private fun checkAndLaunchWallet(walletType: WalletType): Boolean {
-        val packageName = when (walletType) {
-            WalletType.SOLFLARE -> "com.solflare.mobile"
-            WalletType.PHANTOM -> "app.phantom"
-            else -> return false
-        }
-        
-        return try {
-            // Use getLaunchIntentForPackage to check if wallet is launchable
-            val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
-            
-            if (launchIntent == null) {
-                Log.w(TAG, "${walletType.displayName} not installed or not launchable")
-                launchPlayStore(packageName)
-                return false
-            }
-            
-            // Launch wallet app
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(launchIntent)
-            Log.d(TAG, "Successfully launched ${walletType.displayName}")
-            true
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to launch ${walletType.displayName}", e)
-            false
-        }
-    }
-    
-    private fun launchPlayStore(packageName: String) {
-        try {
-            val playStoreIntent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse("market://details?id=$packageName")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(playStoreIntent)
-            Log.d(TAG, "Launched Play Store for $packageName")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to launch Play Store", e)
-        }
-    }
     
     private fun generateAuthKey(walletType: WalletType): String {
         // Generate deterministic key after successful auth
