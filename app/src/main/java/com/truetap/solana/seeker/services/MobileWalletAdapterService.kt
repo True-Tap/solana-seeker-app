@@ -9,8 +9,9 @@ import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
+import com.solana.mobilewalletadapter.clientlib.RpcCluster
+import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.AuthorizationResult
-import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.AuthorizedAccount
 import kotlinx.coroutines.delay
 import com.truetap.solana.seeker.data.ConnectionResult
 import com.truetap.solana.seeker.data.WalletType
@@ -50,23 +51,41 @@ class MobileWalletAdapterService @Inject constructor(
             val mobileWalletAdapter = MobileWalletAdapter(connectionIdentity)
             
             // Add delay after launch to ensure wallet is in foreground
-            delay(500L)
+            delay(1000L)
             
-            // Use connect for authorization
-            val connectResult = mobileWalletAdapter.connect(activityResultSender)
-            Log.d(TAG, "MWA connect completed for ${walletType.displayName}")
+            // Use transact with authorize for consistent prompting
+            var authResult: AuthorizationResult? = null
+            val transactResult = mobileWalletAdapter.transact(activityResultSender) { client ->
+                // Deauthorize any existing session to ensure fresh prompt
+                try {
+                    client.deauthorize()
+                } catch (e: Exception) {
+                    Log.d(TAG, "No existing session to deauthorize")
+                }
+                
+                // Authorize for TrueTap
+                authResult = client.authorize(
+                    Uri.parse("https://truetap.app"),
+                    Uri.parse("favicon.ico"),
+                    "TrueTap",
+                    RpcCluster.Devnet
+                )
+                
+                // Return empty transaction
+                byteArrayOf()
+            }
+            Log.d(TAG, "MWA transact completed for ${walletType.displayName}")
             
-            // Handle MWA connect result
-            when (connectResult) {
-                is TransactionResult.Success<AuthorizationResult> -> {
-                    Log.d(TAG, "MWA authorization successful for ${walletType.displayName}")
+            // Handle MWA transact result
+            when (transactResult) {
+                is TransactionResult.Success<*> -> {
+                    Log.d(TAG, "MWA transaction successful for ${walletType.displayName}")
                     
-                    // Extract auth data from connectResult
-                    val authResult = connectResult.result
-                    authResult.accounts.firstOrNull()?.let { account ->
+                    // Extract real auth data from authResult
+                    authResult?.accounts?.firstOrNull()?.let { account ->
                         val publicKey = Base58.encode(account.publicKey)
                         val accountLabel = account.accountLabel ?: "${walletType.displayName} Wallet"
-                        val authToken = authResult.authToken
+                        val authToken = authResult?.authToken ?: "auth_${System.currentTimeMillis()}"
                         
                         Log.d(TAG, "Real auth data - publicKey: $publicKey, label: $accountLabel")
                         
@@ -77,18 +96,18 @@ class MobileWalletAdapterService @Inject constructor(
                             authToken = authToken
                         )
                     } ?: run {
-                        Log.e(TAG, "Authorization result missing account data")
+                        Log.e(TAG, "Authorization successful but no account data")
                         ConnectionResult.Failure(
-                            error = "Authorization succeeded but no account data received",
+                            error = "Authorization successful but no account data received",
                             walletType = walletType
                         )
                     }
                 }
                 is TransactionResult.Failure -> {
-                    Log.e(TAG, "MWA authorization failed: ${connectResult.e.message}")
+                    Log.e(TAG, "MWA transaction failed: ${transactResult.e.message}")
                     ConnectionResult.Failure(
-                        error = "Authorization failed: ${connectResult.e.localizedMessage ?: connectResult.e.message}",
-                        exception = connectResult.e,
+                        error = "Authorization failed: ${transactResult.e.localizedMessage ?: transactResult.e.message}",
+                        exception = transactResult.e,
                         walletType = walletType
                     )
                 }
