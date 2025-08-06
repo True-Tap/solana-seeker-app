@@ -69,21 +69,35 @@ class MainActivity : ComponentActivity() {
         // Install and configure the splash screen before calling super.onCreate()
         val splashScreen = splashScreen
         
-        // Configure splash screen exit animation
+        Log.d(TAG, "Configuring splash screen with custom exit animation")
+        
+        // Configure splash screen exit animation with debug logging
         splashScreen.setOnExitAnimationListener { splashScreenView ->
-            // Create slide up animation for smooth transition
-            val slideUp = ObjectAnimator.ofFloat(
-                splashScreenView,
-                View.TRANSLATION_Y,
-                0f,
-                -splashScreenView.height.toFloat()
-            )
-            slideUp.interpolator = AnticipateInterpolator()
-            slideUp.duration = 300L
+            Log.d(TAG, "Splash screen exit animation starting - view size: ${splashScreenView.width}x${splashScreenView.height}")
             
-            // Remove the splash screen view when animation completes
-            slideUp.doOnEnd { splashScreenView.remove() }
-            slideUp.start()
+            try {
+                // Create slide up animation for smooth transition
+                val slideUp = ObjectAnimator.ofFloat(
+                    splashScreenView,
+                    View.TRANSLATION_Y,
+                    0f,
+                    -splashScreenView.height.toFloat()
+                )
+                slideUp.interpolator = AnticipateInterpolator()
+                slideUp.duration = 300L
+                
+                // Remove the splash screen view when animation completes
+                slideUp.doOnEnd { 
+                    Log.d(TAG, "Splash screen exit animation completed - removing splash view")
+                    splashScreenView.remove() 
+                }
+                slideUp.start()
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during splash screen exit animation", e)
+                // Fallback: remove splash screen immediately if animation fails
+                splashScreenView.remove()
+            }
         }
         
         super.onCreate(savedInstanceState)

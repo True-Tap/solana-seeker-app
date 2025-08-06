@@ -38,27 +38,36 @@ fun SplashScreen(
 ) {
     var startTextAnimation by remember { mutableStateOf(false) }
     
-    // Text fade-in animation - starts after a short delay to sync with system splash
+    // Logo fade-in animation - immediate since no system icon
+    val logoAlphaAnim = animateFloatAsState(
+        targetValue = if (startTextAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 600),
+        label = "logo_alpha"
+    )
+    
+    // Text fade-in animation - delayed after logo appears
     val textAlphaAnim = animateFloatAsState(
         targetValue = if (startTextAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 800, delayMillis = 400),
+        animationSpec = tween(durationMillis = 800, delayMillis = 300),
         label = "text_alpha"
     )
     
-    // Subtle scale animation for logo (from system splash size to final size)
+    // Subtle scale animation for logo  
     val logoScaleAnim = animateFloatAsState(
         targetValue = if (startTextAnimation) 1f else 0.8f,
-        animationSpec = tween(durationMillis = 600, delayMillis = 200),
+        animationSpec = tween(durationMillis = 600),
         label = "logo_scale"
     )
     
     LaunchedEffect(key1 = true) {
-        // Small delay to allow system splash to settle
-        delay(200)
+        android.util.Log.d("SplashScreen", "Starting custom splash screen animations - no system icon")
+        
+        // Immediate animation start since we disabled system splash icon
         startTextAnimation = true
         
         // Complete splash after animations finish
-        delay(2000)
+        delay(2200)
+        android.util.Log.d("SplashScreen", "Custom splash screen complete, navigating to next screen")
         onSplashComplete()
     }
     
@@ -75,13 +84,14 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // TrueTap Logo - matches system splash screen size/position initially
+            // TrueTap Logo - full size since we're not constrained by system splash
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.truetap_logo),
                 contentDescription = "TrueTap Logo",
                 modifier = Modifier
-                    .size(160.dp)
-                    .scale(logoScaleAnim.value),
+                    .size(160.dp) // Back to original size for better visibility
+                    .scale(logoScaleAnim.value)
+                    .alpha(logoAlphaAnim.value), // Add fade-in animation
                 contentScale = ContentScale.Fit
             )
             

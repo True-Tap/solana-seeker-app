@@ -7,13 +7,13 @@
         <!-- Set the splash screen background to match our app theme -->
         <item name="android:windowSplashScreenBackground">@color/truetap_background</item>
         
-        <!-- Use our TrueTap logo as the animated icon -->
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/truetap_logo</item>
+        <!-- Disable animated icon to prevent clipping - let custom splash handle logo -->
+        <item name="android:windowSplashScreenAnimatedIcon">@null</item>
         
-        <!-- Set animation duration to allow smooth transition -->
-        <item name="android:windowSplashScreenAnimationDuration">1000</item>
+        <!-- Minimal animation duration since we're not showing system icon -->
+        <item name="android:windowSplashScreenAnimationDuration">200</item>
         
-        <!-- Ensure the splash screen icon is properly centered -->
+        <!-- Keep background color consistent -->
         <item name="android:windowSplashScreenIconBackgroundColor">@color/truetap_background</item>
         
         <!-- Set the window background to match for continuity -->

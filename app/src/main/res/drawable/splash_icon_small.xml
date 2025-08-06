@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+    Small splash icon constrained to Android 12+ limits
+    Maximum safe area: 192dp (within 240dp circle)
+    Using significant padding to ensure logo fits completely
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background matching theme -->
+    <item android:drawable="@color/truetap_background" />
+    
+    <!-- Logo with heavy insets to fit within 240dp circle constraint -->
+    <item 
+        android:left="72dp" 
+        android:top="72dp" 
+        android:right="72dp" 
+        android:bottom="72dp">
+        <bitmap
+            android:src="@drawable/truetap_logo"
+            android:gravity="center"
+            android:scaleType="fitCenter" />
+    </item>
+</layer-list>

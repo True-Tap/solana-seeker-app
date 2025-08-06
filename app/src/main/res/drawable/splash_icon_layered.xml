@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+    Layered splash screen icon with explicit sizing control
+    This prevents clipping by ensuring the logo fits within safe bounds
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background color layer -->
+    <item android:drawable="@color/truetap_background" />
+    
+    <!-- Logo layer with insets to prevent clipping -->
+    <item android:left="48dp" 
+          android:top="48dp" 
+          android:right="48dp" 
+          android:bottom="48dp">
+        <bitmap
+            android:src="@drawable/truetap_logo"
+            android:gravity="center"
+            android:scaleType="fitCenter" />
+    </item>
+</layer-list>
