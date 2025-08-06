@@ -30,29 +30,9 @@ class MainViewModel @Inject constructor(
 
     private fun determineStartDestination() {
         viewModelScope.launch {
-            // For debugging wallet selection flow, always start from splash
-            // TODO: Remove this debug override for production
-            if (com.truetap.solana.seeker.BuildConfig.DEBUG) {
-                // In debug mode, always start from splash to test wallet selection
-                _startDestination.value = "splash"
-                _isInitialized.value = true
-                return@launch
-            }
-            
-            // Attempt to restore session
-            val sessionResult = walletRepository.restoreSession()
-            
-            when (sessionResult) {
-                is com.truetap.solana.seeker.data.WalletResult.Success -> {
-                    // User has an active session, go directly to home
-                    _startDestination.value = "home"
-                }
-                is com.truetap.solana.seeker.data.WalletResult.Error -> {
-                    // No session found, start from splash/onboarding
-                    _startDestination.value = "splash"
-                }
-            }
-            
+            // Always start from splash screen which shows "TrueTap Payments. Reimagined." for 2.5s
+            // then navigates to landing screen with terms & conditions and wallet connection
+            _startDestination.value = "splash"
             _isInitialized.value = true
         }
     }

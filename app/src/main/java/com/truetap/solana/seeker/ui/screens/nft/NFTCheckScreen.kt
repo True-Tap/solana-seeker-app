@@ -30,7 +30,8 @@ import com.truetap.solana.seeker.services.GenesisNFTTier
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.first
-import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /**
  * NFT Check Screen - Jetpack Compose
@@ -173,76 +174,96 @@ fun NFTCheckScreen(
     var isCheckingGenesis by remember { mutableStateOf(false) }
     var debugMessage by remember { mutableStateOf("Initializing Genesis NFT check...") }
     
+    // Use rememberCoroutineScope for better lifecycle management
+    val coroutineScope = rememberCoroutineScope()
+    var genesisCheckJob by remember { mutableStateOf<Job?>(null) }
+    
     // Auto navigation effect with comprehensive Genesis NFT verification using NftService
-    LaunchedEffect(walletState, isCheckingGenesis) {
+    LaunchedEffect(walletState.account?.publicKey) {
+        // Cancel any existing job
+        genesisCheckJob?.cancel()
+        
         delay(2000) // Give some time for animations
         
-        // Check if wallet is connected
-        if (walletState.account != null && !isCheckingGenesis) {
-            isCheckingGenesis = true
-            debugMessage = "Starting Genesis NFT verification..."
+        // Check if wallet is connected and not already checking
+        val walletAddress = walletState.account?.publicKey
+        if (walletAddress != null && !isCheckingGenesis) {
             
-            try {
-                // Add a screen-level timeout of 35 seconds (longer than NftService timeout to see what happens)
-                withTimeout(35_000L) {
-                    val walletAddress = walletState.account?.publicKey ?: return@withTimeout
-                    android.util.Log.d("NFTCheckScreen", "Starting Genesis NFT check for: $walletAddress")
-                    debugMessage = "Checking wallet: ${walletAddress.take(8)}..."
-                    
-                    // Use the WalletViewModel's NftService methods which have comprehensive timeout handling
-                    // Use first() to get single value without scope conflicts
-                    val hasGenesisNFT = walletViewModel.checkGenesisNFT().first()
-                    val genesisNFTTier = if (hasGenesisNFT) {
-                        walletViewModel.getGenesisNFTTier().first()
-                    } else {
-                        "NONE"
-                    }
-                    
-                    debugMessage = if (hasGenesisNFT) {
-                        "Genesis NFT found! Tier: $genesisNFTTier"
-                    } else {
-                        "No Genesis NFT found"
-                    }
-                    
-                    android.util.Log.d("NFTCheckScreen", "Genesis NFT check result: hasNFT=$hasGenesisNFT, tier=$genesisNFTTier")
-                    
-                    genesisCheckResult = if (hasGenesisNFT) {
-                        GenesisNFTTier.valueOf(genesisNFTTier)
-                    } else {
-                        GenesisNFTTier.NONE
-                    }
-                    
-                    delay(1000) // Show result for a moment
-                    
-                    if (genesisCheckResult != GenesisNFTTier.NONE) {
-                        android.util.Log.d("NFTCheckScreen", "Navigating to success with tier: $genesisCheckResult")
-                        onNavigateToSuccess()
-                    } else {
-                        android.util.Log.d("NFTCheckScreen", "Navigating to failure - no Genesis NFT")
-                        onNavigateToFailure()
-                    }
-                }
+            genesisCheckJob = coroutineScope.launch {
+                isCheckingGenesis = true
+                debugMessage = "Starting Genesis NFT verification..."
                 
-            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                android.util.Log.w("NFTCheckScreen", "Genesis NFT check timed out after 35 seconds")
-                debugMessage = "Genesis NFT check timed out"
-                genesisCheckResult = GenesisNFTTier.NONE
-                delay(1000)
-                onNavigateToFailure()
-            } catch (e: Exception) {
-                android.util.Log.e("NFTCheckScreen", "Genesis NFT check failed", e)
-                debugMessage = "Genesis NFT check failed: ${e.message}"
-                genesisCheckResult = GenesisNFTTier.NONE
-                delay(1000)
-                onNavigateToFailure()
-            } finally {
-                isCheckingGenesis = false
+                try {
+                    // Add a screen-level timeout of 35 seconds (longer than NftService timeout to see what happens)
+                    withTimeout(35_000L) {
+                        android.util.Log.d("NFTCheckScreen", "Starting Genesis NFT check for: $walletAddress")
+                        debugMessage = "Checking wallet: ${walletAddress.take(8)}..."
+                        
+                        // Call NftService methods directly to avoid StateFlow scope issues
+                        val nftService = walletViewModel.nftService
+                        val hasGenesisNFT = nftService.hasGenesisNFT(walletAddress)
+                        val genesisNFTTier = if (hasGenesisNFT) {
+                            nftService.getGenesisNFTTier(walletAddress).name
+                        } else {
+                            "NONE"
+                        }
+                        
+                        debugMessage = if (hasGenesisNFT) {
+                            "Genesis NFT found! Tier: $genesisNFTTier"
+                        } else {
+                            "No Genesis NFT found"
+                        }
+                        
+                        android.util.Log.d("NFTCheckScreen", "Genesis NFT check result: hasNFT=$hasGenesisNFT, tier=$genesisNFTTier")
+                        
+                        genesisCheckResult = if (hasGenesisNFT) {
+                            GenesisNFTTier.valueOf(genesisNFTTier)
+                        } else {
+                            GenesisNFTTier.NONE
+                        }
+                        
+                        delay(1000) // Show result for a moment
+                        
+                        if (genesisCheckResult != GenesisNFTTier.NONE) {
+                            android.util.Log.d("NFTCheckScreen", "Navigating to success with tier: $genesisCheckResult")
+                            onNavigateToSuccess()
+                        } else {
+                            android.util.Log.d("NFTCheckScreen", "Navigating to failure - no Genesis NFT")
+                            onNavigateToFailure()
+                        }
+                    }
+                    
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    android.util.Log.d("NFTCheckScreen", "Genesis NFT check was cancelled")
+                    // Don't navigate on cancellation - user likely navigated away
+                } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                    android.util.Log.w("NFTCheckScreen", "Genesis NFT check timed out after 35 seconds")
+                    debugMessage = "Genesis NFT check timed out"
+                    genesisCheckResult = GenesisNFTTier.NONE
+                    delay(1000)
+                    onNavigateToFailure()
+                } catch (e: Exception) {
+                    android.util.Log.e("NFTCheckScreen", "Genesis NFT check failed", e)
+                    debugMessage = "Genesis NFT check failed: ${e.message}"
+                    genesisCheckResult = GenesisNFTTier.NONE
+                    delay(1000)
+                    onNavigateToFailure()
+                } finally {
+                    isCheckingGenesis = false
+                }
             }
-        } else if (walletState.account == null) {
+        } else if (walletAddress == null) {
             // No wallet connected, navigate to failure
             debugMessage = "No wallet connected"
             delay(2000)
             onNavigateToFailure()
+        }
+    }
+    
+    // Clean up job on dispose
+    DisposableEffect(Unit) {
+        onDispose {
+            genesisCheckJob?.cancel()
         }
     }
     

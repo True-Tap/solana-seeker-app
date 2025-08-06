@@ -32,7 +32,7 @@ import javax.inject.Inject
 class WalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     private val seedVaultService: SeedVaultService,
-    private val nftService: NftService
+    val nftService: NftService
 ) : ViewModel() {
 
     val authState: StateFlow<AuthState> = walletRepository.authState

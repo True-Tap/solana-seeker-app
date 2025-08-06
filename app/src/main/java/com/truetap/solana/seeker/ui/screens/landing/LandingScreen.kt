@@ -35,20 +35,35 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
+import com.truetap.solana.seeker.viewmodels.WalletViewModel
+import com.truetap.solana.seeker.data.AuthState
 import kotlin.math.max as maxOf
 import kotlin.math.min as minOf
 
 @Composable
 fun LandingScreen(
     onNavigateToHome: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    walletViewModel: WalletViewModel = hiltViewModel()
 ) {
     var agreedToTerms by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
+    
+    // Check if user is already connected
+    val authState by walletViewModel.authState.collectAsStateWithLifecycle()
+    
+    // If user is already connected, skip directly to home
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Connected) {
+            onNavigateToHome()
+        }
+    }
 
     // Animation values
     var startAnimation by remember { mutableStateOf(false) }
