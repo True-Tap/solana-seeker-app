@@ -76,18 +76,25 @@ fun WalletConnectionScreen(
     // Wallet categories
     val walletCategories = listOf(
         WalletCategory(
-            id = "solflare", // Changed from "external" to directly target Solflare
-            name = "Use Solflare Wallet",
-            description = "Connect with your Solflare wallet",
-            iconRes = R.drawable.solflare, // Using Solflare icon
-            gradient = listOf(Color(0xFFFFC107), Color(0xFFFF6B00)) // Solflare colors
-        ),
-        WalletCategory(
             id = "solana",
             name = "Use Hardware Wallet",
-            description = "Use the Seeker's Seed Vault",
+            description = "Built-in Seeker hardware security",
             iconRes = R.drawable.skr, // Using Seeker icon
             gradient = listOf(Color(0xFF00D4FF), Color(0xFF00FFA3)) // Seeker colors
+        ),
+        WalletCategory(
+            id = "phantom",
+            name = "Use Phantom Wallet",
+            description = "Connect external Phantom wallet",
+            iconRes = R.drawable.phantom, // Using Phantom icon
+            gradient = listOf(Color(0xFF9945FF), Color(0xFF14F195)) // Phantom colors
+        ),
+        WalletCategory(
+            id = "solflare",
+            name = "Use Solflare Wallet",
+            description = "Connect external Solflare wallet",
+            iconRes = R.drawable.solflare, // Using Solflare icon
+            gradient = listOf(Color(0xFFFFC107), Color(0xFFFF6B00)) // Solflare colors
         )
     )
     

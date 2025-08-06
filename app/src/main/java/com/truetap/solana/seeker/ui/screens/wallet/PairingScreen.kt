@@ -431,10 +431,10 @@ fun PairingScreen(
         ),
         "solana" to WalletConfig(
             id = "solana",
-            name = "Solana Seeker",
+            name = "Hardware Wallet",
             logoRes = R.drawable.skr,
             gradient = listOf(Color(0xFF00D4FF), Color(0xFF00FFA3)),
-            description = "Official Solana wallet",
+            description = "Seeker's built-in Seed Vault",
             deepLinkBase = null // Uses Seed Vault, not MWA
         )
     )
