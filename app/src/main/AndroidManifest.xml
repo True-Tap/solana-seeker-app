@@ -31,7 +31,8 @@
             </intent-filter>
             
             <!-- Deep link intent filter for Solflare wallet connection response -->
-            <intent-filter android:autoVerify="true">
+            <!-- Removed android:autoVerify="true" - not needed for custom scheme deep links -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -39,11 +40,12 @@
             </intent-filter>
             
             <!-- Deep link intent filter for wallet-specific deep link connections -->
-            <intent-filter android:autoVerify="true">
+            <!-- Removed android:autoVerify="true" - not needed for custom scheme deep links -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="truetap" android:path="/onConnect" />
+                <data android:scheme="truetap" android:host="app" android:path="/onConnect" />
             </intent-filter>
         </activity>
     </application>
