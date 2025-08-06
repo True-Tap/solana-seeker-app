@@ -26,6 +26,7 @@ import androidx.compose.material3.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.*
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,13 +94,36 @@ fun HomeScreen(
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     var showTrueTapSheet by remember { mutableStateOf(false) }
     
-    // Sample wallet data
-    val wallets = remember {
-        listOf(
-            Wallet("1", "Main Wallet", "1,234.56", "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"),
-            Wallet("2", "Trading Wallet", "567.89", "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"),
-            Wallet("3", "Savings", "890.12", "5dSHdvJBQ38YuuHdKHDHFLhMhLCvdV7xB5QH5Y8z9CXD")
-        )
+    // Real wallet data from WalletViewModel
+    val walletState by walletViewModel.walletState.collectAsState()
+    val balance by walletViewModel.balance.collectAsState()
+    val isLoading by walletViewModel.isLoading.collectAsState()
+    
+    val wallets = remember(walletState, balance, isLoading) {
+        val account = walletState.account
+        if (account != null) {
+            // Use real connected wallet data
+            val displayBalance = if (isLoading) {
+                "Loading..."
+            } else {
+                String.format("%.4f", balance)
+            }
+            
+            listOf(
+                Wallet(
+                    id = account.publicKey,
+                    name = account.accountLabel ?: "Devnet Wallet",
+                    balance = displayBalance,
+                    address = account.publicKey,
+                    isConnected = true
+                )
+            )
+        } else {
+            // Fallback when no wallet is connected
+            listOf(
+                Wallet("disconnected", "No Wallet Connected", "0.00", "Connect a wallet to see balance", false)
+            )
+        }
     }
     
     // Create infinite pager with repeated wallets for seamless looping
@@ -181,6 +205,12 @@ fun HomeScreen(
                     onWalletRename = { wallet ->
                         walletToRename = wallet
                         showWalletRenameDialog = true
+                    },
+                    onRefresh = { 
+                        val account = walletState.account
+                        if (account != null) {
+                            walletViewModel.refreshWalletData()
+                        }
                     }
                 )
                 
@@ -419,7 +449,8 @@ private fun SwipeableWalletCard(
     pagerState: androidx.compose.foundation.pager.PagerState,
     isBalanceVisible: Boolean,
     onToggleVisibility: () -> Unit,
-    onWalletRename: (Wallet) -> Unit
+    onWalletRename: (Wallet) -> Unit,
+    onRefresh: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -439,6 +470,7 @@ private fun SwipeableWalletCard(
                     isBalanceVisible = isBalanceVisible,
                     onToggleVisibility = onToggleVisibility,
                     onWalletRename = onWalletRename,
+                    onRefresh = onRefresh,
                     showSwipeHint = true
                 )
             }
@@ -449,6 +481,7 @@ private fun SwipeableWalletCard(
                 isBalanceVisible = isBalanceVisible,
                 onToggleVisibility = onToggleVisibility,
                 onWalletRename = onWalletRename,
+                onRefresh = onRefresh,
                 showSwipeHint = false
             )
         }
@@ -461,6 +494,7 @@ private fun WalletCardContent(
     isBalanceVisible: Boolean,
     onToggleVisibility: () -> Unit,
     onWalletRename: (Wallet) -> Unit,
+    onRefresh: () -> Unit = {},
     showSwipeHint: Boolean
 ) {
     Column(
@@ -510,25 +544,56 @@ private fun WalletCardContent(
                     )
                 }
                 
-                // Right side: Visibility toggle
-                Icon(
-                    imageVector = if (isBalanceVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = if (isBalanceVisible) "Hide Balance" else "Show Balance",
-                    tint = TrueTapTextSecondary,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onToggleVisibility() }
-                )
+                // Right side: Refresh and Visibility toggle
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Refresh button (only show if wallet is connected)
+                    if (wallet.isConnected && wallet.id != "disconnected") {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh Balance",
+                            tint = TrueTapTextSecondary,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { onRefresh() }
+                        )
+                    }
+                    
+                    // Visibility toggle
+                    Icon(
+                        imageVector = if (isBalanceVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (isBalanceVisible) "Hide Balance" else "Show Balance",
+                        tint = TrueTapTextSecondary,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onToggleVisibility() }
+                    )
+                }
             }
-            // Bottom row: Wallet Balance caption (no left padding since no wallet icon)
-            Text(
-                text = "Wallet Balance",
-                fontSize = 12.sp,
-                color = TrueTapTextSecondary
-            )
+            // Bottom row: Wallet Balance caption and address (if connected)
+            Column {
+                Text(
+                    text = "Wallet Balance",
+                    fontSize = 12.sp,
+                    color = TrueTapTextSecondary
+                )
+                if (wallet.isConnected && wallet.address != "Connect a wallet to see balance") {
+                    Text(
+                        text = "${wallet.address.take(4)}...${wallet.address.takeLast(4)}",
+                        fontSize = 10.sp,
+                        color = TrueTapTextSecondary.copy(alpha = 0.7f),
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+            }
         }
         
         Spacer(modifier = Modifier.height(16.dp))
