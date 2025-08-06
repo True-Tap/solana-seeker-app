@@ -2,9 +2,24 @@
 <resources>
 
     <style name="Theme.Solanaseekerapp" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- Disable splash screen to prevent jarring flash -->
-        <item name="android:windowSplashScreenBackground">@android:color/transparent</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@null</item>
-        <item name="android:windowSplashScreenAnimationDuration">0</item>
+        <!-- Custom splash screen configuration for seamless transition -->
+        
+        <!-- Set the splash screen background to match our app theme -->
+        <item name="android:windowSplashScreenBackground">@color/truetap_background</item>
+        
+        <!-- Use our TrueTap logo as the animated icon -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/truetap_logo</item>
+        
+        <!-- Set animation duration to allow smooth transition -->
+        <item name="android:windowSplashScreenAnimationDuration">1000</item>
+        
+        <!-- Ensure the splash screen icon is properly centered -->
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/truetap_background</item>
+        
+        <!-- Set the window background to match for continuity -->
+        <item name="android:windowBackground">@color/truetap_background</item>
+        
+        <!-- Enable splash screen -->
+        <item name="android:enableOnBackInvokedCallback">true</item>
     </style>
 </resources>

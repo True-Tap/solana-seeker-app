@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
@@ -35,22 +36,29 @@ fun SplashScreen(
     onSplashComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var startAnimation by remember { mutableStateOf(false) }
-    val alphaAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 2000),
-        label = "splash_alpha"
+    var startTextAnimation by remember { mutableStateOf(false) }
+    
+    // Text fade-in animation - starts after a short delay to sync with system splash
+    val textAlphaAnim = animateFloatAsState(
+        targetValue = if (startTextAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 800, delayMillis = 400),
+        label = "text_alpha"
     )
     
-    val scaleAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0.3f,
-        animationSpec = tween(durationMillis = 1000),
-        label = "splash_scale"
+    // Subtle scale animation for logo (from system splash size to final size)
+    val logoScaleAnim = animateFloatAsState(
+        targetValue = if (startTextAnimation) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 600, delayMillis = 200),
+        label = "logo_scale"
     )
     
     LaunchedEffect(key1 = true) {
-        startAnimation = true
-        delay(2500)
+        // Small delay to allow system splash to settle
+        delay(200)
+        startTextAnimation = true
+        
+        // Complete splash after animations finish
+        delay(2000)
         onSplashComplete()
     }
     
@@ -67,25 +75,27 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // TrueTap Logo - no box, no shadow, clean
+            // TrueTap Logo - matches system splash screen size/position initially
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.truetap_logo),
                 contentDescription = "TrueTap Logo",
-                modifier = Modifier.size(160.dp),
+                modifier = Modifier
+                    .size(160.dp)
+                    .scale(logoScaleAnim.value),
                 contentScale = ContentScale.Fit
             )
             
-            // Brand Name with gradient - no spacing
+            // Brand Name with gradient - fades in after system splash
             GradientText(
-                text = "TrueTap",
+                text = "Welcome to TrueTap",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.alpha(alphaAnim.value)
+                modifier = Modifier.alpha(textAlphaAnim.value)
             )
             
             Spacer(modifier = Modifier.height(Spacing.medium))
             
-            // Tagline - bigger and more prominent
+            // Tagline - fades in with the brand name
             Text(
                 text = "Payments. Reimagined.",
                 color = TrueTapTextSecondary,
@@ -93,7 +103,7 @@ fun SplashScreen(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Medium
                 ),
-                modifier = Modifier.alpha(alphaAnim.value)
+                modifier = Modifier.alpha(textAlphaAnim.value)
             )
         }
     }

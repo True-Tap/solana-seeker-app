@@ -33,7 +33,7 @@ fun WalletDetailsScreen(
     viewModel: WalletViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
-    
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = TrueTapBackground
@@ -66,7 +66,7 @@ fun WalletDetailsScreen(
                     containerColor = Color.Transparent
                 )
             )
-            
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(24.dp),
@@ -76,7 +76,7 @@ fun WalletDetailsScreen(
                 item {
                     WalletConnectionCard(authState = authState)
                 }
-                
+
                 // Wallet Information
                 item {
                     val currentAuthState = authState
@@ -104,7 +104,7 @@ fun WalletDetailsScreen(
                         }
                     }
                 }
-                
+
                 // Connection Support
                 item {
                     ConnectionSupportCard()
@@ -150,9 +150,9 @@ private fun WalletConnectionCard(authState: AuthState) {
                     color = TrueTapTextPrimary
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             Text(
                 text = when (authState) {
                     is AuthState.Connected -> {
@@ -207,27 +207,23 @@ private fun WalletInfoCard(
                     color = TrueTapTextPrimary
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Wallet Label
             DetailRow(label = "Name", value = walletLabel)
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // Wallet Type
             DetailRow(label = "Type", value = walletType)
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // Wallet Address
             DetailRow(
-                label = "Address", 
-                value = if (walletAddress != "Not connected") {
-                    "${walletAddress.take(6)}...${walletAddress.takeLast(4)}"
-                } else {
-                    walletAddress
-                }
+                label = "Address",
+                value = walletAddress
             )
         }
     }
@@ -261,9 +257,9 @@ private fun ConnectionSupportCard() {
                     color = TrueTapTextPrimary
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             Text(
                 text = "If you're experiencing connection issues, try disconnecting and reconnecting your wallet through the Settings menu.",
                 fontSize = 14.sp,

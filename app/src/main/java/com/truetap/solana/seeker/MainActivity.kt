@@ -10,6 +10,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
+import android.animation.ObjectAnimator
+import android.view.View
+import android.view.animation.AnticipateInterpolator
+import androidx.core.animation.doOnEnd
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +66,26 @@ class MainActivity : ComponentActivity() {
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install and configure the splash screen before calling super.onCreate()
+        val splashScreen = splashScreen
+        
+        // Configure splash screen exit animation
+        splashScreen.setOnExitAnimationListener { splashScreenView ->
+            // Create slide up animation for smooth transition
+            val slideUp = ObjectAnimator.ofFloat(
+                splashScreenView,
+                View.TRANSLATION_Y,
+                0f,
+                -splashScreenView.height.toFloat()
+            )
+            slideUp.interpolator = AnticipateInterpolator()
+            slideUp.duration = 300L
+            
+            // Remove the splash screen view when animation completes
+            slideUp.doOnEnd { splashScreenView.remove() }
+            slideUp.start()
+        }
+        
         super.onCreate(savedInstanceState)
         
         // Initialize ActivityResultLauncher for both MWA and Seed Vault
