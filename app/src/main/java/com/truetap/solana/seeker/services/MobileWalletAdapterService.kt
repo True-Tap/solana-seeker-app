@@ -105,3 +105,18 @@ class MobileWalletAdapterService @Inject constructor(
     
     // Removed stub key generation; now using actual account from MWA auth result
 }
+
+/**
+ * Helper to provide a consistent MobileWalletAdapter instance.
+ */
+object MobileWalletAdapterServiceHelper {
+    val adapter: com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter by lazy {
+        com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter(
+            com.solana.mobilewalletadapter.clientlib.ConnectionIdentity(
+                identityUri = Uri.parse("https://truetap.app"),
+                iconUri = Uri.parse("favicon.ico"),
+                identityName = "TrueTap"
+            )
+        )
+    }
+}

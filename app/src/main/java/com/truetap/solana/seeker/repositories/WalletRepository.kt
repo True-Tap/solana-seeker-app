@@ -352,7 +352,8 @@ class WalletRepository @Inject constructor(
                 )
             }
         } else {
-            TODO("Implement real transaction with MWA 2.2.2")
+            // Real signing path will be implemented next; for now return not implemented
+            Result.failure(UnsupportedOperationException("Real transaction signing not implemented yet"))
         }
     }
     
