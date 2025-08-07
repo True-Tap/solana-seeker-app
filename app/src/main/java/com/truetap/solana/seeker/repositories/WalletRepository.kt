@@ -11,6 +11,9 @@ import com.truetap.solana.seeker.BuildConfig
 import com.truetap.solana.seeker.data.*
 import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
+import com.truetap.solana.seeker.services.MwaWalletConnector
+import com.truetap.solana.seeker.services.SeedVaultWalletConnector
+import androidx.activity.ComponentActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +36,9 @@ class WalletRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val seedVaultService: SeedVaultService,
     private val solanaService: SolanaService,
-    private val mockData: MockData
+    private val mockData: MockData,
+    private val mwaWalletConnector: MwaWalletConnector,
+    private val seedVaultWalletConnector: SeedVaultWalletConnector
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -94,6 +99,40 @@ class WalletRepository @Inject constructor(
             val errorMsg = "Failed to save wallet connection: ${e.message}"
             _authState.value = AuthState.Error(errorMsg)
             WalletResult.Error(e, errorMsg)
+        }
+    }
+
+    /**
+     * Sign an authentication message using the connected wallet
+     */
+    suspend fun signAuthMessage(
+        activity: ComponentActivity?,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>?,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender?,
+        message: String
+    ): WalletResult<ByteArray> {
+        val account = _walletState.value.account
+        if (account == null) {
+            return WalletResult.Error(IllegalStateException("No connected wallet"), "No connected wallet")
+        }
+
+        return when (account.walletType) {
+            WalletType.SOLANA_SEEKER -> {
+                if (activity == null || activityResultLauncher == null) {
+                    return WalletResult.Error(IllegalStateException("Missing activity or launcher"), "Missing activity or launcher")
+                }
+                seedVaultWalletConnector.signMessage(
+                    com.truetap.solana.seeker.data.SignMessageParams(
+                        message = message.toByteArray(),
+                        activity = activity,
+                        activityResultLauncher = activityResultLauncher
+                    )
+                )
+            }
+            WalletType.SOLFLARE, WalletType.PHANTOM, WalletType.EXTERNAL, null -> {
+                // TODO: Implement MWA signMessage via MwaWalletConnector
+                WalletResult.Error(IllegalStateException("MWA signMessage not implemented"), "MWA signMessage not implemented")
+            }
         }
     }
 

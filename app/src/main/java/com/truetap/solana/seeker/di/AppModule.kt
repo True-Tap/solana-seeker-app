@@ -54,9 +54,18 @@ object AppModule {
         @ApplicationContext context: Context,
         seedVaultService: SeedVaultService,
         solanaService: SolanaService,
-        mockData: com.truetap.solana.seeker.data.MockData
+        mockData: com.truetap.solana.seeker.data.MockData,
+        mwaWalletConnector: MwaWalletConnector,
+        seedVaultWalletConnector: SeedVaultWalletConnector
     ): WalletRepository {
-        return WalletRepository(context, seedVaultService, solanaService, mockData)
+        return WalletRepository(
+            context,
+            seedVaultService,
+            solanaService,
+            mockData,
+            mwaWalletConnector,
+            seedVaultWalletConnector
+        )
     }
 
     @Provides
