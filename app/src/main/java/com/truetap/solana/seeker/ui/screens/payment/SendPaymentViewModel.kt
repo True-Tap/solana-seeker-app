@@ -13,6 +13,7 @@ import com.truetap.solana.seeker.data.models.TransactionType
 import com.truetap.solana.seeker.domain.model.RepeatInterval
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.truetap.solana.seeker.repositories.WalletRepository
+import kotlinx.coroutines.flow.collectLatest
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
@@ -90,6 +91,7 @@ class SendPaymentViewModel @Inject constructor(
     init {
         loadWalletInfo()
         loadContacts()
+        observeWalletState()
     }
     
     // TODO: Add navigation args support later
@@ -307,6 +309,33 @@ class SendPaymentViewModel @Inject constructor(
             } catch (error: Exception) {
                 // Silently fail for contacts - not critical for payment functionality
                 // Contacts loading failed - not critical for payment functionality
+            }
+        }
+    }
+    
+    private fun observeWalletState() {
+        viewModelScope.launch {
+            walletRepository.walletState.collectLatest { state ->
+                val isConnected = state.account != null
+                val solBalance = state.balance?.solBalance?.toDouble() ?: 0.0
+                val tokenInfos = buildList {
+                    add(TokenInfo(symbol = "SOL", name = "Solana", balance = solBalance))
+                    state.balance?.tokenBalances?.forEach { tb ->
+                        add(
+                            TokenInfo(
+                                symbol = tb.symbol,
+                                name = tb.name,
+                                balance = tb.uiAmount
+                            )
+                        )
+                    }
+                }
+                _uiState.update { current ->
+                    current.copy(
+                        isWalletConnected = isConnected,
+                        availableTokens = tokenInfos
+                    )
+                }
             }
         }
     }
