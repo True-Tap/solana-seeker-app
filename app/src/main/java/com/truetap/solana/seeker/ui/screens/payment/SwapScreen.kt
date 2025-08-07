@@ -34,6 +34,11 @@ import com.truetap.solana.seeker.ui.screens.home.BottomNavItem
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.truetap.solana.seeker.viewmodels.SwapViewModel
+import com.truetap.solana.seeker.viewmodels.WalletViewModel
+import com.truetap.solana.seeker.domain.model.CryptoToken
 
 enum class SwapState {
     None,
@@ -49,7 +54,9 @@ fun SwapScreen(
     onNavigateToContacts: () -> Unit = {},
     onNavigateToNFTs: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    swapViewModel: SwapViewModel = hiltViewModel(),
+    walletViewModel: WalletViewModel = hiltViewModel()
 ) {
     var selectedTokenFrom by remember { mutableStateOf("SOL") }
     var selectedTokenTo by remember { mutableStateOf("USDC") }
@@ -72,11 +79,13 @@ fun SwapScreen(
     // Coroutine scope for async operations
     val coroutineScope = rememberCoroutineScope()
     
-    // Live balances/prices should be obtained from ViewModel/services; remove embedded samples
-    val solBalance = 0f
-    val usdcBalance = 0f
-    val solPrice = 0f
-    val usdcPrice = 0f
+    // Bind to live wallet and swap state
+    val swapUiState by swapViewModel.uiState.collectAsStateWithLifecycle()
+    val walletState by walletViewModel.walletState.collectAsStateWithLifecycle()
+    val solBalance = walletState.balance?.solBalance?.toFloat() ?: 0f
+    val usdcBalance = walletState.balance?.tokenBalances?.find { it.symbol.equals("USDC", true) }?.uiAmount?.toFloat() ?: 0f
+    val solPrice = swapUiState.tokenPrices["SOL"]?.toFloat() ?: 0f
+    val usdcPrice = swapUiState.tokenPrices["USDC"]?.toFloat() ?: 0f
     
     // Calculate conversion rates
     fun calculateConversion(amount: String, fromToken: String, toToken: String): String {
@@ -89,10 +98,19 @@ fun SwapScreen(
         }
     }
     
-    // Update conversion when amounts change
+    // Update live quote when inputs change
     LaunchedEffect(fromAmount, selectedTokenFrom, selectedTokenTo) {
         if (fromAmount.isNotEmpty() && fromAmount != "0.00") {
-            toAmount = calculateConversion(fromAmount, selectedTokenFrom, selectedTokenTo)
+            swapViewModel.updateInputAmount(fromAmount)
+        }
+        // Update selected tokens in SwapViewModel
+        CryptoToken.fromSymbol(selectedTokenFrom)?.let { swapViewModel.selectInputToken(it) }
+        CryptoToken.fromSymbol(selectedTokenTo)?.let { swapViewModel.selectOutputToken(it) }
+    }
+    // Reflect live output amount from quotes
+    LaunchedEffect(swapUiState.outputAmount) {
+        if (swapUiState.outputAmount.isNotEmpty()) {
+            toAmount = swapUiState.outputAmount
         }
     }
     
@@ -290,11 +308,7 @@ fun SwapScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = TrueTapTextPrimary
                             )
-                            Text(
-                                text = "+5.2%",
-                                fontSize = 12.sp,
-                                color = Color(0xFF22C55E)
-                            )
+                            // Optional price delta could be displayed here if available
                         }
                     }
                     
@@ -324,7 +338,7 @@ fun SwapScreen(
                         Column(
                             horizontalAlignment = Alignment.End
                         ) {
-                            if (showSolBalanceInUSD) {
+                            if (showSolBalanceInUSD && solPrice > 0f) {
                                 Text(
                                     text = "$${"%.2f".format(solBalance * solPrice)}",
                                     fontSize = 14.sp,
@@ -343,11 +357,13 @@ fun SwapScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     color = TrueTapTextPrimary
                                 )
-                                Text(
-                                    text = "$${"%.2f".format(solBalance * solPrice)}",
-                                    fontSize = 12.sp,
-                                    color = TrueTapTextSecondary
-                                )
+                                if (solPrice > 0f) {
+                                    Text(
+                                        text = "$${"%.2f".format(solBalance * solPrice)}",
+                                        fontSize = 12.sp,
+                                        color = TrueTapTextSecondary
+                                    )
+                                }
                             }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
@@ -459,11 +475,7 @@ fun SwapScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = TrueTapTextPrimary
                             )
-                            Text(
-                                text = "+0.1%",
-                                fontSize = 12.sp,
-                                color = Color(0xFF22C55E)
-                            )
+                            // Optional price delta could be displayed here if available
                         }
                     }
                     
@@ -499,7 +511,7 @@ fun SwapScreen(
                         Column(
                             horizontalAlignment = Alignment.End
                         ) {
-                            if (showUsdcBalanceInSOL) {
+                            if (showUsdcBalanceInSOL && solPrice > 0f) {
                                 Text(
                                     text = "${"%.3f".format(usdcBalance / solPrice)} SOL",
                                     fontSize = 14.sp,
@@ -518,11 +530,13 @@ fun SwapScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     color = TrueTapTextPrimary
                                 )
-                                Text(
-                                    text = "${"%.3f".format(usdcBalance / solPrice)} SOL",
-                                    fontSize = 12.sp,
-                                    color = TrueTapTextSecondary
-                                )
+                                if (solPrice > 0f) {
+                                    Text(
+                                        text = "${"%.3f".format(usdcBalance / solPrice)} SOL",
+                                        fontSize = 12.sp,
+                                        color = TrueTapTextSecondary
+                                    )
+                                }
                             }
                         if (usdcPrice > 0f) {
                             Text(
