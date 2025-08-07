@@ -7,6 +7,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,17 +18,11 @@ class HomeViewModel @Inject constructor(
     private val mockData: MockData
 ) : ViewModel() {
     
-    private val _recentTransactions = MutableStateFlow<List<Transaction>>(emptyList())
-    val recentTransactions: StateFlow<List<Transaction>> = _recentTransactions.asStateFlow()
-    
-    init {
-        loadRecentTransactions()
-    }
-    
-    private fun loadRecentTransactions() {
-        viewModelScope.launch {
-            // Get recent transactions from MockData and convert to HomeScreen's Transaction format
-            val transactions = mockData.getAllTransactions()
+    // Reactive recent transactions that automatically update when MockData changes
+    val recentTransactions: StateFlow<List<Transaction>> = mockData.transactionsFlow
+        .map { dataTransactions ->
+            // Convert to HomeScreen's Transaction format and take only 3 most recent
+            dataTransactions
                 .take(3) // Show only 3 most recent in home screen
                 .map { dataTransaction ->
                     Transaction(
@@ -41,12 +38,16 @@ class HomeViewModel @Inject constructor(
                         token = dataTransaction.currency
                     )
                 }
-            _recentTransactions.value = transactions
         }
-    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
     
     fun refreshTransactions() {
-        loadRecentTransactions()
+        // No longer needed - transactions update automatically via reactive flow
+        // Kept for compatibility if needed elsewhere
     }
     
     private fun formatTimeAgo(timestamp: Long): String {

@@ -17,6 +17,9 @@ import java.time.ZoneOffset
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Centralized Mock Data Provider for TrueTap
@@ -188,6 +191,15 @@ class MockData @Inject constructor() {
     // Mutable list for runtime transactions (new sends, receives)
     private val runtimeTransactions = mutableListOf<TransactionData>()
     
+    // Reactive flow for transaction updates - emits whenever transactions change
+    private val _transactionsFlow = MutableStateFlow<List<DataTransaction>>(emptyList())
+    val transactionsFlow: StateFlow<List<DataTransaction>> = _transactionsFlow.asStateFlow()
+    
+    init {
+        // Initialize the flow with base transactions
+        _transactionsFlow.value = getAllTransactions()
+    }
+    
     /**
      * Get all contacts in ModernContact format (for ContactsRepository)
      */
@@ -297,6 +309,9 @@ class MockData @Inject constructor() {
      */
     fun addScheduledPayment(scheduledPayment: ScheduledPayment) {
         scheduledPayments.add(scheduledPayment)
+        
+        // Emit updated transactions (including scheduled ones that become pending)
+        _transactionsFlow.value = getAllTransactions()
         // Optionally add a pending transaction to show in recent activity
         addPendingScheduledTransaction(scheduledPayment)
     }
@@ -420,6 +435,10 @@ class MockData @Inject constructor() {
         )
         
         runtimeTransactions.add(0, transaction) // Add to beginning for most recent first
+        
+        // Emit updated transactions to reactive flow
+        _transactionsFlow.value = getAllTransactions()
+        
         return transactionId
     }
     
