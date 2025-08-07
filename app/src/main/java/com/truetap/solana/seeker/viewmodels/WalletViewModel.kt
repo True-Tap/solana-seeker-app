@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -64,12 +65,9 @@ class WalletViewModel @Inject constructor(
     private val _recentActivity = MutableStateFlow<List<TransactionResult>>(emptyList())
     val recentActivity: StateFlow<List<TransactionResult>> = _recentActivity.asStateFlow()
     
-    val balance: StateFlow<Double> = flow {
-        while (true) {
-            emit(walletRepository.getBalance())
-            delay(5000) // Refresh every 5 seconds in mock
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 42.5)
+    val balance: StateFlow<Double> = walletRepository.walletState
+        .map { state -> state.balance?.solBalance?.toDouble() ?: 0.0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 0.0)
 
     init {
         checkSeedVaultAvailability()
