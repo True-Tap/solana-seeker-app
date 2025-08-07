@@ -72,11 +72,11 @@ fun SwapScreen(
     // Coroutine scope for async operations
     val coroutineScope = rememberCoroutineScope()
     
-    // Sample wallet balances and prices
-    val solBalance = 12.45f
-    val usdcBalance = 1234.56f
-    val solPrice = 103.37f
-    val usdcPrice = 1.0f
+    // Live balances/prices should be obtained from ViewModel/services; remove embedded samples
+    val solBalance = 0f
+    val usdcBalance = 0f
+    val solPrice = 0f
+    val usdcPrice = 0f
     
     // Calculate conversion rates
     fun calculateConversion(amount: String, fromToken: String, toToken: String): String {
@@ -352,11 +352,13 @@ fun SwapScreen(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "1 SOL = $$solPrice",
-                                    fontSize = 10.sp,
-                                    color = TrueTapTextSecondary
-                                )
+            if (solPrice > 0f) {
+                Text(
+                    text = "1 SOL = $$solPrice",
+                    fontSize = 10.sp,
+                    color = TrueTapTextSecondary
+                )
+            }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "MAX",
@@ -522,11 +524,13 @@ fun SwapScreen(
                                     color = TrueTapTextSecondary
                                 )
                             }
+                        if (usdcPrice > 0f) {
                             Text(
-                                text = "1 USDC = $1",
+                                text = "1 USDC = $$usdcPrice",
                                 fontSize = 10.sp,
                                 color = TrueTapTextSecondary
                             )
+                        }
                         }
                     }
                 }
@@ -568,8 +572,9 @@ fun SwapScreen(
                     Column(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
-                        DetailRow("Rate", "1 SOL = $103.37")
-                        DetailRow("Network Fee", "0.00025 SOL")
+                        // Remove embedded sample values; these should come from quotes/network
+                        // DetailRow("Rate", ...)
+                        // DetailRow("Network Fee", ...)
                         DetailRow("Route", "Raydium → Orca")
                         DetailRow("Slippage", currentSlippage)
                     }
