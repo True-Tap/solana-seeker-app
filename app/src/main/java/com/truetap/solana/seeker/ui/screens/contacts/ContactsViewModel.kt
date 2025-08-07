@@ -291,7 +291,7 @@ class ContactsViewModel @Inject constructor(
     fun connectToDevice(device: BluetoothDevice) {
         viewModelScope.launch {
             // Simulate connection process
-            println("Connecting to device: ${device.name}")
+            // Connecting to device via Bluetooth
             
             // TODO: Implement actual Bluetooth connection
             delay(2000)
@@ -362,16 +362,16 @@ class ContactsViewModel @Inject constructor(
                 clipboard.setPrimaryClip(clip)
                 
                 // TODO: Show toast confirmation
-                println("Share link copied to clipboard")
+                // Share link copied successfully
             } catch (error: Exception) {
-                println("Failed to copy share link: ${error.message}")
+                // Failed to copy share link
             }
         }
     }
     
     fun sendShareLink() {
         // TODO: Implement share link via SMS/messaging
-        println("Sending share link: ${_uiState.value.shareLink}")
+        // Sending share link via SMS/messaging
     }
     
     fun copyWalletAddress(address: String) {
@@ -387,9 +387,9 @@ class ContactsViewModel @Inject constructor(
                 delay(2000)
                 _uiState.update { it.copy(copiedAddress = null) }
                 
-                println("Wallet address copied to clipboard")
+                // Wallet address copied successfully
             } catch (error: Exception) {
-                println("Failed to copy wallet address: ${error.message}")
+                // Failed to copy wallet address
             }
         }
     }
@@ -402,7 +402,7 @@ class ContactsViewModel @Inject constructor(
             delay(3000)
             
             // TODO: Show dialog for contact found
-            println("NFC Contact Found: Alex Chen would like to share their contact info. Accept?")
+            // NFC Contact Found - showing dialog for user confirmation
             
             // Simulate adding contact
             val newContact = ModernContact(
@@ -429,7 +429,7 @@ class ContactsViewModel @Inject constructor(
         // Check if Bluetooth is enabled and request permission if needed
         if (!_uiState.value.bluetoothEnabled) {
             // TODO: Show dialog to enable Bluetooth
-            println("Bluetooth is required to scan for nearby devices.")
+            // Bluetooth is required to scan for nearby devices
         }
     }
     

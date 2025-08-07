@@ -102,16 +102,11 @@ class MainActivity : ComponentActivity() {
         
         super.onCreate(savedInstanceState)
         
-        // Initialize ActivityResultLauncher for both MWA and Seed Vault
+        // Initialize ActivityResultLauncher (currently used by UI flows; Seed Vault uses onActivityResult)
         activityResultLauncher = registerForActivityResult(
             contract = ActivityResultContracts.StartIntentSenderForResult()
-        ) { result ->
-            // Handle results for both MWA and Seed Vault
-            seedVaultManager.handleActivityResult(
-                result.resultCode, 
-                result.resultCode, 
-                result.data
-            )
+        ) { _ ->
+            // No-op: Seed Vault flows are handled via onActivityResult with request codes
         }
         
         // Initialize ActivityResultSender (must be done during onCreate to avoid lifecycle issues)
@@ -182,7 +177,11 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    // Removed deprecated onActivityResult - using registerForActivityResult instead
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        // Forward Seed Vault and related results that rely on request codes
+        seedVaultManager.handleActivityResult(requestCode, resultCode, data)
+    }
 }
 
 @Composable

@@ -81,7 +81,7 @@ class DashboardViewModel @Inject constructor(
                 
             } catch (error: Exception) {
                 // Handle error
-                println("Failed to load wallet data: ${error.message}")
+                // Failed to load wallet data
             }
         }
     }
@@ -132,9 +132,9 @@ class DashboardViewModel @Inject constructor(
             clipboard.setPrimaryClip(clip)
             
             // TODO: Show toast or snackbar confirmation
-            println("Copied to clipboard: $text")
+            // Copied to clipboard successfully
         } catch (error: Exception) {
-            println("Failed to copy to clipboard: ${error.message}")
+            // Failed to copy to clipboard
         }
     }
     
@@ -145,7 +145,7 @@ class DashboardViewModel @Inject constructor(
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         } catch (error: Exception) {
-            println("Failed to open explorer: ${error.message}")
+            // Failed to open blockchain explorer
         }
     }
     

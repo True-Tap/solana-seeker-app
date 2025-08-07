@@ -7,7 +7,13 @@ package com.truetap.solana.seeker.ui.screens.payment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.truetap.solana.seeker.data.MockData
+import com.truetap.solana.seeker.data.models.Contact
+import com.truetap.solana.seeker.data.models.TransactionType
+import com.truetap.solana.seeker.domain.model.RepeatInterval
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.math.BigDecimal
+import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,18 +35,27 @@ data class PaymentResult(
     val transactionHash: String? = null
 )
 
+data class ScheduleResult(
+    val success: Boolean,
+    val error: String? = null,
+    val scheduledPaymentId: String? = null
+)
+
 data class SendPaymentUiState(
     val recipientAddress: String = "",
     val amount: String = "",
     val memo: String = "",
     val selectedToken: String = "SOL",
     val availableTokens: List<TokenInfo> = emptyList(),
+    val recentContacts: List<Contact> = emptyList(),
+    val selectedContact: Contact? = null,
     val isLoading: Boolean = false,
     val isWalletConnected: Boolean = false,
     val recipientError: String? = null,
     val amountError: String? = null,
     val errorMessage: String? = null,
-    val paymentResult: PaymentResult? = null
+    val paymentResult: PaymentResult? = null,
+    val scheduleResult: ScheduleResult? = null
 ) {
     val isFormValid: Boolean
         get() = recipientAddress.isNotBlank() && 
@@ -55,16 +70,24 @@ data class SendPaymentUiState(
 }
 
 @HiltViewModel
-class SendPaymentViewModel @Inject constructor() : ViewModel() {
+class SendPaymentViewModel @Inject constructor(
+    private val mockData: MockData
+) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SendPaymentUiState())
     val uiState: StateFlow<SendPaymentUiState> = _uiState.asStateFlow()
     
-    // Real token data - will be empty until wallet is connected
-    private val sampleTokens = emptyList<TokenInfo>()
+    // Mock token data for development
+    private val sampleTokens = listOf(
+        TokenInfo("SOL", "Solana", 12.4567),
+        TokenInfo("USDC", "USD Coin", 250.50),
+        TokenInfo("BONK", "Bonk", 1000000.0),
+        TokenInfo("RAY", "Raydium", 45.75)
+    )
     
     init {
         loadWalletInfo()
+        loadContacts()
     }
     
     // TODO: Add navigation args support later
@@ -73,7 +96,9 @@ class SendPaymentViewModel @Inject constructor() : ViewModel() {
         _uiState.update { currentState ->
             currentState.copy(
                 recipientAddress = address,
-                recipientError = null
+                recipientError = null,
+                // Clear selected contact if address is manually changed
+                selectedContact = if (address != currentState.selectedContact?.walletAddress) null else currentState.selectedContact
             )
         }
         
@@ -130,10 +155,20 @@ class SendPaymentViewModel @Inject constructor() : ViewModel() {
                 // Simulate payment processing
                 delay(2000)
                 
+                // Add transaction to MockData so it appears in recent activity
+                val transactionId = mockData.addTransaction(
+                    type = com.truetap.solana.seeker.data.models.TransactionType.SENT,
+                    amount = currentState.amount.toDoubleOrNull() ?: 0.0,
+                    currency = currentState.selectedToken,
+                    otherPartyAddress = currentState.recipientAddress,
+                    otherPartyName = currentState.selectedContact?.name,
+                    memo = currentState.memo.takeIf { it.isNotBlank() }
+                )
+                
                 // Simulate successful payment
                 val result = PaymentResult(
                     success = true,
-                    transactionHash = "5J7X...Y9Z1" // Mock transaction hash
+                    transactionHash = transactionId
                 )
                 
                 _uiState.update { 
@@ -143,7 +178,7 @@ class SendPaymentViewModel @Inject constructor() : ViewModel() {
                     )
                 }
                 
-                println("Payment sent successfully: ${currentState.amount} ${currentState.selectedToken} to ${currentState.recipientAddress}")
+                // Payment successful - UI state updated with result
                 
             } catch (error: Exception) {
                 _uiState.update {
@@ -164,6 +199,83 @@ class SendPaymentViewModel @Inject constructor() : ViewModel() {
         _uiState.update { it.copy(errorMessage = null) }
     }
     
+    fun selectContact(contact: Contact) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                selectedContact = contact,
+                recipientAddress = contact.walletAddress,
+                recipientError = null
+            )
+        }
+    }
+    
+    fun clearSelectedContact() {
+        _uiState.update { currentState ->
+            currentState.copy(
+                selectedContact = null,
+                recipientAddress = ""
+            )
+        }
+    }
+    
+    fun schedulePayment(startDate: LocalDateTime, recurrence: RepeatInterval, maxExecutions: Int?) {
+        val currentState = _uiState.value
+        
+        if (!currentState.isFormValid) {
+            return
+        }
+        
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            
+            try {
+                val amount = currentState.amount.toDoubleOrNull() ?: 0.0
+                val scheduledPayment = mockData.createScheduledPayment(
+                    recipientAddress = currentState.recipientAddress,
+                    amount = BigDecimal.valueOf(amount),
+                    token = currentState.selectedToken,
+                    memo = currentState.memo.takeIf { it.isNotBlank() },
+                    startDate = startDate,
+                    repeatInterval = recurrence,
+                    maxExecutions = maxExecutions
+                )
+                
+                // Add to mock data
+                mockData.addScheduledPayment(scheduledPayment)
+                
+                val result = ScheduleResult(
+                    success = true,
+                    scheduledPaymentId = scheduledPayment.id
+                )
+                
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        scheduleResult = result
+                    )
+                }
+                
+                // Payment scheduled successfully - UI state updated with result
+                
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Failed to schedule payment: ${error.message}",
+                        scheduleResult = ScheduleResult(
+                            success = false,
+                            error = error.message
+                        )
+                    )
+                }
+            }
+        }
+    }
+    
+    fun clearScheduleResult() {
+        _uiState.update { it.copy(scheduleResult = null) }
+    }
+    
     private fun loadWalletInfo() {
         viewModelScope.launch {
             try {
@@ -171,8 +283,8 @@ class SendPaymentViewModel @Inject constructor() : ViewModel() {
                 // val walletService = WalletFactory.getInstance() as SolanaWalletService
                 // val connected = walletService.isWalletConnected()
                 
-                // Simulate loading wallet info
-                delay(500)
+                // Simulate loading wallet info - removed delay to fix validation issue
+                // delay(500)
                 
                 _uiState.update { currentState ->
                     currentState.copy(
@@ -188,6 +300,20 @@ class SendPaymentViewModel @Inject constructor() : ViewModel() {
                         errorMessage = "Failed to load wallet info: ${error.message}"
                     )
                 }
+            }
+        }
+    }
+    
+    private fun loadContacts() {
+        viewModelScope.launch {
+            try {
+                val recentContacts = mockData.getRecentContacts()
+                _uiState.update { currentState ->
+                    currentState.copy(recentContacts = recentContacts)
+                }
+            } catch (error: Exception) {
+                // Silently fail for contacts - not critical for payment functionality
+                // Contacts loading failed - not critical for payment functionality
             }
         }
     }

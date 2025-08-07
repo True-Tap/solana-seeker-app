@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -32,6 +34,23 @@ import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.data.models.Contact
 import com.truetap.solana.seeker.data.models.Wallet
 import com.truetap.solana.seeker.data.models.WalletType
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.truetap.solana.seeker.domain.model.RepeatInterval
+import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZoneId
+import java.util.Calendar
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,117 +58,49 @@ import kotlinx.coroutines.delay
 fun SendPaymentScreen(
     onNavigateBack: () -> Unit,
     recipientAddress: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: SendPaymentViewModel = hiltViewModel()
 ) {
-    var amount by remember { mutableStateOf("") }
-    var recipientWallet by remember { mutableStateOf(recipientAddress ?: "") }
-    var selectedToken by remember { mutableStateOf("SOL") }
-    var message by remember { mutableStateOf("") }
-    var isSending by remember { mutableStateOf(false) }
-    var sendSuccess by remember { mutableStateOf(false) }
-    var sendError by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
     var showConfirmDialog by remember { mutableStateOf(false) }
-    var selectedContact by remember { mutableStateOf<Contact?>(null) }
     var showContactPicker by remember { mutableStateOf(false) }
+    var showScheduleDialog by remember { mutableStateOf(false) }
     
     val haptic = LocalHapticFeedback.current
     
-    // Sample recent contacts
-    val recentContacts = remember {
-        listOf(
-            Contact(
-                id = "1",
-                name = "Alice",
-                initials = "A",
-                avatar = null,
-                seekerActive = true,
-                wallets = listOf(
-                    Wallet(
-                        id = 1,
-                        name = "Main",
-                        address = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
-                        type = WalletType.PERSONAL
-                    )
-                ),
-                favorite = true,
-                walletAddress = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
-                lastTransactionAt = System.currentTimeMillis() - 86400000
-            ),
-            Contact(
-                id = "2",
-                name = "Bob",
-                initials = "B",
-                avatar = null,
-                seekerActive = true,
-                wallets = listOf(
-                    Wallet(
-                        id = 2,
-                        name = "Personal",
-                        address = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                        type = WalletType.PERSONAL
-                    )
-                ),
-                favorite = true,
-                walletAddress = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                lastTransactionAt = System.currentTimeMillis() - 259200000
-            ),
-            Contact(
-                id = "3",
-                name = "Charlie",
-                initials = "C",
-                avatar = null,
-                seekerActive = false,
-                wallets = listOf(
-                    Wallet(
-                        id = 3,
-                        name = "Wallet",
-                        address = "5dSHdvJBQ38YuuHdKHDHFLhMhLCvdV7xB5QH5Y8z9CXD",
-                        type = WalletType.PERSONAL
-                    )
-                ),
-                favorite = false,
-                walletAddress = "5dSHdvJBQ38YuuHdKHDHFLhMhLCvdV7xB5QH5Y8z9CXD",
-                lastTransactionAt = System.currentTimeMillis() - 604800000
-            )
-        )
+    // Initialize with passed recipient address
+    LaunchedEffect(recipientAddress) {
+        recipientAddress?.let { viewModel.updateRecipientAddress(it) }
     }
     
-    // Available tokens
-    val availableTokens = remember {
-        listOf(
-            Token("SOL", "Solana", 12.4567, "$2,456.78"),
-            Token("USDC", "USD Coin", 250.50, "$250.50"),
-            Token("BONK", "Bonk", 1000000.0, "$1,000.00"),
-            Token("RAY", "Raydium", 45.75, "$915.00")
-        )
-    }
     
-    // Validation
-    val isValidAmount = amount.toDoubleOrNull()?.let { it > 0 } ?: false
-    val isValidWallet = recipientWallet.length in 32..44
-    val canSend = isValidAmount && isValidWallet && !isSending
+    // Validation from ViewModel
+    val canSend = uiState.isFormValid && !uiState.isLoading
     
     // Send function
     val sendPayment = {
-        isSending = true
         showConfirmDialog = false
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        viewModel.sendPayment()
     }
     
-    // Handle send simulation
-    LaunchedEffect(isSending) {
-        if (isSending) {
-            delay(3000) // Simulate transaction time
-            isSending = false
-            if (Math.random() > 0.1) { // 90% success rate
-                sendSuccess = true
+    // Handle payment result
+    LaunchedEffect(uiState.paymentResult) {
+        uiState.paymentResult?.let { result ->
+            if (result.success) {
                 delay(2000)
-                sendSuccess = false
                 onNavigateBack() // Navigate back after success
-            } else {
-                sendError = "Transaction failed. Please try again."
-                delay(3000)
-                sendError = null
+            }
+        }
+    }
+    
+    // Handle schedule result - longer delay for better UX
+    LaunchedEffect(uiState.scheduleResult) {
+        uiState.scheduleResult?.let { result ->
+            if (result.success) {
+                delay(5000) // Longer delay to let user read the success message
+                onNavigateBack() // Navigate back after successful scheduling
             }
         }
     }
@@ -157,30 +108,58 @@ fun SendPaymentScreen(
     // Confirm Dialog
     if (showConfirmDialog) {
         ConfirmPaymentDialog(
-            amount = amount,
-            token = selectedToken,
-            recipient = selectedContact?.name ?: "${recipientWallet.take(8)}...${recipientWallet.takeLast(4)}",
-            message = message,
+            amount = uiState.amount,
+            token = uiState.selectedToken,
+            recipient = uiState.selectedContact?.name ?: "${uiState.recipientAddress.take(8)}...${uiState.recipientAddress.takeLast(4)}",
+            message = uiState.memo,
             onConfirm = sendPayment,
             onDismiss = { showConfirmDialog = false }
         )
     }
     
-    // Success Dialog
-    if (sendSuccess) {
-        PaymentSuccessDialog(
-            amount = amount,
-            token = selectedToken,
-            recipient = selectedContact?.name ?: "${recipientWallet.take(8)}...${recipientWallet.takeLast(4)}"
+    // Schedule Dialog
+    if (showScheduleDialog) {
+        SchedulePaymentDialog(
+            amount = uiState.amount,
+            token = uiState.selectedToken,
+            recipient = uiState.selectedContact?.name ?: "${uiState.recipientAddress.take(8)}...${uiState.recipientAddress.takeLast(4)}",
+            recipientAddress = uiState.recipientAddress,
+            message = uiState.memo,
+            onSchedule = { startDate, recurrence, maxExecutions ->
+                viewModel.schedulePayment(startDate, recurrence, maxExecutions)
+                showScheduleDialog = false
+            },
+            onDismiss = { showScheduleDialog = false }
         )
     }
     
+    // Success Dialogs
+    uiState.paymentResult?.let { result ->
+        if (result.success) {
+            PaymentSuccessDialog(
+                amount = uiState.amount,
+                token = uiState.selectedToken,
+                recipient = uiState.selectedContact?.name ?: "${uiState.recipientAddress.take(8)}...${uiState.recipientAddress.takeLast(4)}"
+            )
+        }
+    }
+    
+    uiState.scheduleResult?.let { result ->
+        if (result.success) {
+            ScheduleSuccessDialog(
+                amount = uiState.amount,
+                token = uiState.selectedToken,
+                recipient = uiState.selectedContact?.name ?: "${uiState.recipientAddress.take(8)}...${uiState.recipientAddress.takeLast(4)}"
+            )
+        }
+    }
+    
     // Error Dialog
-    sendError?.let { error ->
+    uiState.errorMessage?.let { error ->
         PaymentErrorDialog(
             error = error,
-            onDismiss = { sendError = null },
-            onRetry = { sendError = null }
+            onDismiss = { viewModel.clearError() },
+            onRetry = { viewModel.clearError() }
         )
     }
     
@@ -233,22 +212,24 @@ fun SendPaymentScreen(
             // Amount Section
             item {
                 AmountSection(
-                    amount = amount,
-                    onAmountChange = { amount = it },
-                    selectedToken = selectedToken,
-                    availableTokens = availableTokens,
-                    onTokenSelect = { selectedToken = it.symbol }
+                    amount = uiState.amount,
+                    onAmountChange = viewModel::updateAmount,
+                    selectedToken = uiState.selectedToken,
+                    availableTokens = uiState.availableTokens.map { tokenInfo ->
+                        Token(tokenInfo.symbol, tokenInfo.name, tokenInfo.balance, 
+                              "$${String.format("%.2f", tokenInfo.balance * 100)}")
+                    },
+                    onTokenSelect = { token -> viewModel.selectToken(token.symbol) }
                 )
             }
             
             // Recent Contacts
-            if (recentContacts.isNotEmpty()) {
+            if (uiState.recentContacts.isNotEmpty()) {
                 item {
                     RecentContactsSection(
-                        contacts = recentContacts,
+                        contacts = uiState.recentContacts,
                         onContactSelect = { contact ->
-                            selectedContact = contact
-                            recipientWallet = contact.walletAddress
+                            viewModel.selectContact(contact)
                         }
                     )
                 }
@@ -257,12 +238,9 @@ fun SendPaymentScreen(
             // Recipient Section
             item {
                 RecipientSection(
-                    recipientWallet = recipientWallet,
-                    onRecipientChange = { 
-                        recipientWallet = it
-                        selectedContact = null
-                    },
-                    selectedContact = selectedContact,
+                    recipientWallet = uiState.recipientAddress,
+                    onRecipientChange = viewModel::updateRecipientAddress,
+                    selectedContact = uiState.selectedContact,
                     onContactPickerOpen = { showContactPicker = true }
                 )
             }
@@ -270,17 +248,18 @@ fun SendPaymentScreen(
             // Message Section
             item {
                 MessageSection(
-                    message = message,
-                    onMessageChange = { message = it }
+                    message = uiState.memo,
+                    onMessageChange = viewModel::updateMemo
                 )
             }
             
-            // Send Button
+            // Send and Schedule Buttons
             item {
-                SendButton(
+                SendAndScheduleButtons(
                     canSend = canSend,
-                    isSending = isSending,
-                    onSend = { showConfirmDialog = true }
+                    isSending = uiState.isLoading,
+                    onSend = { showConfirmDialog = true },
+                    onSchedule = { showScheduleDialog = true }
                 )
             }
             
@@ -614,51 +593,89 @@ private fun MessageSection(
 }
 
 @Composable
-private fun SendButton(
+private fun SendAndScheduleButtons(
     canSend: Boolean,
     isSending: Boolean,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onSchedule: () -> Unit
 ) {
     val scale by animateFloatAsState(
         targetValue = if (canSend) 1f else 0.95f,
         animationSpec = tween(150),
-        label = "sendButtonScale"
+        label = "buttonScale"
     )
     
-    Button(
-        onClick = onSend,
-        enabled = canSend,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .scale(scale),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = TrueTapPrimary,
-            disabledContainerColor = Color(0xFFE5E5E5)
-        ),
-        shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (isSending) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
-                color = Color.White,
-                strokeWidth = 2.dp
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Sending...",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        } else {
+        // Send Payment Button (Primary)
+        Button(
+            onClick = onSend,
+            enabled = canSend && !isSending,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .scale(scale),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = TrueTapPrimary,
+                disabledContainerColor = Color(0xFFE5E5E5)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            if (isSending) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Sending...",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Send Payment",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        
+        // Schedule Button (Secondary)
+        OutlinedButton(
+            onClick = onSchedule,
+            enabled = canSend && !isSending,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .scale(scale),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = TrueTapPrimary,
+                disabledContentColor = Color(0xFFBBBBBB)
+            ),
+            border = BorderStroke(
+                width = 2.dp,
+                color = if (canSend && !isSending) TrueTapPrimary else Color(0xFFE5E5E5)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
             Icon(
-                imageVector = Icons.Default.Send,
+                imageVector = Icons.Default.Schedule,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Send Payment",
+                text = "Schedule Payment",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -786,6 +803,108 @@ private fun PaymentSuccessDialog(
 }
 
 @Composable
+private fun ScheduleSuccessDialog(
+    amount: String,
+    token: String,
+    recipient: String
+) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF4CAF50),
+                                    Color(0xFF388E3C)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "✅ Payment Scheduled!",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF4CAF50),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Your payment is set and ready to go",
+                    fontSize = 14.sp,
+                    color = TrueTapTextSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = TrueTapPrimary.copy(alpha = 0.1f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "$amount $token",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TrueTapPrimary
+                        )
+                        Text(
+                            text = "will be sent to",
+                            fontSize = 12.sp,
+                            color = TrueTapTextSecondary
+                        )
+                        Text(
+                            text = recipient,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                    }
+                }
+                
+                Text(
+                    text = "You can view and manage scheduled payments in your transaction history.",
+                    fontSize = 14.sp,
+                    color = TrueTapTextSecondary,
+                    textAlign = TextAlign.Center
+                )
+                
+                Text(
+                    text = "Returning to previous screen...",
+                    fontSize = 12.sp,
+                    color = TrueTapTextSecondary.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {},
+        containerColor = TrueTapContainer
+    )
+}
+
+@Composable
 private fun PaymentErrorDialog(
     error: String,
     onDismiss: () -> Unit,
@@ -823,6 +942,384 @@ private fun PaymentErrorDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary)
             ) {
                 Text("Try Again")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TrueTapTextSecondary)
+            }
+        },
+        containerColor = TrueTapContainer
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SchedulePaymentDialog(
+    amount: String,
+    token: String,
+    recipient: String,
+    recipientAddress: String,
+    message: String,
+    onSchedule: (startDate: LocalDateTime, recurrence: RepeatInterval, maxExecutions: Int?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedDate by remember { mutableStateOf<LocalDateTime?>(null) }
+    var selectedRecurrence by remember { mutableStateOf(RepeatInterval.MONTHLY) }
+    var maxExecutions by remember { mutableStateOf("1") }
+    var showDatePicker by remember { mutableStateOf(false) }
+    
+    // Date picker state
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                return utcTimeMillis >= System.currentTimeMillis() - 86400000 // Today or future
+            }
+        }
+    )
+    
+    // Date picker dialog
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            selectedDate = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime()
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK", color = TrueTapPrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", color = TrueTapTextSecondary)
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    selectedDayContainerColor = TrueTapPrimary,
+                    todayDateBorderColor = TrueTapPrimary
+                )
+            )
+        }
+    }
+    
+    // Main dialog
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = TrueTapPrimary,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Schedule Payment",
+                    fontWeight = FontWeight.Bold,
+                    color = TrueTapTextPrimary,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Choose when to send this payment",
+                    fontSize = 14.sp,
+                    color = TrueTapTextSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        text = {
+            val scrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 500.dp)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Payment summary with better styling
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = TrueTapPrimary.copy(alpha = 0.1f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Payment Details",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapPrimary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "$amount $token → $recipient",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TrueTapTextPrimary
+                        )
+                        if (message.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Note: $message",
+                                fontSize = 14.sp,
+                                color = TrueTapTextSecondary
+                            )
+                        }
+                    }
+                }
+                
+                // Start Date selection with better UX
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = TrueTapPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "When should this be sent?",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                    }
+                    
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showDatePicker = true },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selectedDate != null) TrueTapPrimary.copy(alpha = 0.1f) else TrueTapContainer
+                        ),
+                        border = BorderStroke(
+                            width = 2.dp,
+                            color = if (selectedDate != null) TrueTapPrimary else TrueTapTextSecondary.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = selectedDate?.let { 
+                                        val today = LocalDateTime.now()
+                                        val tomorrow = today.plusDays(1)
+                                        when {
+                                            it.toLocalDate() == today.toLocalDate() -> "Today - ${it.monthValue}/${it.dayOfMonth}/${it.year}"
+                                            it.toLocalDate() == tomorrow.toLocalDate() -> "Tomorrow - ${it.monthValue}/${it.dayOfMonth}/${it.year}"
+                                            else -> "${it.monthValue}/${it.dayOfMonth}/${it.year}"
+                                        }
+                                    } ?: "📅 Tap to select date",
+                                    fontSize = 18.sp,
+                                    fontWeight = if (selectedDate != null) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedDate != null) TrueTapPrimary else TrueTapTextSecondary
+                                )
+                                if (selectedDate == null) {
+                                    Text(
+                                        text = "Required: Choose when to send",
+                                        fontSize = 14.sp,
+                                        color = TrueTapTextSecondary.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = if (selectedDate != null) Icons.Default.CheckCircle else Icons.Default.DateRange,
+                                contentDescription = "Select date",
+                                tint = if (selectedDate != null) TrueTapPrimary else TrueTapTextSecondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+                
+                // Recurrence selection - simplified
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Repeat,
+                            contentDescription = null,
+                            tint = TrueTapPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Should this payment repeat?",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                    }
+                    
+                    // Simplified recurrence options
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        RepeatInterval.values().filter { it != RepeatInterval.NONE }.forEach { interval ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedRecurrence = interval },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (selectedRecurrence == interval) TrueTapPrimary.copy(alpha = 0.1f) else TrueTapContainer
+                                ),
+                                border = BorderStroke(
+                                    width = if (selectedRecurrence == interval) 2.dp else 1.dp,
+                                    color = if (selectedRecurrence == interval) TrueTapPrimary else TrueTapTextSecondary.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = interval.displayName,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (selectedRecurrence == interval) TrueTapPrimary else TrueTapTextPrimary
+                                        )
+                                        Text(
+                                            text = when (interval) {
+                                                RepeatInterval.NONE -> "Send payment once only"
+                                                RepeatInterval.DAILY -> "Send every day"
+                                                RepeatInterval.WEEKLY -> "Send every week"
+                                                RepeatInterval.MONTHLY -> "Send every month"
+                                            },
+                                            fontSize = 14.sp,
+                                            color = TrueTapTextSecondary
+                                        )
+                                    }
+                                    if (selectedRecurrence == interval) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = TrueTapPrimary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Simple max executions for recurring payments
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = TrueTapPrimary.copy(alpha = 0.1f)),
+                    border = BorderStroke(1.dp, TrueTapPrimary.copy(alpha = 0.2f))
+                ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Numbers,
+                                    contentDescription = null,
+                                    tint = TrueTapPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "How many times should this repeat?",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TrueTapTextPrimary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = maxExecutions,
+                                onValueChange = { newValue ->
+                                    // Only allow numbers up to 3 digits
+                                    if (newValue.all { it.isDigit() } && newValue.length <= 3) {
+                                        maxExecutions = newValue
+                                    }
+                                },
+                                placeholder = { 
+                                    Text(
+                                        "e.g., 12 for one year", 
+                                        color = TrueTapTextSecondary.copy(alpha = 0.7f)
+                                    )
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = TrueTapPrimary,
+                                    focusedLabelColor = TrueTapPrimary
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+            }
+        },
+        confirmButton = {
+            val canSchedule = selectedDate != null && 
+                            maxExecutions.toIntOrNull()?.let { it > 0 } == true
+            
+            Button(
+                onClick = {
+                    selectedDate?.let { startDate ->
+                        val executions = maxExecutions.toIntOrNull()
+                        onSchedule(startDate, selectedRecurrence, executions)
+                    }
+                },
+                enabled = canSchedule,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = TrueTapPrimary,
+                    disabledContainerColor = Color(0xFFE5E5E5)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (canSchedule) "Schedule This Payment" else "Please select a date first",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         },
         dismissButton = {

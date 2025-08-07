@@ -82,7 +82,7 @@ object WalletConnectionHelper {
         walletConfig: WalletConfig? = null,
         mwaService: com.truetap.solana.seeker.services.MobileWalletAdapterService? = null
     ): ConnectionResult {
-        println("WalletConnectionHelper: Attempting connection for ${walletType.displayName}, retry: $retryCount")
+        // Attempting wallet connection
         android.util.Log.d("WalletConnectionHelper", "Attempting connection for ${walletType.displayName}, retry: $retryCount")
         
         return try {
@@ -90,15 +90,15 @@ object WalletConnectionHelper {
                 WalletType.SOLFLARE, WalletType.PHANTOM, WalletType.EXTERNAL -> {
                     // Check if this wallet has a deep link configured for wallet-specific targeting
                     if (walletConfig?.deepLinkBase != null && context != null) {
-                        println("WalletConnectionHelper: Using deep link for ${walletType.displayName}")
+                        // Using deep link connection
                         android.util.Log.d("WalletConnectionHelper", "Using deep link for ${walletType.displayName}")
                         connectWithWalletDeepLink(walletType, walletConfig.deepLinkBase, context)
                     } else if (activityResultSender != null && mwaService != null) {
-                        println("WalletConnectionHelper: Using Mobile Wallet Adapter for ${walletType.displayName}")
+                        // Using Mobile Wallet Adapter
                         android.util.Log.d("WalletConnectionHelper", "Using Mobile Wallet Adapter for ${walletType.displayName}")
                         connectWithMobileWalletAdapter(walletType, activityResultSender, mwaService)
                     } else {
-                        println("WalletConnectionHelper: Missing ActivityResultSender or MWA service for MWA")
+                        // Missing ActivityResultSender or MWA service
                         android.util.Log.e("WalletConnectionHelper", "Missing ActivityResultSender or MWA service for MWA")
                         ConnectionResult.Failure(
                             error = "Mobile Wallet Adapter is not properly configured. Please restart the app.",
@@ -107,16 +107,16 @@ object WalletConnectionHelper {
                     }
                 }
                 WalletType.SOLANA_SEEKER -> {
-                    println("WalletConnectionHelper: Using Seed Vault for ${walletType.displayName}")
+                    // Using Seed Vault for connection
                     connectWithSeedVault(walletType)
                 }
             }
-            println("WalletConnectionHelper: Connection attempt result: $result")
+            // Connection attempt completed
             result
         } catch (e: Exception) {
-            println("WalletConnectionHelper: Exception during connection: ${e.message}")
+            // Connection exception occurred
             if (retryCount < 2) {
-                println("WalletConnectionHelper: Retrying in 1 second...")
+                // Retrying connection after delay
                 delay(1000) // Wait 1 second before retry
                 attemptWalletConnection(walletType, activityResultLauncher, context, activityResultSender, retryCount + 1, walletConfig, mwaService)
             } else {
@@ -136,12 +136,12 @@ object WalletConnectionHelper {
     ): ConnectionResult {
         return try {
             withTimeout(MWA_CONNECTION_TIMEOUT) {
-                println("WalletConnectionHelper: Starting MWA connection for ${walletType.displayName}")
+                // Starting MWA connection
                 android.util.Log.d("WalletConnectionHelper", "Starting MWA connection for ${walletType.displayName}")
                 
                 val result = mwaService.connectToWallet(walletType, activityResultSender)
                 
-                println("WalletConnectionHelper: MWA result: $result")
+                // MWA connection result received
                 android.util.Log.d("WalletConnectionHelper", "MWA result: $result")
                 
                 result
@@ -296,7 +296,7 @@ object WalletConnectionHelper {
         context: Context
     ): ConnectionResult {
         return try {
-            println("WalletConnectionHelper: Attempting deep link connection to ${walletType.displayName}")
+            // Attempting deep link connection
             android.util.Log.d("WalletConnectionHelper", "Deep link connection to ${walletType.displayName} at $deepLinkBase")
             
             val redirectLink = "truetap://onConnect" // Our app's custom scheme
@@ -311,7 +311,7 @@ object WalletConnectionHelper {
                 .appendQueryParameter("redirect_link", redirectLink)
                 .build()
             
-            println("WalletConnectionHelper: Opening deep link: $deepLinkUri")
+            // Opening deep link URI
             android.util.Log.d("WalletConnectionHelper", "Opening deep link: $deepLinkUri")
             
             // Launch the deep link
@@ -337,7 +337,7 @@ object WalletConnectionHelper {
                 )
             }
         } catch (e: Exception) {
-            println("WalletConnectionHelper: Deep link connection error: ${e.message}")
+            // Deep link connection error
             android.util.Log.e("WalletConnectionHelper", "Deep link connection error", e)
             ConnectionResult.Failure(
                 error = "Failed to open ${walletType.displayName}: ${e.localizedMessage ?: e.message}",
@@ -493,7 +493,7 @@ fun PairingScreen(
     LaunchedEffect(pendingWalletConnection) {
         if (pendingWalletConnection != null) {
             debugMessage = "Processing deep link response..."
-            println("PairingScreen: Processing pending wallet connection: $pendingWalletConnection")
+            // Processing pending wallet connection from deep link
             
             try {
                 // Check if this is a new wallet-specific deep link or legacy Solflare
@@ -505,12 +505,12 @@ fun PairingScreen(
                     SolflareDeepLinkParser.parseWalletConnectionResponse(pendingWalletConnection)
                 }
                 debugMessage = "Deep link parsed: $connectionResult"
-                println("PairingScreen: Deep link parsed result: $connectionResult")
+                // Deep link response parsed
                 
                 when (connectionResult) {
                     is ConnectionResult.Success -> {
                         debugMessage = "Deep link success! Saving and navigating..."
-                        println("PairingScreen: Deep link success! Saving connection and navigating...")
+                        // Deep link success - saving connection
                         
                         // Save connection result to repository via ViewModel
                         viewModel.saveWalletConnection(connectionResult)
@@ -523,7 +523,7 @@ fun PairingScreen(
                     }
                     is ConnectionResult.Failure -> {
                         debugMessage = "Deep link failure: ${connectionResult.error}"
-                        println("PairingScreen: Deep link failure: ${connectionResult.error}")
+                        // Deep link connection failed
                         
                         // Mark deep link as handled
                         onWalletConnectionHandled()
@@ -533,7 +533,7 @@ fun PairingScreen(
                     }
                     is ConnectionResult.Pending -> {
                         debugMessage = "Deep link pending: ${connectionResult.message}"
-                        println("PairingScreen: Deep link pending: ${connectionResult.message}")
+                        // Deep link connection pending
                         
                         // This shouldn't happen when parsing a completed deep link response
                         // but we handle it gracefully
@@ -544,7 +544,7 @@ fun PairingScreen(
                 
             } catch (e: Exception) {
                 debugMessage = "Deep link error: ${e.message}"
-                println("PairingScreen: Deep link processing error: ${e.message}")
+                // Deep link processing error
                 
                 // Mark deep link as handled
                 onWalletConnectionHandled()
@@ -557,10 +557,10 @@ fun PairingScreen(
         }
     }
     
-    // Trigger wallet connection when screen loads - use viewModelScope for suspend calls
+    // Trigger wallet connection when screen loads - delegate to ViewModel
     LaunchedEffect(walletId) {
         debugMessage = "LaunchedEffect triggered with walletId: $walletId"
-        println("PairingScreen: LaunchedEffect triggered with walletId: $walletId")
+        // Launched effect triggered for wallet pairing
         println("PairingScreen: walletType: $walletType")
         
         if (walletType != null) {
@@ -568,13 +568,11 @@ fun PairingScreen(
             println("PairingScreen: Attempting connection for ${walletType.displayName}")
             
             try {
-                val result = WalletConnectionHelper.attemptWalletConnection(
+                val result = viewModel.connectWithWallet(
                     walletType = walletType,
+                    activity = (context as? android.app.Activity),
                     activityResultLauncher = activityResultLauncher,
-                    context = context,
-                    activityResultSender = activityResultSender,
-                    walletConfig = walletConfig,
-                    mwaService = actualMwaService
+                    activityResultSender = activityResultSender
                 )
                 
                 debugMessage = "Connection result: $result"
@@ -584,8 +582,6 @@ fun PairingScreen(
                     is ConnectionResult.Success -> {
                         debugMessage = "Success! Saving and navigating..."
                         println("PairingScreen: Success! Saving connection and navigating...")
-                        // Save connection result to repository via ViewModel
-                        viewModel.saveWalletConnection(result)
                         
                         // Navigate to success
                         debugMessage = "About to navigate to success"

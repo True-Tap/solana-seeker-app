@@ -1,0 +1,921 @@
+kotlin version: 2.0.21
+error message: org.jetbrains.kotlin.backend.common.BackendException: Backend Internal error: Exception during IR lowering
+File being compiled: /Users/micahoates/Developer/solana-seeker-app/app/src/main/java/com/truetap/solana/seeker/ui/screens/landing/LandingScreen.kt
+The root cause java.lang.RuntimeException was thrown at: org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException(CodegenUtil.kt:253)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException$default(CodegenUtil.kt:236)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:65)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:52)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:38)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:27)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:14)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:62)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:371)
+	at org.jetbrains.kotlin.codegen.CodegenFactory.generateModule(CodegenFactory.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateModuleInFrontendIRMode(JvmIrCodegenFactory.kt:433)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.generateCodeFromIr(jvmCompilerPipeline.kt:246)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.compileModulesUsingFrontendIrAndLightTree(jvmCompilerPipeline.kt:142)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:148)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:43)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:103)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:49)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:464)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:73)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:506)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:423)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:301)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:129)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:675)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:92)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1660)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.lang.RuntimeException: Exception while generating code for:
+FUN CLASS_STATIC_INITIALIZER name:<clinit> visibility:public/*package*/ modality:FINAL <> () returnType:kotlin.Unit
+  BLOCK_BODY
+    SET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt visibility:public [final,static] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt' type=kotlin.Unit origin=INITIALIZE_FIELD
+      value: CONSTRUCTOR_CALL 'public constructor <init> () [primary] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt' type=com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt origin=null
+    SET_FIELD 'FIELD name:lambda-1 type:@[ExtensionFunctionType] kotlin.Function3<androidx.compose.foundation.layout.RowScope, androidx.compose.runtime.Composer, kotlin.Int, kotlin.Unit> visibility:internal [static] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt' type=kotlin.Unit origin=INITIALIZE_FIELD
+      value: CALL 'public final fun composableLambdaInstance (key: kotlin.Int, tracked: kotlin.Boolean, block: kotlin.Any): androidx.compose.runtime.internal.ComposableLambda declared in androidx.compose.runtime.internal.ComposableLambdaKt' type=androidx.compose.runtime.internal.ComposableLambda origin=null
+        key: CONST Int type=kotlin.Int value=1737347813
+        tracked: CONST Boolean type=kotlin.Boolean value=false
+        block: BLOCK type=com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> origin=null
+          CLASS LAMBDA_IMPL CLASS name:<no name provided> modality:FINAL visibility:public/*package*/ superTypes:[kotlin.Any; kotlin.Function3<androidx.compose.foundation.layout.RowScope, androidx.compose.runtime.Composer, kotlin.Int, kotlin.Unit>]
+            $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>
+            CONSTRUCTOR GENERATED_MEMBER_IN_CALLABLE_REFERENCE visibility:public/*package*/ <> () returnType:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> [primary]
+              BLOCK_BODY
+                DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () [primary] declared in kotlin.Any'
+                BLOCK type=kotlin.Unit origin=null
+            FUN name:invoke visibility:public modality:FINAL <> ($this:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>, $this$Button:androidx.compose.foundation.layout.RowScope, $composer:androidx.compose.runtime.Composer?, $changed:kotlin.Int) returnType:kotlin.Unit
+              annotations:
+                Composable
+                ComposableTarget(applier = "androidx.compose.ui.UiComposable")
+              overridden:
+                public abstract fun invoke (p1: P1 of kotlin.Function3, p2: P2 of kotlin.Function3, p3: P3 of kotlin.Function3): R of kotlin.Function3 [operator] declared in kotlin.Function3
+              $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>
+              VALUE_PARAMETER name:$this$Button index:0 type:androidx.compose.foundation.layout.RowScope
+              VALUE_PARAMETER name:$composer index:1 type:androidx.compose.runtime.Composer? [assignable]
+              VALUE_PARAMETER name:$changed index:2 type:kotlin.Int
+              BLOCK_BODY
+                CALL 'public final fun sourceInformation (composer: androidx.compose.runtime.Composer, sourceInformation: kotlin.String): kotlin.Unit declared in androidx.compose.runtime.ComposerKt' type=kotlin.Unit origin=null
+                  composer: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=androidx.compose.runtime.Composer? origin=null
+                  sourceInformation: CONST String type=kotlin.String value="C194@7230L1042:LandingScreen.kt#7xrzfp"
+                WHEN type=kotlin.Unit origin=IF
+                  BRANCH
+                    if: CALL 'public final fun OROR (arg0: kotlin.Boolean, arg1: kotlin.Boolean): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                      arg0: CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                        $this: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                          arg0: CALL 'public final fun and (other: kotlin.Int): kotlin.Int [infix] declared in kotlin.Int' type=kotlin.Int origin=null
+                            $this: GET_VAR '$changed: kotlin.Int declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=kotlin.Int origin=null
+                            other: CONST Int type=kotlin.Int value=17
+                          arg1: CONST Int type=kotlin.Int value=16
+                      arg1: CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                        $this: CALL 'public abstract fun <get-skipping> (): kotlin.Boolean declared in androidx.compose.runtime.Composer' type=kotlin.Boolean origin=null
+                          $this: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=androidx.compose.runtime.Composer? origin=null
+                    then: BLOCK type=kotlin.Unit origin=null
+                      WHEN type=kotlin.Unit origin=IF
+                        BRANCH
+                          if: CALL 'public final fun isTraceInProgress (): kotlin.Boolean declared in androidx.compose.runtime.ComposerKt' type=kotlin.Boolean origin=null
+                          then: CALL 'public final fun traceEventStart (key: kotlin.Int, dirty1: kotlin.Int, dirty2: kotlin.Int, info: kotlin.String): kotlin.Unit declared in androidx.compose.runtime.ComposerKt' type=kotlin.Unit origin=null
+                            key: CONST Int type=kotlin.Int value=1737347813
+                            dirty1: GET_VAR '$changed: kotlin.Int declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=kotlin.Int origin=null
+                            dirty2: CONST Int type=kotlin.Int value=-1
+                            info: CONST String type=kotlin.String value="com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.lambda-1.<anonymous> (LandingScreen.kt:194)"
+                      BLOCK type=kotlin.Unit origin=ARGUMENTS_REORDERING_FOR_CALL
+                        VAR IR_TEMPORARY_VARIABLE name:tmp0_verticalAlignment type:androidx.compose.ui.Alignment.Vertical [val]
+                          CALL 'public final fun <get-CenterVertically> (): androidx.compose.ui.Alignment.Vertical declared in androidx.compose.ui.Alignment.Companion' type=androidx.compose.ui.Alignment.Vertical origin=GET_PROPERTY
+                            $this: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Alignment.Companion visibility:public [final,static] declared in androidx.compose.ui.Alignment' type=androidx.compose.ui.Alignment.Companion origin=null
+                        VAR IR_TEMPORARY_VARIABLE name:tmp1_horizontalArrangement type:androidx.compose.foundation.layout.Arrangement.HorizontalOrVertical [val]
+                          CALL 'public final fun spacedBy-0680j_4 (space: androidx.compose.ui.unit.Dp): androidx.compose.foundation.layout.Arrangement.HorizontalOrVertical declared in androidx.compose.foundation.layout.Arrangement' type=androidx.compose.foundation.layout.Arrangement.HorizontalOrVertical origin=null
+                            $this: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:androidx.compose.foundation.layout.Arrangement visibility:public [final,static] declared in androidx.compose.foundation.layout.Arrangement' type=androidx.compose.foundation.layout.Arrangement origin=null
+                            space: CALL 'public final fun <get-dp> (): androidx.compose.ui.unit.Dp [inline] declared in androidx.compose.ui.unit.DpKt' type=androidx.compose.ui.unit.Dp origin=GET_PROPERTY
+                              $receiver: CONST Int type=kotlin.Int value=12
+                        CALL 'public final fun Row (modifier: androidx.compose.ui.Modifier?, horizontalArrangement: androidx.compose.foundation.layout.Arrangement.Horizontal?, verticalAlignment: androidx.compose.ui.Alignment.Vertical?, content: @[ExtensionFunctionType] kotlin.Function3<androidx.compose.foundation.layout.RowScope, androidx.compose.runtime.Composer, kotlin.Int, kotlin.Unit>, $composer: androidx.compose.runtime.Composer?, $changed: kotlin.Int, $default: kotlin.Int): kotlin.Unit [inline] declared in androidx.compose.foundation.layout.RowKt' type=kotlin.Unit origin=null
+                          modifier: COMPOSITE type=kotlin.Nothing? origin=DEFAULT_VALUE
+                            CONST Null type=kotlin.Nothing? value=null
+                          horizontalArrangement: GET_VAR 'val tmp1_horizontalArrangement: androidx.compose.foundation.layout.Arrangement.HorizontalOrVertical [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=androidx.compose.foundation.layout.Arrangement.HorizontalOrVertical origin=null
+                          verticalAlignment: GET_VAR 'val tmp0_verticalAlignment: androidx.compose.ui.Alignment.Vertical [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=androidx.compose.ui.Alignment.Vertical origin=null
+                          content: BLOCK type=@[ExtensionFunctionType] kotlin.Function3<androidx.compose.foundation.layout.RowScope, androidx.compose.runtime.Composer, kotlin.Int, kotlin.Unit> origin=LAMBDA
+                            COMPOSITE type=kotlin.Unit origin=null
+                            FUNCTION_REFERENCE 'private final fun invoke$lambda$0 ($composer: androidx.compose.runtime.Composer?, $changed: kotlin.Int): kotlin.Unit declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>' type=@[ExtensionFunctionType] kotlin.Function3<androidx.compose.foundation.layout.RowScope, androidx.compose.runtime.Composer, kotlin.Int, kotlin.Unit> origin=INLINE_LAMBDA reflectionTarget=null
+                          $composer: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=androidx.compose.runtime.Composer? origin=null
+                          $changed: CONST Int type=kotlin.Int value=432
+                          $default: CONST Int type=kotlin.Int value=1
+                      WHEN type=kotlin.Unit origin=IF
+                        BRANCH
+                          if: CALL 'public final fun isTraceInProgress (): kotlin.Boolean declared in androidx.compose.runtime.ComposerKt' type=kotlin.Boolean origin=null
+                          then: CALL 'public final fun traceEventEnd (): kotlin.Unit declared in androidx.compose.runtime.ComposerKt' type=kotlin.Unit origin=null
+                  BRANCH
+                    if: CONST Boolean type=kotlin.Boolean value=true
+                    then: CALL 'public abstract fun skipToGroupEnd (): kotlin.Unit declared in androidx.compose.runtime.Composer' type=kotlin.Unit origin=null
+                      $this: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=androidx.compose.runtime.Composer? origin=null
+            FUN INLINE_LAMBDA name:invoke$lambda$0 visibility:private modality:FINAL <> ($receiver:androidx.compose.foundation.layout.RowScope, $composer:androidx.compose.runtime.Composer?, $changed:kotlin.Int) returnType:kotlin.Unit
+              annotations:
+                Composable
+                ComposableTarget(applier = "androidx.compose.ui.UiComposable")
+              $receiver: VALUE_PARAMETER name:$this$Row type:androidx.compose.foundation.layout.RowScope
+              VALUE_PARAMETER name:$composer index:0 type:androidx.compose.runtime.Composer? [assignable]
+              VALUE_PARAMETER name:$changed index:1 type:kotlin.Int
+              BLOCK_BODY
+                VAR name:$i$a$-Row-ComposableSingletons$LandingScreenKt$lambda-1$1$1 type:kotlin.Int [val]
+                  CONST Int type=kotlin.Int value=0
+                BLOCK type=kotlin.Unit origin=null
+                  CALL 'public final fun sourceInformationMarkerStart (composer: androidx.compose.runtime.Composer, key: kotlin.Int, sourceInformation: kotlin.String): kotlin.Unit declared in androidx.compose.runtime.ComposerKt' type=kotlin.Unit origin=null
+                    composer: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.runtime.Composer? origin=null
+                    key: CONST Int type=kotlin.Int value=1652649205
+                    sourceInformation: CONST String type=kotlin.String value="C198@7415L256,204@7692L220,210@7933L38,211@7992L262:LandingScreen.kt#7xrzfp"
+                  COMPOSITE type=kotlin.Unit origin=null
+                    BLOCK type=kotlin.Unit origin=ARGUMENTS_REORDERING_FOR_CALL
+                      VAR IR_TEMPORARY_VARIABLE name:tmp0_imageVector type:androidx.compose.ui.graphics.vector.ImageVector [val]
+                        CALL 'public final fun <get-AccountBalanceWallet> (): androidx.compose.ui.graphics.vector.ImageVector declared in androidx.compose.material.icons.filled.AccountBalanceWalletKt' type=androidx.compose.ui.graphics.vector.ImageVector origin=GET_PROPERTY
+                          $receiver: CALL 'public final fun <get-Default> (): androidx.compose.material.icons.Icons.Filled declared in androidx.compose.material.icons.Icons' type=androidx.compose.material.icons.Icons.Filled origin=GET_PROPERTY
+                            $this: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:androidx.compose.material.icons.Icons visibility:public [final,static] declared in androidx.compose.material.icons.Icons' type=androidx.compose.material.icons.Icons origin=null
+                      VAR IR_TEMPORARY_VARIABLE name:tmp1_tint type:androidx.compose.ui.graphics.Color [val]
+                        CALL 'public final fun getWhite-0d7_KjU (): androidx.compose.ui.graphics.Color declared in androidx.compose.ui.graphics.Color.Companion' type=androidx.compose.ui.graphics.Color origin=GET_PROPERTY
+                          $this: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.graphics.Color.Companion visibility:public [final,static] declared in androidx.compose.ui.graphics.Color' type=androidx.compose.ui.graphics.Color.Companion origin=null
+                      VAR IR_TEMPORARY_VARIABLE name:tmp2_modifier type:androidx.compose.ui.Modifier [val]
+                        CALL 'public final fun size-3ABfNKs (size: androidx.compose.ui.unit.Dp): androidx.compose.ui.Modifier declared in androidx.compose.foundation.layout.SizeKt' type=androidx.compose.ui.Modifier origin=null
+                          $receiver: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Modifier.Companion visibility:public [final,static] declared in androidx.compose.ui.Modifier' type=androidx.compose.ui.Modifier.Companion origin=null
+                          size: CALL 'public final fun <get-dp> (): androidx.compose.ui.unit.Dp [inline] declared in androidx.compose.ui.unit.DpKt' type=androidx.compose.ui.unit.Dp origin=GET_PROPERTY
+                            $receiver: CONST Int type=kotlin.Int value=20
+                      CALL 'public final fun Icon-ww6aTOc (imageVector: androidx.compose.ui.graphics.vector.ImageVector, contentDescription: kotlin.String?, modifier: androidx.compose.ui.Modifier?, tint: androidx.compose.ui.graphics.Color, $composer: androidx.compose.runtime.Composer?, $changed: kotlin.Int, $default: kotlin.Int): kotlin.Unit declared in androidx.compose.material3.IconKt' type=kotlin.Unit origin=null
+                        imageVector: GET_VAR 'val tmp0_imageVector: androidx.compose.ui.graphics.vector.ImageVector [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.graphics.vector.ImageVector origin=null
+                        contentDescription: CONST String type=kotlin.String value="Wallet"
+                        modifier: GET_VAR 'val tmp2_modifier: androidx.compose.ui.Modifier [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.Modifier origin=null
+                        tint: GET_VAR 'val tmp1_tint: androidx.compose.ui.graphics.Color [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.graphics.Color origin=null
+                        $composer: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.runtime.Composer? origin=null
+                        $changed: CONST Int type=kotlin.Int value=3504
+                        $default: CONST Int type=kotlin.Int value=0
+                    BLOCK type=kotlin.Unit origin=ARGUMENTS_REORDERING_FOR_CALL
+                      VAR IR_TEMPORARY_VARIABLE name:tmp3_fontSize type:androidx.compose.ui.unit.TextUnit [val]
+                        CALL 'public final fun <get-sp> (): androidx.compose.ui.unit.TextUnit declared in androidx.compose.ui.unit.TextUnitKt' type=androidx.compose.ui.unit.TextUnit origin=GET_PROPERTY
+                          $receiver: CONST Int type=kotlin.Int value=18
+                      VAR IR_TEMPORARY_VARIABLE name:tmp4_fontWeight type:androidx.compose.ui.text.font.FontWeight [val]
+                        CALL 'public final fun <get-SemiBold> (): androidx.compose.ui.text.font.FontWeight declared in androidx.compose.ui.text.font.FontWeight.Companion' type=androidx.compose.ui.text.font.FontWeight origin=GET_PROPERTY
+                          $this: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.text.font.FontWeight.Companion visibility:public [final,static] declared in androidx.compose.ui.text.font.FontWeight' type=androidx.compose.ui.text.font.FontWeight.Companion origin=null
+                      VAR IR_TEMPORARY_VARIABLE name:tmp5_color type:androidx.compose.ui.graphics.Color [val]
+                        CALL 'public final fun getWhite-0d7_KjU (): androidx.compose.ui.graphics.Color declared in androidx.compose.ui.graphics.Color.Companion' type=androidx.compose.ui.graphics.Color origin=GET_PROPERTY
+                          $this: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.graphics.Color.Companion visibility:public [final,static] declared in androidx.compose.ui.graphics.Color' type=androidx.compose.ui.graphics.Color.Companion origin=null
+                      CALL 'public final fun Text--4IGK_g (text: kotlin.String, modifier: androidx.compose.ui.Modifier?, color: androidx.compose.ui.graphics.Color, fontSize: androidx.compose.ui.unit.TextUnit, fontStyle: androidx.compose.ui.text.font.FontStyle?, fontWeight: androidx.compose.ui.text.font.FontWeight?, fontFamily: androidx.compose.ui.text.font.FontFamily?, letterSpacing: androidx.compose.ui.unit.TextUnit, textDecoration: androidx.compose.ui.text.style.TextDecoration?, textAlign: androidx.compose.ui.text.style.TextAlign?, lineHeight: androidx.compose.ui.unit.TextUnit, overflow: androidx.compose.ui.text.style.TextOverflow, softWrap: kotlin.Boolean, maxLines: kotlin.Int, minLines: kotlin.Int, onTextLayout: kotlin.Function1<androidx.compose.ui.text.TextLayoutResult, kotlin.Unit>?, style: androidx.compose.ui.text.TextStyle?, $composer: androidx.compose.runtime.Composer?, $changed: kotlin.Int, $changed1: kotlin.Int, $default: kotlin.Int): kotlin.Unit declared in androidx.compose.material3.TextKt' type=kotlin.Unit origin=null
+                        text: CONST String type=kotlin.String value="Connect Wallet"
+                        modifier: COMPOSITE type=kotlin.Nothing? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.Nothing? value=null
+                        color: GET_VAR 'val tmp5_color: androidx.compose.ui.graphics.Color [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.graphics.Color origin=null
+                        fontSize: GET_VAR 'val tmp3_fontSize: androidx.compose.ui.unit.TextUnit [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.unit.TextUnit origin=null
+                        fontStyle: COMPOSITE type=kotlin.Nothing? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.Nothing? value=null
+                        fontWeight: GET_VAR 'val tmp4_fontWeight: androidx.compose.ui.text.font.FontWeight [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.text.font.FontWeight origin=null
+                        fontFamily: COMPOSITE type=kotlin.Nothing? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.Nothing? value=null
+                        letterSpacing: COMPOSITE type=androidx.compose.ui.unit.TextUnit origin=DEFAULT_VALUE
+                          CALL 'public final fun <unsafe-coerce> <T, R> (v: T of kotlin.jvm.internal.<unsafe-coerce>): R of kotlin.jvm.internal.<unsafe-coerce> declared in kotlin.jvm.internal' type=androidx.compose.ui.unit.TextUnit origin=null
+                            <T>: kotlin.Long
+                            <R>: androidx.compose.ui.unit.TextUnit
+                            v: CONST Long type=kotlin.Long value=0
+                        textDecoration: COMPOSITE type=kotlin.Nothing? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.Nothing? value=null
+                        textAlign: COMPOSITE type=kotlin.Nothing? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.Nothing? value=null
+                        lineHeight: COMPOSITE type=androidx.compose.ui.unit.TextUnit origin=DEFAULT_VALUE
+                          CALL 'public final fun <unsafe-coerce> <T, R> (v: T of kotlin.jvm.internal.<unsafe-coerce>): R of kotlin.jvm.internal.<unsafe-coerce> declared in kotlin.jvm.internal' type=androidx.compose.ui.unit.TextUnit origin=null
+                            <T>: kotlin.Long
+                            <R>: androidx.compose.ui.unit.TextUnit
+                            v: CONST Long type=kotlin.Long value=0
+                        overflow: COMPOSITE type=androidx.compose.ui.text.style.TextOverflow origin=DEFAULT_VALUE
+                          CALL 'public final fun <unsafe-coerce> <T, R> (v: T of kotlin.jvm.internal.<unsafe-coerce>): R of kotlin.jvm.internal.<unsafe-coerce> declared in kotlin.jvm.internal' type=androidx.compose.ui.text.style.TextOverflow origin=null
+                            <T>: kotlin.Int
+                            <R>: androidx.compose.ui.text.style.TextOverflow
+                            v: CONST Int type=kotlin.Int value=0
+                        softWrap: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                          CONST Boolean type=kotlin.Boolean value=false
+                        maxLines: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        minLines: COMPOSITE type=kotlin.Int origin=DEFAULT_VALUE
+                          CONST Int type=kotlin.Int value=0
+                        onTextLayout: COMPOSITE type=kotlin.Nothing? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.Nothing? value=null
+                        style: COMPOSITE type=kotlin.Nothing? origin=DEFAULT_VALUE
+                          CONST Null type=kotlin.Nothing? value=null
+                        $composer: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.runtime.Composer? origin=null
+                        $changed: CONST Int type=kotlin.Int value=200070
+                        $changed1: CONST Int type=kotlin.Int value=0
+                        $default: CONST Int type=kotlin.Int value=131026
+                    CALL 'public final fun Spacer (modifier: androidx.compose.ui.Modifier, $composer: androidx.compose.runtime.Composer?, $changed: kotlin.Int): kotlin.Unit declared in androidx.compose.foundation.layout.SpacerKt' type=kotlin.Unit origin=null
+                      modifier: CALL 'public final fun weight$default ($this: androidx.compose.foundation.layout.RowScope, $receiver: androidx.compose.ui.Modifier, weight: kotlin.Float, fill: kotlin.Boolean, $mask0: kotlin.Int, $handler: kotlin.Any?): androidx.compose.ui.Modifier declared in androidx.compose.foundation.layout.RowScope' type=androidx.compose.ui.Modifier origin=DEFAULT_DISPATCH_CALL
+                        $this: GET_VAR '$this$Row: androidx.compose.foundation.layout.RowScope declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.foundation.layout.RowScope origin=null
+                        $receiver: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Modifier.Companion visibility:public [final,static] declared in androidx.compose.ui.Modifier' type=androidx.compose.ui.Modifier.Companion origin=null
+                        weight: CONST Float type=kotlin.Float value=1.0
+                        fill: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                          CONST Boolean type=kotlin.Boolean value=false
+                        $mask0: CONST Int type=kotlin.Int value=2
+                        $handler: CONST Null type=kotlin.Any? value=null
+                      $composer: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.runtime.Composer? origin=null
+                      $changed: CONST Int type=kotlin.Int value=0
+                    BLOCK type=kotlin.Unit origin=ARGUMENTS_REORDERING_FOR_CALL
+                      VAR IR_TEMPORARY_VARIABLE name:tmp6_imageVector type:androidx.compose.ui.graphics.vector.ImageVector [val]
+                        CALL 'public final fun <get-ArrowForward> (): androidx.compose.ui.graphics.vector.ImageVector declared in androidx.compose.material.icons.automirrored.filled.ArrowForwardKt' type=androidx.compose.ui.graphics.vector.ImageVector origin=GET_PROPERTY
+                          $receiver: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:androidx.compose.material.icons.Icons.AutoMirrored.Filled visibility:public [final,static] declared in androidx.compose.material.icons.Icons.AutoMirrored.Filled' type=androidx.compose.material.icons.Icons.AutoMirrored.Filled origin=null
+                      VAR IR_TEMPORARY_VARIABLE name:tmp7_tint type:androidx.compose.ui.graphics.Color [val]
+                        CALL 'public final fun getWhite-0d7_KjU (): androidx.compose.ui.graphics.Color declared in androidx.compose.ui.graphics.Color.Companion' type=androidx.compose.ui.graphics.Color origin=GET_PROPERTY
+                          $this: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.graphics.Color.Companion visibility:public [final,static] declared in androidx.compose.ui.graphics.Color' type=androidx.compose.ui.graphics.Color.Companion origin=null
+                      VAR IR_TEMPORARY_VARIABLE name:tmp8_modifier type:androidx.compose.ui.Modifier [val]
+                        CALL 'public final fun size-3ABfNKs (size: androidx.compose.ui.unit.Dp): androidx.compose.ui.Modifier declared in androidx.compose.foundation.layout.SizeKt' type=androidx.compose.ui.Modifier origin=null
+                          $receiver: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Modifier.Companion visibility:public [final,static] declared in androidx.compose.ui.Modifier' type=androidx.compose.ui.Modifier.Companion origin=null
+                          size: CALL 'public final fun <get-dp> (): androidx.compose.ui.unit.Dp [inline] declared in androidx.compose.ui.unit.DpKt' type=androidx.compose.ui.unit.Dp origin=GET_PROPERTY
+                            $receiver: CONST Int type=kotlin.Int value=20
+                      CALL 'public final fun Icon-ww6aTOc (imageVector: androidx.compose.ui.graphics.vector.ImageVector, contentDescription: kotlin.String?, modifier: androidx.compose.ui.Modifier?, tint: androidx.compose.ui.graphics.Color, $composer: androidx.compose.runtime.Composer?, $changed: kotlin.Int, $default: kotlin.Int): kotlin.Unit declared in androidx.compose.material3.IconKt' type=kotlin.Unit origin=null
+                        imageVector: GET_VAR 'val tmp6_imageVector: androidx.compose.ui.graphics.vector.ImageVector [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.graphics.vector.ImageVector origin=null
+                        contentDescription: CONST String type=kotlin.String value="Continue"
+                        modifier: GET_VAR 'val tmp8_modifier: androidx.compose.ui.Modifier [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.Modifier origin=null
+                        tint: GET_VAR 'val tmp7_tint: androidx.compose.ui.graphics.Color [val] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.ui.graphics.Color origin=null
+                        $composer: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.runtime.Composer? origin=null
+                        $changed: CONST Int type=kotlin.Int value=3504
+                        $default: CONST Int type=kotlin.Int value=0
+                  CALL 'public final fun sourceInformationMarkerEnd (composer: androidx.compose.runtime.Composer): kotlin.Unit declared in androidx.compose.runtime.ComposerKt' type=kotlin.Unit origin=null
+                    composer: GET_VAR '$composer: androidx.compose.runtime.Composer? [assignable] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke$lambda$0' type=androidx.compose.runtime.Composer? origin=null
+            FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> visibility:public [final,static]
+            FUN CLASS_STATIC_INITIALIZER name:<clinit> visibility:public/*package*/ modality:FINAL <> () returnType:kotlin.Unit
+              BLOCK_BODY
+                SET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> visibility:public [final,static] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>' type=kotlin.Unit origin=INITIALIZE_FIELD
+                  value: CONSTRUCTOR_CALL 'public/*package*/ constructor <init> () [primary] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>' type=com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> origin=null
+            FUN BRIDGE name:invoke visibility:public modality:OPEN <> ($this:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>, p1:kotlin.Any?, p2:kotlin.Any?, p3:kotlin.Any?) returnType:kotlin.Any?
+              $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>
+              VALUE_PARAMETER BRIDGE name:p1 index:0 type:kotlin.Any?
+              VALUE_PARAMETER BRIDGE name:p2 index:1 type:kotlin.Any?
+              VALUE_PARAMETER BRIDGE name:p3 index:2 type:kotlin.Any?
+              EXPRESSION_BODY
+                RETURN type=kotlin.Nothing from='public open fun invoke (p1: kotlin.Any?, p2: kotlin.Any?, p3: kotlin.Any?): kotlin.Any? declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>'
+                  CALL 'public final fun invoke ($this$Button: androidx.compose.foundation.layout.RowScope, $composer: androidx.compose.runtime.Composer?, $changed: kotlin.Int): kotlin.Unit declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>' type=kotlin.Unit origin=BRIDGE_DELEGATION
+                    $this: GET_VAR '<this>: com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> origin=null
+                    $this$Button: TYPE_OP type=androidx.compose.foundation.layout.RowScope origin=IMPLICIT_CAST typeOperand=androidx.compose.foundation.layout.RowScope
+                      GET_VAR 'p1: kotlin.Any? declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=kotlin.Any? origin=null
+                    $composer: TYPE_OP type=androidx.compose.runtime.Composer origin=IMPLICIT_CAST typeOperand=androidx.compose.runtime.Composer
+                      GET_VAR 'p2: kotlin.Any? declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=kotlin.Any? origin=null
+                    $changed: TYPE_OP type=kotlin.Int origin=IMPLICIT_CAST typeOperand=kotlin.Int
+                      GET_VAR 'p3: kotlin.Any? declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>.invoke' type=kotlin.Any? origin=null
+          GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> visibility:public [final,static] declared in com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided>' type=com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.<clinit>.<no name provided> origin=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:40)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:406)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:423)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:172)
+	at org.jetbrains.kotlin.backend.jvm.FileCodegen.lower(JvmPhases.kt:39)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseFactoriesKt.createFilePhase$lambda$4(PhaseFactories.kt:71)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseBuildersKt$createSimpleNamedCompilerPhase$1.phaseBody(PhaseBuilders.kt:69)
+	at org.jetbrains.kotlin.backend.common.phaser.SimpleNamedCompilerPhase.phaseBody(CompilerPhase.kt:226)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:62)
+	... 43 more
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't transform method node:
+invoke (Landroidx/compose/foundation/layout/RowScope;Landroidx/compose/runtime/Composer;I)V:
+  @Landroidx/compose/runtime/Composable;() // invisible
+  @Landroidx/compose/runtime/ComposableTarget;(applier="androidx.compose.ui.UiComposable") // invisible
+    // annotable parameter count: 3 (visible)
+    // annotable parameter count: 3 (invisible)
+   L0
+    ALOAD 1
+    LDC "$this$Button"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.checkNotNullParameter (Ljava/lang/Object;Ljava/lang/String;)V
+    ALOAD 2
+    LDC "C194@7230L1042:LandingScreen.kt#7xrzfp"
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformation (Landroidx/compose/runtime/Composer;Ljava/lang/String;)V
+   L1
+    LINENUMBER 195 L1
+    ILOAD 3
+    BIPUSH 17
+    IAND
+    BIPUSH 16
+    IF_ICMPNE L2
+    ALOAD 2
+    INVOKEINTERFACE androidx/compose/runtime/Composer.getSkipping ()Z (itf)
+    IFNE L3
+   L2
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.isTraceInProgress ()Z
+    IFEQ L4
+    LDC 1737347813
+    ILOAD 3
+    ICONST_M1
+    LDC "com.truetap.solana.seeker.ui.screens.landing.ComposableSingletons$LandingScreenKt.lambda-1.<anonymous> (LandingScreen.kt:194)"
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.traceEventStart (IIILjava/lang/String;)V
+   L4
+    LINENUMBER 196 L4
+    GETSTATIC androidx/compose/ui/Alignment.Companion : Landroidx/compose/ui/Alignment$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/Alignment$Companion.getCenterVertically ()Landroidx/compose/ui/Alignment$Vertical;
+    ASTORE 4
+   L5
+    LINENUMBER 197 L5
+    GETSTATIC androidx/compose/foundation/layout/Arrangement.INSTANCE : Landroidx/compose/foundation/layout/Arrangement;
+    BIPUSH 12
+    ISTORE 6
+   L6
+    ICONST_0
+    ISTORE 7
+   L7
+    LINENUMBER 523 L7
+    ILOAD 6
+    I2F
+    INVOKESTATIC androidx/compose/ui/unit/Dp.constructor-impl (F)F
+    GOTO L8
+   L8
+    LINENUMBER 197 L8
+    INVOKEVIRTUAL androidx/compose/foundation/layout/Arrangement.spacedBy-0680j_4 (F)Landroidx/compose/foundation/layout/Arrangement$HorizontalOrVertical;
+    ASTORE 5
+    SIPUSH 432
+    ISTORE 7
+   L9
+    LINENUMBER 195 L9
+    NOP
+   L10
+    ICONST_0
+    ISTORE 8
+   L11
+    ALOAD 2
+    LDC 693286680
+    LDC "CC(Row)P(2,1,3)99@5018L58,100@5081L130:Row.kt#2w3rfo"
+   L12
+    LINENUMBER 524 L12
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerStart (Landroidx/compose/runtime/Composer;ILjava/lang/String;)V
+   L13
+    LINENUMBER 525 L13
+    GETSTATIC androidx/compose/ui/Modifier.Companion : Landroidx/compose/ui/Modifier$Companion;
+    CHECKCAST androidx/compose/ui/Modifier
+    ASTORE 6
+   L14
+    LINENUMBER 530 L14
+    ALOAD 5
+    CHECKCAST androidx/compose/foundation/layout/Arrangement$Horizontal
+    ALOAD 4
+    ALOAD 2
+    BIPUSH 14
+    ILOAD 7
+    ICONST_3
+    ISHR
+    IAND
+    BIPUSH 112
+    ILOAD 7
+    ICONST_3
+    ISHR
+    IAND
+    IOR
+    INVOKESTATIC androidx/compose/foundation/layout/RowKt.rowMeasurePolicy (Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/ui/Alignment$Vertical;Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/layout/MeasurePolicy;
+    ASTORE 9
+   L15
+    BIPUSH 112
+    ILOAD 7
+    ICONST_3
+    ISHL
+    IAND
+    ISTORE 10
+   L16
+    LINENUMBER 531 L16
+    NOP
+   L17
+    ICONST_0
+    ISTORE 11
+   L18
+    ALOAD 2
+    LDC -1323940314
+    LDC "CC(Layout)P(!1,2)79@3208L23,82@3359L411:Layout.kt#80mrfh"
+   L19
+    LINENUMBER 532 L19
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerStart (Landroidx/compose/runtime/Composer;ILjava/lang/String;)V
+    ALOAD 2
+    ICONST_0
+   L20
+    LINENUMBER 533 L20
+    INVOKESTATIC androidx/compose/runtime/ComposablesKt.getCurrentCompositeKeyHash (Landroidx/compose/runtime/Composer;I)I
+    ISTORE 12
+   L21
+    ALOAD 2
+   L22
+    LINENUMBER 534 L22
+    INVOKEINTERFACE androidx/compose/runtime/Composer.getCurrentCompositionLocalMap ()Landroidx/compose/runtime/CompositionLocalMap; (itf)
+    ASTORE 13
+   L23
+    ALOAD 2
+   L24
+    LINENUMBER 535 L24
+    ALOAD 6
+    INVOKESTATIC androidx/compose/ui/ComposedModifierKt.materializeModifier (Landroidx/compose/runtime/Composer;Landroidx/compose/ui/Modifier;)Landroidx/compose/ui/Modifier;
+    ASTORE 14
+   L25
+    LINENUMBER 537 L25
+    GETSTATIC androidx/compose/ui/node/ComposeUiNode.Companion : Landroidx/compose/ui/node/ComposeUiNode$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/node/ComposeUiNode$Companion.getConstructor ()Lkotlin/jvm/functions/Function0;
+    ASTORE 15
+    BIPUSH 6
+    SIPUSH 896
+    ILOAD 10
+    BIPUSH 6
+    ISHL
+    IAND
+    IOR
+    ISTORE 16
+   L26
+    LINENUMBER 536 L26
+    NOP
+   L27
+    ICONST_0
+    ISTORE 17
+   L28
+    ALOAD 2
+    LDC -692256719
+    LDC "CC(ReusableComposeNode)P(1,2)376@14062L9:Composables.kt#9igjgp"
+   L29
+    LINENUMBER 538 L29
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerStart (Landroidx/compose/runtime/Composer;ILjava/lang/String;)V
+   L30
+    LINENUMBER 539 L30
+    ALOAD 2
+    INVOKEINTERFACE androidx/compose/runtime/Composer.getApplier ()Landroidx/compose/runtime/Applier; (itf)
+    INSTANCEOF androidx/compose/runtime/Applier
+    IFNE L31
+    INVOKESTATIC androidx/compose/runtime/ComposablesKt.invalidApplier ()V
+   L31
+    ALOAD 2
+   L32
+    LINENUMBER 540 L32
+    INVOKEINTERFACE androidx/compose/runtime/Composer.startReusableNode ()V (itf)
+   L33
+    LINENUMBER 541 L33
+    ALOAD 2
+    INVOKEINTERFACE androidx/compose/runtime/Composer.getInserting ()Z (itf)
+    IFEQ L34
+    ALOAD 2
+   L35
+    LINENUMBER 542 L35
+    ALOAD 15
+    INVOKEINTERFACE androidx/compose/runtime/Composer.createNode (Lkotlin/jvm/functions/Function0;)V (itf)
+    GOTO L36
+   L34
+    ALOAD 2
+   L37
+    LINENUMBER 544 L37
+    INVOKEINTERFACE androidx/compose/runtime/Composer.useNode ()V (itf)
+   L36
+    LINENUMBER 546 L36
+    ALOAD 2
+    INVOKESTATIC androidx/compose/runtime/Updater.constructor-impl (Landroidx/compose/runtime/Composer;)Landroidx/compose/runtime/Composer;
+    ASTORE 18
+   L38
+    ICONST_0
+    ISTORE 19
+   L39
+    LINENUMBER 547 L39
+    ALOAD 18
+    ALOAD 9
+    GETSTATIC androidx/compose/ui/node/ComposeUiNode.Companion : Landroidx/compose/ui/node/ComposeUiNode$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/node/ComposeUiNode$Companion.getSetMeasurePolicy ()Lkotlin/jvm/functions/Function2;
+    INVOKESTATIC androidx/compose/runtime/Updater.set-impl (Landroidx/compose/runtime/Composer;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)V
+   L40
+    LINENUMBER 548 L40
+    ALOAD 18
+    ALOAD 13
+    GETSTATIC androidx/compose/ui/node/ComposeUiNode.Companion : Landroidx/compose/ui/node/ComposeUiNode$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/node/ComposeUiNode$Companion.getSetResolvedCompositionLocals ()Lkotlin/jvm/functions/Function2;
+    INVOKESTATIC androidx/compose/runtime/Updater.set-impl (Landroidx/compose/runtime/Composer;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)V
+   L41
+    LINENUMBER 550 L41
+    GETSTATIC androidx/compose/ui/node/ComposeUiNode.Companion : Landroidx/compose/ui/node/ComposeUiNode$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/node/ComposeUiNode$Companion.getSetCompositeKeyHash ()Lkotlin/jvm/functions/Function2;
+    ASTORE 20
+   L42
+    ICONST_0
+    ISTORE 21
+   L43
+    LINENUMBER 551 L43
+    ALOAD 18
+    ASTORE 22
+   L44
+    ICONST_0
+    ISTORE 23
+   L45
+    LINENUMBER 552 L45
+    ALOAD 22
+    INVOKEINTERFACE androidx/compose/runtime/Composer.getInserting ()Z (itf)
+    IFNE L46
+    ALOAD 22
+    INVOKEINTERFACE androidx/compose/runtime/Composer.rememberedValue ()Ljava/lang/Object; (itf)
+    ILOAD 12
+    INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.areEqual (Ljava/lang/Object;Ljava/lang/Object;)Z
+    IFNE L47
+   L46
+    LINENUMBER 553 L46
+    ALOAD 22
+    ILOAD 12
+    INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;
+    INVOKEINTERFACE androidx/compose/runtime/Composer.updateRememberedValue (Ljava/lang/Object;)V (itf)
+   L48
+    LINENUMBER 554 L48
+    ALOAD 18
+    ILOAD 12
+    INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;
+    ALOAD 20
+    INVOKEINTERFACE androidx/compose/runtime/Composer.apply (Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)V (itf)
+   L47
+    LINENUMBER 556 L47
+    NOP
+   L49
+    LINENUMBER 551 L49
+    NOP
+   L50
+    LINENUMBER 556 L50
+    NOP
+   L51
+    LINENUMBER 557 L51
+    ALOAD 18
+    ALOAD 14
+    GETSTATIC androidx/compose/ui/node/ComposeUiNode.Companion : Landroidx/compose/ui/node/ComposeUiNode$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/node/ComposeUiNode$Companion.getSetModifier ()Lkotlin/jvm/functions/Function2;
+    INVOKESTATIC androidx/compose/runtime/Updater.set-impl (Landroidx/compose/runtime/Composer;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)V
+   L52
+    LINENUMBER 558 L52
+    NOP
+   L53
+    LINENUMBER 546 L53
+    NOP
+   L54
+    LINENUMBER 559 L54
+    ALOAD 2
+    BIPUSH 14
+    ILOAD 16
+    BIPUSH 6
+    ISHR
+    IAND
+    ISTORE 24
+    ASTORE 25
+   L55
+    ICONST_0
+    ISTORE 26
+   L56
+    ALOAD 25
+    LDC -407840262
+    LDC "C101@5126L9:Row.kt#2w3rfo"
+   L57
+    LINENUMBER 560 L57
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerStart (Landroidx/compose/runtime/Composer;ILjava/lang/String;)V
+    GETSTATIC androidx/compose/foundation/layout/RowScopeInstance.INSTANCE : Landroidx/compose/foundation/layout/RowScopeInstance;
+    ALOAD 25
+    BIPUSH 6
+    BIPUSH 112
+    ILOAD 7
+    BIPUSH 6
+    ISHR
+    IAND
+    IOR
+    ISTORE 27
+    ASTORE 28
+    CHECKCAST androidx/compose/foundation/layout/RowScope
+    ASTORE 29
+   L58
+    ICONST_0
+    ISTORE 30
+   L59
+    ALOAD 28
+    LDC 1652649205
+    LDC "C198@7415L256,204@7692L220,210@7933L38,211@7992L262:LandingScreen.kt#7xrzfp"
+   L60
+    LINENUMBER 199 L60
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerStart (Landroidx/compose/runtime/Composer;ILjava/lang/String;)V
+   L61
+    LINENUMBER 200 L61
+    GETSTATIC androidx/compose/material/icons/Icons.INSTANCE : Landroidx/compose/material/icons/Icons;
+    INVOKEVIRTUAL androidx/compose/material/icons/Icons.getDefault ()Landroidx/compose/material/icons/Icons$Filled;
+    INVOKESTATIC androidx/compose/material/icons/filled/AccountBalanceWalletKt.getAccountBalanceWallet (Landroidx/compose/material/icons/Icons$Filled;)Landroidx/compose/ui/graphics/vector/ImageVector;
+    ASTORE 31
+   L62
+    LINENUMBER 202 L62
+    GETSTATIC androidx/compose/ui/graphics/Color.Companion : Landroidx/compose/ui/graphics/Color$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/graphics/Color$Companion.getWhite-0d7_KjU ()J
+    LSTORE 32
+   L63
+    LINENUMBER 203 L63
+    GETSTATIC androidx/compose/ui/Modifier.Companion : Landroidx/compose/ui/Modifier$Companion;
+    CHECKCAST androidx/compose/ui/Modifier
+    BIPUSH 20
+    ISTORE 34
+   L64
+    ICONST_0
+    ISTORE 35
+   L65
+    LINENUMBER 561 L65
+    ILOAD 34
+    I2F
+    INVOKESTATIC androidx/compose/ui/unit/Dp.constructor-impl (F)F
+    GOTO L66
+   L66
+    LINENUMBER 203 L66
+    INVOKESTATIC androidx/compose/foundation/layout/SizeKt.size-3ABfNKs (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
+    ASTORE 36
+   L67
+    LINENUMBER 200 L67
+    ALOAD 31
+   L68
+    LINENUMBER 201 L68
+    LDC "Wallet"
+   L69
+    LINENUMBER 203 L69
+    ALOAD 36
+   L70
+    LINENUMBER 202 L70
+    LLOAD 32
+    ALOAD 28
+    SIPUSH 3504
+    ICONST_0
+   L71
+    LINENUMBER 199 L71
+    INVOKESTATIC androidx/compose/material3/IconKt.Icon-ww6aTOc (Landroidx/compose/ui/graphics/vector/ImageVector;Ljava/lang/String;Landroidx/compose/ui/Modifier;JLandroidx/compose/runtime/Composer;II)V
+   L72
+    LINENUMBER 207 L72
+    BIPUSH 18
+    INVOKESTATIC androidx/compose/ui/unit/TextUnitKt.getSp (I)J
+    LSTORE 37
+   L73
+    LINENUMBER 208 L73
+    GETSTATIC androidx/compose/ui/text/font/FontWeight.Companion : Landroidx/compose/ui/text/font/FontWeight$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/text/font/FontWeight$Companion.getSemiBold ()Landroidx/compose/ui/text/font/FontWeight;
+    ASTORE 39
+   L74
+    LINENUMBER 209 L74
+    GETSTATIC androidx/compose/ui/graphics/Color.Companion : Landroidx/compose/ui/graphics/Color$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/graphics/Color$Companion.getWhite-0d7_KjU ()J
+    LSTORE 40
+   L75
+    LINENUMBER 206 L75
+    LDC "Connect Wallet"
+    ACONST_NULL
+   L76
+    LINENUMBER 209 L76
+    LLOAD 40
+   L77
+    LINENUMBER 207 L77
+    LLOAD 37
+    ACONST_NULL
+   L78
+    LINENUMBER 208 L78
+    ALOAD 39
+    ACONST_NULL
+    LCONST_0
+    ACONST_NULL
+    ACONST_NULL
+    LCONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ICONST_0
+    ACONST_NULL
+    ACONST_NULL
+    ALOAD 28
+    LDC 200070
+    ICONST_0
+    LDC 131026
+   L79
+    LINENUMBER 205 L79
+    INVOKESTATIC androidx/compose/material3/TextKt.Text--4IGK_g (Ljava/lang/String;Landroidx/compose/ui/Modifier;JJLandroidx/compose/ui/text/font/FontStyle;Landroidx/compose/ui/text/font/FontWeight;Landroidx/compose/ui/text/font/FontFamily;JLandroidx/compose/ui/text/style/TextDecoration;Landroidx/compose/ui/text/style/TextAlign;JIZIILkotlin/jvm/functions/Function1;Landroidx/compose/ui/text/TextStyle;Landroidx/compose/runtime/Composer;III)V
+   L80
+    LINENUMBER 211 L80
+    ALOAD 29
+    GETSTATIC androidx/compose/ui/Modifier.Companion : Landroidx/compose/ui/Modifier$Companion;
+    CHECKCAST androidx/compose/ui/Modifier
+    FCONST_1
+    ICONST_0
+    ICONST_2
+    ACONST_NULL
+    INVOKESTATIC androidx/compose/foundation/layout/RowScope.weight$default (Landroidx/compose/foundation/layout/RowScope;Landroidx/compose/ui/Modifier;FZILjava/lang/Object;)Landroidx/compose/ui/Modifier; (itf)
+    ALOAD 28
+    ICONST_0
+    INVOKESTATIC androidx/compose/foundation/layout/SpacerKt.Spacer (Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;I)V
+   L81
+    LINENUMBER 213 L81
+    GETSTATIC androidx/compose/material/icons/Icons$AutoMirrored$Filled.INSTANCE : Landroidx/compose/material/icons/Icons$AutoMirrored$Filled;
+    INVOKESTATIC androidx/compose/material/icons/automirrored/filled/ArrowForwardKt.getArrowForward (Landroidx/compose/material/icons/Icons$AutoMirrored$Filled;)Landroidx/compose/ui/graphics/vector/ImageVector;
+    ASTORE 31
+   L82
+    LINENUMBER 215 L82
+    GETSTATIC androidx/compose/ui/graphics/Color.Companion : Landroidx/compose/ui/graphics/Color$Companion;
+    INVOKEVIRTUAL androidx/compose/ui/graphics/Color$Companion.getWhite-0d7_KjU ()J
+    LSTORE 32
+   L83
+    LINENUMBER 216 L83
+    GETSTATIC androidx/compose/ui/Modifier.Companion : Landroidx/compose/ui/Modifier$Companion;
+    CHECKCAST androidx/compose/ui/Modifier
+    BIPUSH 20
+    ISTORE 34
+   L84
+    ICONST_0
+    ISTORE 35
+   L85
+    LINENUMBER 562 L85
+    ILOAD 34
+    I2F
+    INVOKESTATIC androidx/compose/ui/unit/Dp.constructor-impl (F)F
+    GOTO L86
+   L86
+    LINENUMBER 216 L86
+    INVOKESTATIC androidx/compose/foundation/layout/SizeKt.size-3ABfNKs (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
+    ASTORE 36
+   L87
+    LINENUMBER 213 L87
+    ALOAD 31
+   L88
+    LINENUMBER 214 L88
+    LDC "Continue"
+   L89
+    LINENUMBER 216 L89
+    ALOAD 36
+   L90
+    LINENUMBER 215 L90
+    LLOAD 32
+    ALOAD 28
+    SIPUSH 3504
+    ICONST_0
+   L91
+    LINENUMBER 212 L91
+    INVOKESTATIC androidx/compose/material3/IconKt.Icon-ww6aTOc (Landroidx/compose/ui/graphics/vector/ImageVector;Ljava/lang/String;Landroidx/compose/ui/Modifier;JLandroidx/compose/runtime/Composer;II)V
+    ALOAD 28
+   L92
+    LINENUMBER 199 L92
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerEnd (Landroidx/compose/runtime/Composer;)V
+   L93
+    LINENUMBER 218 L93
+    GOTO L94
+   L94
+    NOP
+   L95
+    LINENUMBER 560 L95
+    NOP
+    ALOAD 25
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerEnd (Landroidx/compose/runtime/Composer;)V
+   L96
+    LINENUMBER 559 L96
+    ALOAD 2
+   L97
+    LINENUMBER 563 L97
+    INVOKEINTERFACE androidx/compose/runtime/Composer.endNode ()V (itf)
+    ALOAD 2
+   L98
+    LINENUMBER 538 L98
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerEnd (Landroidx/compose/runtime/Composer;)V
+   L99
+    LINENUMBER 564 L99
+    NOP
+   L100
+    ALOAD 2
+   L101
+    LINENUMBER 532 L101
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerEnd (Landroidx/compose/runtime/Composer;)V
+   L102
+    LINENUMBER 565 L102
+    NOP
+   L103
+    ALOAD 2
+   L104
+    LINENUMBER 524 L104
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.sourceInformationMarkerEnd (Landroidx/compose/runtime/Composer;)V
+   L105
+    LINENUMBER 566 L105
+    GOTO L106
+   L106
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.isTraceInProgress ()Z
+    IFEQ L107
+    INVOKESTATIC androidx/compose/runtime/ComposerKt.traceEventEnd ()V
+   L107
+    GOTO L108
+   L3
+    LINENUMBER 218 L3
+    ALOAD 2
+    INVOKEINTERFACE androidx/compose/runtime/Composer.skipToGroupEnd ()V (itf)
+   L108
+    LINENUMBER 219 L108
+    RETURN
+   L109
+    LOCALVARIABLE $i$f$getDp\1\197 I L7 L8 7
+    LOCALVARIABLE $this$dp\1 I L6 L8 6
+    LOCALVARIABLE $i$f$getDp\10\203 I L65 L66 35
+    LOCALVARIABLE $this$dp\10 I L64 L66 34
+    LOCALVARIABLE $i$f$getDp\11\216 I L85 L86 35
+    LOCALVARIABLE $this$dp\11 I L84 L86 34
+    LOCALVARIABLE $i$a$-Row-ComposableSingletons$LandingScreenKt$lambda-1$1$1\9\560\0 I L59 L94 30
+    LOCALVARIABLE $this$invoke_u24lambda_u240\9 Landroidx/compose/foundation/layout/RowScope; L58 L94 29
+    LOCALVARIABLE $composer\9 Landroidx/compose/runtime/Composer; L58 L94 28
+    LOCALVARIABLE $changed\9 I L58 L94 27
+    LOCALVARIABLE $i$a$-Layout-RowKt$Row$1\8\559\2 I L56 L96 26
+    LOCALVARIABLE $composer\8 Landroidx/compose/runtime/Composer; L55 L96 25
+    LOCALVARIABLE $changed\8 I L55 L96 24
+    LOCALVARIABLE $i$a$-with-Updater$set$1\7\551\6 I L45 L49 23
+    LOCALVARIABLE $this$set_impl_u24lambda_u240\6 Landroidx/compose/runtime/Composer; L44 L49 22
+    LOCALVARIABLE $i$f$set-impl\6\550 I L43 L51 21
+    LOCALVARIABLE block\6 Lkotlin/jvm/functions/Function2; L42 L51 20
+    LOCALVARIABLE $i$a$-ReusableComposeNode-LayoutKt$Layout$1\5\546\3 I L39 L53 19
+    LOCALVARIABLE $this$Layout_u24lambda_u240\5 Landroidx/compose/runtime/Composer; L38 L53 18
+    LOCALVARIABLE $i$f$ReusableComposeNode\4\536 I L28 L100 17
+    LOCALVARIABLE factory\4 Lkotlin/jvm/functions/Function0; L27 L100 15
+    LOCALVARIABLE $changed\4 I L27 L100 16
+    LOCALVARIABLE $i$f$Layout\3\531 I L18 L103 11
+    LOCALVARIABLE compositeKeyHash\3 I L21 L103 12
+    LOCALVARIABLE localMap\3 Landroidx/compose/runtime/CompositionLocalMap; L23 L103 13
+    LOCALVARIABLE materialized\3 Landroidx/compose/ui/Modifier; L25 L103 14
+    LOCALVARIABLE $changed\3 I L17 L103 10
+    LOCALVARIABLE $i$f$Row\2\195 I L11 L106 8
+    LOCALVARIABLE measurePolicy\2 Landroidx/compose/ui/layout/MeasurePolicy; L15 L106 9
+    LOCALVARIABLE modifier\2 Landroidx/compose/ui/Modifier; L14 L106 6
+    LOCALVARIABLE $changed\2 I L10 L106 7
+    LOCALVARIABLE this Lcom/truetap/solana/seeker/ui/screens/landing/ComposableSingletons$LandingScreenKt$lambda-1$1; L0 L109 0
+    LOCALVARIABLE $this$Button Landroidx/compose/foundation/layout/RowScope; L0 L109 1
+    LOCALVARIABLE $composer Landroidx/compose/runtime/Composer; L0 L109 2
+    LOCALVARIABLE $changed I L0 L109 3
+    MAXSTACK = 25
+    MAXLOCALS = 42
+
+File is unknown
+The root cause java.lang.OutOfMemoryError was thrown at: org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer._init_$lambda$0(FastMethodAnalyzer.kt:47)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:89)
+	at org.jetbrains.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:453)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:168)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:1000)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.declarations.IrClass.accept(IrClass.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:593)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitBlock(IrElementVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.gen(ExpressionCodegen.kt:217)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrCallGenerator.genValueAndPut(IrCallGenerator.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:616)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:644)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitFieldAccess(ExpressionCodegen.kt:878)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitFieldAccess(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitSetField(IrElementVisitor.kt:206)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitSetField(ExpressionCodegen.kt:908)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitSetField(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrSetField.accept(IrSetField.kt:21)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:584)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:240)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:123)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:44)
+	... 53 more
+Caused by: java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer._init_$lambda$0(FastMethodAnalyzer.kt:47)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer$$Lambda/0x0000000800dfd538.invoke(Unknown Source)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.fullMergeControlFlowEdge(FastAnalyzer.kt:233)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.mergeControlFlowEdge(FastAnalyzer.kt:216)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.processControlFlowEdge(FastAnalyzer.kt:208)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.processControlFlowEdge$default(FastAnalyzer.kt:206)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.visitOpInsn(FastAnalyzer.kt:292)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.visitMeaningfulInstruction(FastAnalyzer.kt:281)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyzeInstruction(FastAnalyzer.kt:113)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyzeMainLoop(FastAnalyzer.kt:74)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyze(FastAnalyzer.kt:53)
+	at org.jetbrains.kotlin.codegen.optimization.boxing.PopBackwardPropagationTransformer$Transformer.transform(PopBackwardPropagationTransformer.kt:58)
+	at org.jetbrains.kotlin.codegen.optimization.boxing.PopBackwardPropagationTransformer.transform(PopBackwardPropagationTransformer.kt:41)
+	at org.jetbrains.kotlin.codegen.optimization.transformer.CompositeMethodTransformer.transform(CompositeMethodTransformer.kt:25)
+	at org.jetbrains.kotlin.codegen.optimization.OptimizationMethodVisitor.performTransformations(OptimizationMethodVisitor.kt:74)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:67)
+	at org.jetbrains.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:453)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:168)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:1000)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.declarations.IrClass.accept(IrClass.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:593)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitBlock(IrElementVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.gen(ExpressionCodegen.kt:217)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrCallGenerator.genValueAndPut(IrCallGenerator.kt:48)
+
+

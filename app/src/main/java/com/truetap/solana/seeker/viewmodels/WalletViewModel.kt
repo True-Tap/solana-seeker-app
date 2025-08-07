@@ -15,6 +15,10 @@ import com.truetap.solana.seeker.repositories.WalletRepository
 import com.truetap.solana.seeker.repositories.TrueTapContact
 import com.truetap.solana.seeker.repositories.TransactionResult
 import com.truetap.solana.seeker.services.SeedVaultService
+import com.truetap.solana.seeker.services.MwaWalletConnector
+import com.truetap.solana.seeker.services.SeedVaultWalletConnector
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import android.app.Activity
 import com.truetap.solana.seeker.services.NftService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -32,7 +36,9 @@ import javax.inject.Inject
 class WalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     private val seedVaultService: SeedVaultService,
-    val nftService: NftService
+    val nftService: NftService,
+    private val mwaWalletConnector: MwaWalletConnector,
+    private val seedVaultWalletConnector: SeedVaultWalletConnector
 ) : ViewModel() {
 
     val authState: StateFlow<AuthState> = walletRepository.authState
@@ -98,22 +104,23 @@ class WalletViewModel @Inject constructor(
     }
 
     fun signAuthMessage(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+        activity: android.app.Activity?,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>?,
+        activityResultSender: ActivityResultSender?,
         message: String = "Authenticate with True Tap"
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            
-            // TODO: Fix wallet repository method
-            // when (val result = walletRepository.signAuthMessage(activityResultLauncher, message)) {
-            val result = WalletResult.Success("placeholder")
+            _errorMessage.value = null
+            val result = walletRepository.signAuthMessage(
+                activity = activity as? androidx.activity.ComponentActivity,
+                activityResultLauncher = activityResultLauncher,
+                activityResultSender = activityResultSender,
+                message = message
+            )
             when (result) {
-                is WalletResult.Success -> {
-                    _errorMessage.value = null
-                }
-                is WalletResult.Error -> {
-                    _errorMessage.value = result.message
-                }
+                is WalletResult.Success -> _errorMessage.value = null
+                is WalletResult.Error -> _errorMessage.value = result.message
             }
             _isLoading.value = false
         }
@@ -148,6 +155,50 @@ class WalletViewModel @Inject constructor(
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**
+     * Connect to a wallet via the appropriate connector (MWA or Seed Vault) and persist session on success.
+     */
+    suspend fun connectWithWallet(
+        walletType: com.truetap.solana.seeker.data.WalletType,
+        activity: Activity?,
+        activityResultLauncher: androidx.activity.result.ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>?,
+        activityResultSender: ActivityResultSender?
+    ): com.truetap.solana.seeker.data.ConnectionResult {
+        _isLoading.value = true
+        _errorMessage.value = null
+        return try {
+            val connector = when (walletType) {
+                com.truetap.solana.seeker.data.WalletType.SOLANA_SEEKER -> seedVaultWalletConnector
+                else -> mwaWalletConnector
+            }
+
+            val result = connector.connect(
+                com.truetap.solana.seeker.data.ConnectParams(
+                    activityResultSender = activityResultSender,
+                    activity = activity,
+                    activityResultLauncher = activityResultLauncher
+                )
+            )
+
+            if (result is com.truetap.solana.seeker.data.ConnectionResult.Success) {
+                // Persist and update state
+                saveWalletConnection(result)
+            } else if (result is com.truetap.solana.seeker.data.ConnectionResult.Failure) {
+                _errorMessage.value = result.error
+            }
+            result
+        } catch (e: Exception) {
+            _errorMessage.value = e.message
+            com.truetap.solana.seeker.data.ConnectionResult.Failure(
+                error = e.message ?: "Wallet connection failed",
+                exception = e,
+                walletType = walletType
+            )
+        } finally {
+            _isLoading.value = false
         }
     }
     
@@ -234,6 +285,11 @@ class WalletViewModel @Inject constructor(
         viewModelScope.launch {
             val state = _trueTapState.value
             val recipient = state.selectedRecipient ?: return@launch
+            
+            // Prevent concurrent executions
+            if (state.isLoading) {
+                return@launch
+            }
             
             _trueTapState.update { it.copy(isLoading = true) }
             

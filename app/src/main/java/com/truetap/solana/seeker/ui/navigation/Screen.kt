@@ -30,6 +30,10 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object Contacts : Screen("contacts")
     object AddContact : Screen("add_contact")
+    object QRContact : Screen("qr_contact")
+    object NFCContact : Screen("nfc_contact")
+    object BluetoothContact : Screen("bluetooth_contact")
+    object SendLinkContact : Screen("send_link_contact")
     object ContactDetails : Screen("contact_details/{contactId}") {
         fun createRoute(contactId: String) = "contact_details/$contactId"
     }

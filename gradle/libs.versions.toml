@@ -30,6 +30,7 @@ mobileWalletAdapter = "2.0.8"
 solanaKmp = "0.2.9"
 fakeSeedVaultProvider = "0.2.9"
 phosphorIcons = "1.0.0"
+zxing-core = "3.5.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -70,6 +71,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 google-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "googleServices" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing-core" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

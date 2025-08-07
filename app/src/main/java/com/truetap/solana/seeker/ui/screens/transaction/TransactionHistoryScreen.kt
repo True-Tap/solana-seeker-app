@@ -654,11 +654,33 @@ private fun TransactionHistoryItem(
                     fontWeight = FontWeight.Medium,
                     color = TrueTapTextPrimary
                 )
-                Text(
-                    text = transaction.timeAgo,
-                    fontSize = 14.sp,
-                    color = TrueTapTextSecondary
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = transaction.timeAgo,
+                        fontSize = 14.sp,
+                        color = TrueTapTextSecondary
+                    )
+                    
+                    // Show status badge for pending/scheduled transactions
+                    if (transaction.status == com.truetap.solana.seeker.data.models.TransactionStatus.PENDING) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFF9800).copy(alpha = 0.1f),
+                            border = BorderStroke(1.dp, Color(0xFFFF9800).copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                text = "Scheduled",
+                                fontSize = 12.sp,
+                                color = Color(0xFFFF9800),
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
             }
             
             // Transaction Amount

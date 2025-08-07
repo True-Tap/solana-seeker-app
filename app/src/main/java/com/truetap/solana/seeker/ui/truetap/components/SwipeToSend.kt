@@ -115,6 +115,7 @@ fun SwipeToSend(
                 .height(60.dp)
         ) {
             var offsetX by remember { mutableStateOf(0f) }
+            var hasTriggered by remember { mutableStateOf(false) }
             val density = LocalDensity.current
             val buttonSize = with(density) { 60.dp.toPx() }
             val containerWidth = with(density) { maxWidth.toPx() }
@@ -131,8 +132,9 @@ fun SwipeToSend(
             )
             
             // Trigger send when swipe is complete (Apple-style threshold)
-            LaunchedEffect(swipeProgress, isLoading) {
-                if (swipeProgress >= 0.85f && !isLoading) {
+            LaunchedEffect(swipeProgress) {
+                if (swipeProgress >= 0.85f && !isLoading && !hasTriggered) {
+                    hasTriggered = true
                     onSend()
                 }
             }
@@ -141,6 +143,7 @@ fun SwipeToSend(
             LaunchedEffect(isLoading) {
                 if (!isLoading) {
                     offsetX = 0f
+                    hasTriggered = false // Reset for next swipe
                 }
             }
             

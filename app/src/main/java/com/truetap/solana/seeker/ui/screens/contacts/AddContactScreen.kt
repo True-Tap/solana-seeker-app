@@ -26,6 +26,10 @@ import java.util.UUID
 fun AddContactScreen(
     onNavigateBack: () -> Unit,
     onContactAdded: () -> Unit,
+    onNavigateToQRContact: () -> Unit,
+    onNavigateToNFCContact: () -> Unit,
+    onNavigateToBluetoothContact: () -> Unit,
+    onNavigateToSendLinkContact: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ContactsViewModel = hiltViewModel()
 ) {
@@ -161,10 +165,38 @@ fun AddContactScreen(
                     }
                 }
                 
-                // Placeholder for other methods
-                if (selectedMethod != AddContactMethod.MANUAL) {
-                    item {
-                        ComingSoonSection(method = selectedMethod)
+                // Navigation for different contact methods
+                when (selectedMethod) {
+                    AddContactMethod.QR_CODE -> {
+                        item {
+                            LaunchedEffect(selectedMethod) {
+                                onNavigateToQRContact()
+                            }
+                        }
+                    }
+                    AddContactMethod.NFC -> {
+                        item {
+                            LaunchedEffect(selectedMethod) {
+                                onNavigateToNFCContact()
+                            }
+                        }
+                    }
+                    AddContactMethod.BLUETOOTH -> {
+                        item {
+                            LaunchedEffect(selectedMethod) {
+                                onNavigateToBluetoothContact()
+                            }
+                        }
+                    }
+                    AddContactMethod.SEND_LINK -> {
+                        item {
+                            LaunchedEffect(selectedMethod) {
+                                onNavigateToSendLinkContact()
+                            }
+                        }
+                    }
+                    AddContactMethod.MANUAL -> {
+                        // Manual entry form is handled above
                     }
                 }
             }
@@ -502,54 +534,6 @@ private fun WalletEntryCard(
     }
 }
 
-@Composable
-private fun ComingSoonSection(method: AddContactMethod) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = TrueTapContainer),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(40.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = when (method) {
-                    AddContactMethod.NFC -> Icons.Default.Nfc
-                    AddContactMethod.BLUETOOTH -> Icons.Default.Bluetooth
-                    AddContactMethod.QR_CODE -> Icons.Default.QrCode
-                    AddContactMethod.SEND_LINK -> Icons.Default.Share
-                    else -> Icons.Default.Construction
-                },
-                contentDescription = null,
-                tint = TrueTapTextSecondary,
-                modifier = Modifier.size(64.dp)
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = "Coming Soon",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TrueTapTextPrimary,
-                textAlign = TextAlign.Center
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "${method.name.lowercase().replaceFirstChar { it.uppercase() }} contact adding will be available in a future update.",
-                fontSize = 14.sp,
-                color = TrueTapTextSecondary,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
 
 @Composable
 private fun AddContactMethodCard(

@@ -140,6 +140,9 @@ dependencies {
     // Phosphor Icons
     implementation(libs.phosphor.icons)
     
+    // QR Code Generation
+    implementation(libs.zxing.core)
+    
     // Google Services
     implementation(libs.google.services.auth)
     

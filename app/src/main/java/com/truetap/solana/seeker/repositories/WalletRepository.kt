@@ -11,6 +11,9 @@ import com.truetap.solana.seeker.BuildConfig
 import com.truetap.solana.seeker.data.*
 import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
+import com.truetap.solana.seeker.services.MwaWalletConnector
+import com.truetap.solana.seeker.services.SeedVaultWalletConnector
+import androidx.activity.ComponentActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +27,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.random.Random
+import com.truetap.solana.seeker.data.MockData
 
 private val Context.dataStore by preferencesDataStore(name = "wallet_prefs")
 
@@ -31,7 +35,10 @@ private val Context.dataStore by preferencesDataStore(name = "wallet_prefs")
 class WalletRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val seedVaultService: SeedVaultService,
-    private val solanaService: SolanaService
+    private val solanaService: SolanaService,
+    private val mockData: MockData,
+    private val mwaWalletConnector: MwaWalletConnector,
+    private val seedVaultWalletConnector: SeedVaultWalletConnector
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -92,6 +99,40 @@ class WalletRepository @Inject constructor(
             val errorMsg = "Failed to save wallet connection: ${e.message}"
             _authState.value = AuthState.Error(errorMsg)
             WalletResult.Error(e, errorMsg)
+        }
+    }
+
+    /**
+     * Sign an authentication message using the connected wallet
+     */
+    suspend fun signAuthMessage(
+        activity: ComponentActivity?,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>?,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender?,
+        message: String
+    ): WalletResult<ByteArray> {
+        val account = _walletState.value.account
+        if (account == null) {
+            return WalletResult.Error(IllegalStateException("No connected wallet"), "No connected wallet")
+        }
+
+        return when (account.walletType) {
+            WalletType.SOLANA_SEEKER -> {
+                if (activity == null || activityResultLauncher == null) {
+                    return WalletResult.Error(IllegalStateException("Missing activity or launcher"), "Missing activity or launcher")
+                }
+                seedVaultWalletConnector.signMessage(
+                    com.truetap.solana.seeker.data.SignMessageParams(
+                        message = message.toByteArray(),
+                        activity = activity,
+                        activityResultLauncher = activityResultLauncher
+                    )
+                )
+            }
+            WalletType.SOLFLARE, WalletType.PHANTOM, WalletType.EXTERNAL, null -> {
+                // TODO: Implement MWA signMessage via MwaWalletConnector
+                WalletResult.Error(IllegalStateException("MWA signMessage not implemented"), "MWA signMessage not implemented")
+            }
         }
     }
 
@@ -240,13 +281,18 @@ class WalletRepository @Inject constructor(
     
     suspend fun getTrueTapContacts(): List<TrueTapContact> {
         return if (isMockMode) {
-            // Storytelling contacts that showcase our three phases
-            listOf(
-                TrueTapContact("1", "Sarah 🌟", "7xKp9Zf3nQmL4dRt8sFg3nFd"),
-                TrueTapContact("2", "Mike 🚀", "9mNqBxR4vTpL5sYh2kJw8kLp"),
-                TrueTapContact("3", "Crypto Coffee ☕", "3bVnMkZ8xQpR7tLs4wHy9mKl", isMerchant = true),
-                TrueTapContact("4", "Lunch Squad 🍕", "5tReFgY7bNmK3pQr8vXz2nMl", isGroup = true)
-            )
+            // Use centralized MockData for consistent contacts across the app
+            val dataContacts = mockData.getDataContacts()
+            // Convert first 4 contacts to TrueTapContacts format for TrueTap button
+            dataContacts.take(4).map { contact ->
+                TrueTapContact(
+                    id = contact.id,
+                    name = contact.name,
+                    address = contact.walletAddress,
+                    isMerchant = false,
+                    isGroup = false
+                )
+            }
         } else {
             TODO("Implement real contact fetching with MWA 2.2.2")
         }
@@ -284,12 +330,24 @@ class WalletRepository @Inject constructor(
             if (amount > currentBalance) {
                 Result.failure(Exception("Insufficient balance"))
             } else {
+                val timestamp = System.currentTimeMillis()
+                
+                // Add transaction to MockData so it appears in Recent Activity and Transaction History
+                val transactionId = mockData.addTransaction(
+                    type = com.truetap.solana.seeker.data.models.TransactionType.SENT,
+                    amount = amount,
+                    currency = "SOL", // TrueTap uses SOL by default
+                    otherPartyAddress = toAddress,
+                    otherPartyName = null, // Let MockData resolve from contacts
+                    memo = message
+                )
+                
                 Result.success(
                     TransactionResult(
-                        txId = generateMockTransactionId(),
+                        txId = transactionId, // Use the ID from MockData for consistency
                         status = "confirmed",
                         message = message,
-                        timestamp = System.currentTimeMillis()
+                        timestamp = timestamp
                     )
                 )
             }
@@ -299,14 +357,23 @@ class WalletRepository @Inject constructor(
     }
     
     /**
-     * Generates a mock transaction ID that resembles a real Solana transaction signature.
+     * Generates a deterministic mock transaction ID that resembles a real Solana transaction signature.
+     * Uses transaction parameters to create consistent IDs for demo purposes.
      * Real Solana signatures are Base58 encoded and typically 88 characters long.
      */
-    private fun generateMockTransactionId(): String {
+    private fun generateMockTransactionId(toAddress: String, amount: Double, timestamp: Long): String {
         val base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+        
+        // Create a seed from transaction parameters for deterministic generation
+        val seed = "${toAddress}_${amount}_${timestamp / 1000}" // Use seconds for stability
+        val hash = seed.hashCode().toLong()
+        
+        // Use seeded random for consistent but varied output
+        val random = kotlin.random.Random(hash)
+        
         return buildString {
             repeat(88) {
-                append(base58Chars.random())
+                append(base58Chars[random.nextInt(base58Chars.length)])
             }
         }
     }

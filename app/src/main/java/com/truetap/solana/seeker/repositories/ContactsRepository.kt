@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.truetap.solana.seeker.ui.screens.contacts.ModernContact
 import com.truetap.solana.seeker.ui.screens.contacts.ContactWallet
 import com.truetap.solana.seeker.data.models.WalletType
+import com.truetap.solana.seeker.data.MockData
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -39,7 +40,8 @@ data class SerializableContactWallet(
 
 @Singleton
 class ContactsRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val mockData: MockData
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     
@@ -168,46 +170,9 @@ class ContactsRepository @Inject constructor(
     suspend fun initializeSampleDataIfEmpty() {
         val currentContacts = getContacts()
         if (currentContacts.isEmpty()) {
-            val sampleContacts = listOf(
-                ModernContact(
-                    id = "1",
-                    name = "Charlie Brown",
-                    initials = "CB",
-                    wallets = listOf(
-                        ContactWallet("1", "Main Wallet", "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", WalletType.PERSONAL),
-                        ContactWallet("2", "Savings", "8VzCXwBbmkg9ZTbNMqUxvQRAyrZzDsGYdLVL9zYtBXXN", WalletType.PERSONAL)
-                    ),
-                    isFavorite = true
-                ),
-                ModernContact(
-                    id = "2",
-                    name = "Diana Prince",
-                    initials = "DP",
-                    wallets = listOf(
-                        ContactWallet("3", "Business", "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", WalletType.BUSINESS)
-                    ),
-                    isFavorite = true
-                ),
-                ModernContact(
-                    id = "3",
-                    name = "Alice Johnson",
-                    initials = "AJ",
-                    wallets = listOf(
-                        ContactWallet("4", "Personal", "5dSHdvJBQ38YuuHdKHDHFLhMhLCvdV7xB5QH5Y8z9CXD", WalletType.PERSONAL)
-                    ),
-                    isFavorite = false
-                ),
-                ModernContact(
-                    id = "4",
-                    name = "Bob Smith",
-                    initials = "BS",
-                    wallets = listOf(
-                        ContactWallet("5", "Trading", "3mKQrv8fHpPQHhcQdAKYzuG8SN7eCPThjGhNkEKvXX5C", WalletType.PERSONAL)
-                    ),
-                    isFavorite = false
-                )
-            )
-            saveContacts(sampleContacts)
+            // Use centralized MockData for consistent contacts across the app
+            val mockContacts = mockData.getModernContacts()
+            saveContacts(mockContacts)
         }
     }
 }

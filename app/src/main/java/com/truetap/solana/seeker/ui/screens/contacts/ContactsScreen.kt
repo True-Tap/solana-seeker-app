@@ -18,6 +18,7 @@ import com.truetap.solana.seeker.ui.components.layouts.*
 import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.ui.accessibility.LocalAccessibilitySettings
 import com.truetap.solana.seeker.data.models.WalletType
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * ContactsScreen migrated to use TrueTap Design System
@@ -50,47 +51,13 @@ fun ContactsScreen(
         highContrastMode = accessibility.highContrastMode
     )
     
-    // Sample contacts data
-    val contacts = remember {
-        mutableStateListOf(
-            ModernContact(
-                id = "1",
-                name = "Charlie Brown",
-                initials = "CB",
-                wallets = listOf(
-                    ContactWallet("1", "Main Wallet", "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", WalletType.PERSONAL),
-                    ContactWallet("2", "Savings", "8VzCXwBbmkg9ZTbNMqUxvQRAyrZzDsGYdLVL9zYtBXXN", WalletType.PERSONAL)
-                ),
-                isFavorite = true
-            ),
-            ModernContact(
-                id = "2",
-                name = "Diana Prince",
-                initials = "DP",
-                wallets = listOf(
-                    ContactWallet("3", "Business", "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", WalletType.BUSINESS)
-                ),
-                isFavorite = true
-            ),
-            ModernContact(
-                id = "3",
-                name = "Alice Johnson",
-                initials = "AJ",
-                wallets = listOf(
-                    ContactWallet("4", "Personal", "5dSHdvJBQ38YuuHdKHDHFLhMhLCvdV7xB5QH5Y8z9CXD", WalletType.PERSONAL)
-                ),
-                isFavorite = false
-            ),
-            ModernContact(
-                id = "4",
-                name = "Bob Smith",
-                initials = "BS",
-                wallets = listOf(
-                    ContactWallet("5", "Trading", "3mKQrv8fHpPQHhcQdAKYzuG8SN7eCPThjGhNkEKvXX5C", WalletType.PERSONAL)
-                ),
-                isFavorite = false
-            )
-        )
+    // Get contacts from ContactsRepository (which uses MockData)
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val contacts = remember(uiState.filteredContacts) {
+        mutableStateListOf<ModernContact>().apply {
+            clear()
+            addAll(uiState.filteredContacts)
+        }
     }
     
     // Filter and sort contacts

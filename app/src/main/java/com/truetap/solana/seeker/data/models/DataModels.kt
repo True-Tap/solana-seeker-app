@@ -63,7 +63,9 @@ data class Transaction(
     val currency: String,
     val timestamp: Long,
     val memo: String? = null,
-    val status: TransactionStatus = TransactionStatus.COMPLETED
+    val status: TransactionStatus = TransactionStatus.COMPLETED,
+    val otherPartyName: String? = null,
+    val otherPartyAddress: String? = null
 )
 
 enum class TransactionType {

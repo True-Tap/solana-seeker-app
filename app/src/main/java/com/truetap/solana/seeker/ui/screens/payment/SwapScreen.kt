@@ -304,7 +304,7 @@ fun SwapScreen(
                         OutlinedTextField(
                             value = fromAmount,
                             onValueChange = { fromAmount = it },
-                            modifier = Modifier.width(120.dp),
+                            modifier = Modifier.widthIn(min = 140.dp, max = 160.dp),
                             textStyle = androidx.compose.ui.text.TextStyle(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -477,7 +477,7 @@ fun SwapScreen(
                                     fromAmount = calculateConversion(it, selectedTokenTo, selectedTokenFrom)
                                 }
                             },
-                            modifier = Modifier.width(120.dp),
+                            modifier = Modifier.widthIn(min = 140.dp, max = 160.dp),
                             textStyle = androidx.compose.ui.text.TextStyle(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,

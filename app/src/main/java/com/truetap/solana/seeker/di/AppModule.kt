@@ -9,6 +9,8 @@ import com.truetap.solana.seeker.repositories.WalletRepository
 import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
 import com.truetap.solana.seeker.services.MobileWalletAdapterService
+import com.truetap.solana.seeker.services.MwaWalletConnector
+import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,9 +42,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideContactsRepository(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        mockData: com.truetap.solana.seeker.data.MockData
     ): ContactsRepository {
-        return ContactsRepository(context)
+        return ContactsRepository(context, mockData)
     }
 
     @Provides
@@ -50,9 +53,19 @@ object AppModule {
     fun provideWalletRepository(
         @ApplicationContext context: Context,
         seedVaultService: SeedVaultService,
-        solanaService: SolanaService
+        solanaService: SolanaService,
+        mockData: com.truetap.solana.seeker.data.MockData,
+        mwaWalletConnector: MwaWalletConnector,
+        seedVaultWalletConnector: SeedVaultWalletConnector
     ): WalletRepository {
-        return WalletRepository(context, seedVaultService, solanaService)
+        return WalletRepository(
+            context,
+            seedVaultService,
+            solanaService,
+            mockData,
+            mwaWalletConnector,
+            seedVaultWalletConnector
+        )
     }
 
     @Provides
@@ -69,5 +82,21 @@ object AppModule {
         @ApplicationContext context: Context
     ): MobileWalletAdapterService {
         return MobileWalletAdapterService(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMwaWalletConnector(
+        mobileWalletAdapterService: MobileWalletAdapterService
+    ): MwaWalletConnector {
+        return MwaWalletConnector(mobileWalletAdapterService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSeedVaultWalletConnector(
+        seedVaultManager: com.truetap.solana.seeker.seedvault.SeedVaultManager
+    ): SeedVaultWalletConnector {
+        return SeedVaultWalletConnector(seedVaultManager)
     }
 } 
