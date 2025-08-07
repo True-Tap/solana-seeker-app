@@ -426,7 +426,8 @@ fun NavGraph(
             
             SendPaymentScreen(
                 onNavigateBack = { navController.popBackStack() },
-                recipientAddress = recipientAddress
+                recipientAddress = recipientAddress,
+                activityResultSender = activityResultSender
             )
         }
         

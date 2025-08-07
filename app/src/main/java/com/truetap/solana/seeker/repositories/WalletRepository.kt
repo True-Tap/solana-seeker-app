@@ -15,6 +15,9 @@ import com.truetap.solana.seeker.services.SolanaRpcService
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import com.truetap.solana.seeker.services.TransactionBuilder
+import com.solana.mobilewalletadapter.clientlib.TransactionResult as MwaTransactionResult
+import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
+import org.bitcoinj.core.Base58
 import androidx.activity.ComponentActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -326,7 +329,8 @@ class WalletRepository @Inject constructor(
     suspend fun sendTransaction(
         toAddress: String, 
         amount: Double, 
-        message: String? = null
+        message: String? = null,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
     ): Result<TransactionResult> {
         return if (isMockMode) {
             delay(1000) // Simulate network delay
@@ -368,8 +372,35 @@ class WalletRepository @Inject constructor(
                     lamports = lamports,
                     recentBlockhash = blockhash
                 )
-                val signedPayloadResult = when (account.walletType) {
-                    WalletType.SOLANA_SEEKER -> seedVaultWalletConnector.signTransaction(
+                if (account.walletType == WalletType.SOLFLARE || account.walletType == WalletType.PHANTOM || account.walletType == WalletType.EXTERNAL) {
+                    val sender = activityResultSender ?: return Result.failure(IllegalStateException("Missing ActivityResultSender for MWA"))
+                    val adapter = com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter
+                    val mwaResult: MwaTransactionResult<*> = adapter.transact(sender) {
+                        signAndSendTransactions(arrayOf(payload))
+                    }
+                    return when (mwaResult) {
+                        is MwaTransactionResult.Success<*> -> {
+                            val payload = (mwaResult as MwaTransactionResult.Success<*>).let { it.payload }
+                            val signatures = (payload as? MobileWalletAdapterClient.SignAndSendTransactionsResult)?.signatures
+                            val signatureBase58 = signatures?.firstOrNull()?.let { bytes -> Base58.encode(bytes) }
+                            if (signatureBase58 != null) {
+                                Result.success(
+                                    TransactionResult(
+                                        txId = signatureBase58,
+                                        status = "submitted",
+                                        message = message,
+                                        timestamp = System.currentTimeMillis()
+                                    )
+                                )
+                            } else {
+                                Result.failure(IllegalStateException("No signature returned from wallet"))
+                            }
+                        }
+                        is MwaTransactionResult.NoWalletFound -> Result.failure(IllegalStateException("No compatible wallet found"))
+                        is MwaTransactionResult.Failure -> Result.failure(mwaResult.e)
+                    }
+                } else {
+                    val signedPayloadResult = seedVaultWalletConnector.signTransaction(
                         com.truetap.solana.seeker.data.SignTransactionParams(
                             transaction = payload,
                             activity = null,
@@ -377,19 +408,10 @@ class WalletRepository @Inject constructor(
                             activityResultSender = null
                         )
                     )
-                    else -> mwaWalletConnector.signTransaction(
-                        com.truetap.solana.seeker.data.SignTransactionParams(
-                            transaction = payload,
-                            activity = null,
-                            activityResultLauncher = null,
-                            activityResultSender = null
-                        )
-                    )
-                }
-                return when (signedPayloadResult) {
-                    is WalletResult.Success -> {
-                        val signedBase64 = android.util.Base64.encodeToString(signedPayloadResult.data, android.util.Base64.NO_WRAP)
-                        val signature = solanaRpcService.sendTransaction(signedBase64)
+                    return when (signedPayloadResult) {
+                        is WalletResult.Success -> {
+                            val signedBase64 = android.util.Base64.encodeToString(signedPayloadResult.data, android.util.Base64.NO_WRAP)
+                            val signature = solanaRpcService.sendTransaction(signedBase64)
                         Result.success(
                             TransactionResult(
                                 txId = signature,
@@ -398,8 +420,9 @@ class WalletRepository @Inject constructor(
                                 timestamp = System.currentTimeMillis()
                             )
                         )
+                        }
+                        is WalletResult.Error -> Result.failure(Exception(signedPayloadResult.message))
                     }
-                    is WalletResult.Error -> Result.failure(Exception(signedPayloadResult.message))
                 }
             } catch (e: Exception) {
                 Result.failure(e)

@@ -142,7 +142,7 @@ class SendPaymentViewModel @Inject constructor(
         validateAmount(_uiState.value.amount)
     }
     
-    fun sendPayment() {
+    fun sendPayment(activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null) {
         val currentState = _uiState.value
         
         if (!currentState.isFormValid) {
@@ -157,7 +157,8 @@ class SendPaymentViewModel @Inject constructor(
                 val result = walletRepository.sendTransaction(
                     toAddress = currentState.recipientAddress,
                     amount = amountDouble,
-                    message = currentState.memo.takeIf { it.isNotBlank() }
+                    message = currentState.memo.takeIf { it.isNotBlank() },
+                    activityResultSender = activityResultSender
                 )
                 result.onSuccess { tx ->
                     _uiState.update {
