@@ -50,16 +50,27 @@ class MobileWalletAdapterService @Inject constructor(
             when (connectResult) {
                 is TransactionResult.Success<*> -> {
                     Log.d(TAG, "MWA authorization successful for ${walletType.displayName}")
-                    
-                    // Generate success result - the connect() ensures the prompt was shown
-                    val publicKey = generateAuthKey(walletType)
+                    // Extract AuthorizationResult fields per MWA docs
+                    val authResult = connectResult.authResult
+                    val firstAccount = authResult.accounts.firstOrNull()
+                    val publicKeyBase58 = firstAccount?.publicKey?.let { pk ->
+                        try { org.bitcoinj.core.Base58.encode(pk) } catch (_: Exception) { null }
+                    }
                     val accountLabel = "${walletType.displayName} Wallet"
-                    val authToken = "mwa_auth_${System.currentTimeMillis()}"
-                    
-                    Log.d(TAG, "MWA auth successful - publicKey: $publicKey, label: $accountLabel")
-                    
+                    val authToken = authResult.authToken
+
+                    if (publicKeyBase58.isNullOrEmpty()) {
+                        Log.w(TAG, "MWA auth success but no account public key returned")
+                        return ConnectionResult.Failure(
+                            error = "Wallet did not return a public key",
+                            walletType = walletType
+                        )
+                    }
+
+                    Log.d(TAG, "MWA auth successful - publicKey: $publicKeyBase58, label: $accountLabel")
+
                     ConnectionResult.Success(
-                        publicKey = publicKey,
+                        publicKey = publicKeyBase58,
                         accountLabel = accountLabel,
                         walletType = walletType,
                         authToken = authToken
@@ -92,13 +103,5 @@ class MobileWalletAdapterService @Inject constructor(
         }
     }
     
-    
-    private fun generateAuthKey(walletType: WalletType): String {
-        // Generate deterministic key after successful auth
-        return when (walletType) {
-            WalletType.SOLFLARE -> "So1fLareAuthKey1111111111111111111111"
-            WalletType.PHANTOM -> "PhantomAuthKey1111111111111111111111"
-            else -> "AuthWalletKey111111111111111111111111"
-        }
-    }
+    // Removed stub key generation; now using actual account from MWA auth result
 }

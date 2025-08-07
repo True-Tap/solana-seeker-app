@@ -17,7 +17,8 @@ interface WalletConnector {
 data class ConnectParams(
     val activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
     val activity: Activity? = null,
-    val activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null
+    val activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null,
+    val targetWalletType: WalletType? = null
 )
 
 data class SignMessageParams(
