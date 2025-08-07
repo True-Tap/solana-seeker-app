@@ -28,6 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import com.truetap.solana.seeker.BuildConfig
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.ui.screens.home.BottomNavItem
@@ -40,6 +44,8 @@ import com.truetap.solana.seeker.viewmodels.SwapViewModel
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import com.truetap.solana.seeker.domain.model.CryptoToken
 import com.truetap.solana.seeker.domain.model.SwapQuote
+import com.truetap.solana.seeker.data.WalletTransaction
+import com.truetap.solana.seeker.data.TransactionType
 
 enum class SwapState {
     None,
@@ -131,6 +137,7 @@ fun SwapScreen(
             .fillMaxSize()
             .background(TrueTapBackground)
     ) {
+        val context = LocalContext.current
         // Main content area
         Column(
             modifier = Modifier
@@ -186,6 +193,43 @@ fun SwapScreen(
             }
             
             Spacer(modifier = Modifier.height(12.dp))
+            // Empty-state: only SOL held
+            val hasOnlySol = (availableTokens.size <= 1)
+            if (hasOnlySol) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF7FBFF))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Add USDC to start swapping",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "We only detected SOL in your wallet. You can acquire USDC via on-ramp or swap when available.",
+                            fontSize = 12.sp,
+                            color = TrueTapTextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                val url = "https://jup.ag/swap/SOL-USDC"
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(text = "Get USDC", color = Color.White)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             // Network congestion banner (optional)
             swapUiState.networkCongestionMessage?.let { msg ->
                 Text(
@@ -402,8 +446,33 @@ fun SwapScreen(
                                     text = "MAX",
                                     fontSize = 10.sp,
                                     color = TrueTapPrimary,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.clickable {
+                                        val bal = getBalanceFor(selectedTokenFrom)
+                                        val decimals = if (selectedTokenFrom.equals("SOL", true)) 6 else 2
+                                        fromAmount = "% .${decimals}f".format(bal).trim()
+                                        toAmount = calculateConversion(fromAmount, selectedTokenFrom, selectedTokenTo)
+                                    }
                                 )
+                            }
+                            // Quick amount selectors
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val percents = listOf(25, 50, 75, 100)
+                                percents.forEach { p ->
+                                    AssistChip(
+                                        onClick = {
+                                            val bal = getBalanceFor(selectedTokenFrom)
+                                            val use = if (p == 100) bal else bal * (p / 100f)
+                                            val decimals = if (selectedTokenFrom.equals("SOL", true)) 6 else 2
+                                            fromAmount = "% .${decimals}f".format(use).trim()
+                                            toAmount = calculateConversion(fromAmount, selectedTokenFrom, selectedTokenTo)
+                                        },
+                                        label = { Text("${p}%") },
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, TrueTapTextSecondary.copy(alpha = 0.2f))
+                                    )
+                                }
                             }
                         }
                     }
@@ -700,7 +769,11 @@ fun SwapScreen(
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary),
                 shape = RoundedCornerShape(12.dp),
-                enabled = fromAmount.isNotEmpty() && fromAmount != "0.00" && toAmount.isNotEmpty() && toAmount != "0.00"
+                enabled = run {
+                    val amt = fromAmount.toFloatOrNull() ?: 0f
+                    val bal = getBalanceFor(selectedTokenFrom)
+                    amt > 0f && toAmount.isNotEmpty() && toAmount != "0.00" && amt <= bal
+                }
             ) {
                 Text(
                     text = "Review Swap",
@@ -709,8 +782,57 @@ fun SwapScreen(
                     color = Color.White
                 )
             }
+            // Insufficient balance inline warning
+            val amtVal = fromAmount.toFloatOrNull() ?: 0f
+            val balVal = getBalanceFor(selectedTokenFrom)
+            if (amtVal > balVal && amtVal > 0f) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Insufficient ${selectedTokenFrom} balance",
+                    color = Color(0xFFFF4757),
+                    fontSize = 12.sp
+                )
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
+            // Recent swaps recap
+            val recentSwaps = walletState.transactions.filter { it.type == TransactionType.SWAP }.take(3)
+            if (recentSwaps.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = TrueTapContainer)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Recent swaps", fontSize = 12.sp, color = TrueTapTextSecondary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        recentSwaps.forEach { tx ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = tx.signature.take(8) + "…",
+                                    fontSize = 12.sp,
+                                    color = TrueTapTextPrimary
+                                )
+                                Text(
+                                    text = "View",
+                                    fontSize = 12.sp,
+                                    color = TrueTapPrimary,
+                                    modifier = Modifier.clickable {
+                                        val cluster = if (BuildConfig.DEBUG) "?cluster=devnet" else ""
+                                        val url = "https://solscan.io/tx/${tx.signature}${cluster}"
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
         
         // Bottom Navigation Bar
