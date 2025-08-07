@@ -17,9 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SchedulePaymentViewModel @Inject constructor(
-    // TODO: Inject actual services when available
-    // private val walletService: WalletService,
-    // private val schedulePaymentService: SchedulePaymentService
+    private val walletRepository: com.truetap.solana.seeker.repositories.WalletRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SchedulePaymentUiState())
@@ -145,42 +143,18 @@ class SchedulePaymentViewModel @Inject constructor(
     
     private fun loadWalletInfo() {
         viewModelScope.launch {
-            try {
-                // TODO: Replace with actual wallet service calls
-                /*
-                val walletService = WalletFactory.getInstance() as SolanaWalletService
-                val connected = walletService.isWalletConnected()
-                
-                val balances = if (connected) {
-                    val tokenBalances = walletService.getTokenBalances()
-                    mapOf(
-                        "SOL" to (tokenBalances.find { it.symbol == "SOL" }?.uiAmount ?: 0.0),
-                        "USDC" to (tokenBalances.find { it.symbol == "USDC" }?.uiAmount ?: 0.0),
-                        "BONK" to (tokenBalances.find { it.symbol == "BONK" }?.uiAmount ?: 0.0)
-                    )
-                } else {
-                    mapOf("SOL" to 0.0, "USDC" to 0.0, "BONK" to 0.0)
+            walletRepository.walletState.collect { state ->
+                val isConnected = state.account != null
+                val sol = state.balance?.solBalance?.toDouble() ?: 0.0
+                val balances = buildMap<String, Double> {
+                    put("SOL", sol)
+                    state.balance?.tokenBalances?.forEach { tb ->
+                        put(tb.symbol, tb.uiAmount)
+                    }
                 }
-                */
-                
-                // Simulate wallet data for now
-                val connected = true
-                val balances = mapOf(
-                    "SOL" to 25.4567,
-                    "USDC" to 1250.0,
-                    "BONK" to 1000000.0
-                )
-                
                 _uiState.value = _uiState.value.copy(
-                    walletConnected = connected,
+                    walletConnected = isConnected,
                     tokenBalances = balances
-                )
-                
-            } catch (e: Exception) {
-                // Handle wallet loading error silently
-                _uiState.value = _uiState.value.copy(
-                    walletConnected = false,
-                    tokenBalances = mapOf("SOL" to 0.0, "USDC" to 0.0, "BONK" to 0.0)
                 )
             }
         }
