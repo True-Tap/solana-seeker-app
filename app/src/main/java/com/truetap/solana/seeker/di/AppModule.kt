@@ -40,9 +40,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideContactsRepository(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        mockData: com.truetap.solana.seeker.data.MockData
     ): ContactsRepository {
-        return ContactsRepository(context)
+        return ContactsRepository(context, mockData)
     }
 
     @Provides
@@ -50,9 +51,10 @@ object AppModule {
     fun provideWalletRepository(
         @ApplicationContext context: Context,
         seedVaultService: SeedVaultService,
-        solanaService: SolanaService
+        solanaService: SolanaService,
+        mockData: com.truetap.solana.seeker.data.MockData
     ): WalletRepository {
-        return WalletRepository(context, seedVaultService, solanaService)
+        return WalletRepository(context, seedVaultService, solanaService, mockData)
     }
 
     @Provides

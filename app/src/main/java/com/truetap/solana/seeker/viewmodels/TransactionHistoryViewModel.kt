@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.truetap.solana.seeker.data.WalletTransaction
 import com.truetap.solana.seeker.data.TransactionType as WalletTransactionType
 import com.truetap.solana.seeker.data.models.TransactionType
+import com.truetap.solana.seeker.data.models.Transaction as DataTransaction
+import com.truetap.solana.seeker.data.models.TransactionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,12 +27,14 @@ data class Transaction(
     val amount: String,
     val otherParty: String,
     val token: String,
-    val timeAgo: String
+    val timeAgo: String,
+    val status: TransactionStatus? = null
 )
 
 @HiltViewModel
 class TransactionHistoryViewModel @Inject constructor(
-    private val walletRepository: com.truetap.solana.seeker.repositories.WalletRepository
+    private val walletRepository: com.truetap.solana.seeker.repositories.WalletRepository,
+    private val mockData: com.truetap.solana.seeker.data.MockData
 ) : ViewModel() {
 
     // UI State
@@ -53,13 +57,15 @@ class TransactionHistoryViewModel @Inject constructor(
     val isSortExpanded: StateFlow<Boolean> = _uiState.map { it.isSortExpanded }
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), false)
 
-    // Combined filtered and sorted transactions
+    // Combined filtered and sorted transactions using MockData
     val filteredTransactions: StateFlow<List<Transaction>> = combine(
-        walletRepository.walletState,
+        // Create a flow that emits whenever we want to refresh transactions
+        MutableStateFlow(System.currentTimeMillis()),
         _uiState
-    ) { walletState, uiState ->
-        val rawTransactions = walletState.transactions.map { walletTransaction ->
-            walletTransaction.toDisplayTransaction()
+    ) { _, uiState ->
+        // Get transactions from MockData which includes scheduled payments
+        val rawTransactions = mockData.getAllTransactions().map { dataTransaction ->
+            dataTransaction.toDisplayTransaction()
         }
         
         val filteredTransactions = rawTransactions
@@ -174,7 +180,36 @@ class TransactionHistoryViewModel @Inject constructor(
         _uiState.update { it.copy(searchQuery = query) }
     }
 
-    // Helper functions
+    // Helper functions for MockData  
+    private fun DataTransaction.toDisplayTransaction(): Transaction {
+        // Convert transaction type from MockData format
+        val transactionType = when (this.type) {
+            com.truetap.solana.seeker.data.models.TransactionType.SENT -> TransactionType.SENT
+            com.truetap.solana.seeker.data.models.TransactionType.RECEIVED -> TransactionType.RECEIVED
+            com.truetap.solana.seeker.data.models.TransactionType.SWAPPED -> TransactionType.SWAPPED
+        }
+        
+        // Use the otherPartyName from MockData, with fallback to address
+        val otherParty = this.otherPartyName ?: run {
+            when (transactionType) {
+                TransactionType.SENT -> this.otherPartyAddress?.take(8) ?: "Recipient"
+                TransactionType.RECEIVED -> this.otherPartyAddress?.take(8) ?: "Sender"
+                TransactionType.SWAPPED -> "Exchange"
+            }
+        }
+        
+        return Transaction(
+            id = this.id,
+            type = transactionType,
+            amount = String.format("%.2f", this.amount),
+            otherParty = otherParty,
+            token = this.currency,
+            timeAgo = formatTimeAgo(this.timestamp),
+            status = this.status
+        )
+    }
+    
+    // Legacy helper function for WalletRepository transactions  
     private fun WalletTransaction.toDisplayTransaction(): Transaction {
         val walletState = walletRepository.walletState.value
         val currentWalletAddress = walletState.account?.publicKey
@@ -212,7 +247,8 @@ class TransactionHistoryViewModel @Inject constructor(
             amount = this.amount?.abs()?.toPlainString() ?: "0.00",
             otherParty = otherPartyAddress?.take(8) ?: "Unknown",
             token = tokenSymbol,
-            timeAgo = formatTimeAgo(this.blockTime * 1000) // Convert to milliseconds
+            timeAgo = formatTimeAgo(this.blockTime * 1000), // Convert to milliseconds
+            status = TransactionStatus.COMPLETED // Legacy transactions are always completed
         )
     }
 

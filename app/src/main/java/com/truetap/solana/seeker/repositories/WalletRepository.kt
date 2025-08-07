@@ -24,6 +24,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.random.Random
+import com.truetap.solana.seeker.data.MockData
 
 private val Context.dataStore by preferencesDataStore(name = "wallet_prefs")
 
@@ -31,7 +32,8 @@ private val Context.dataStore by preferencesDataStore(name = "wallet_prefs")
 class WalletRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val seedVaultService: SeedVaultService,
-    private val solanaService: SolanaService
+    private val solanaService: SolanaService,
+    private val mockData: MockData
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -240,13 +242,18 @@ class WalletRepository @Inject constructor(
     
     suspend fun getTrueTapContacts(): List<TrueTapContact> {
         return if (isMockMode) {
-            // Storytelling contacts that showcase our three phases
-            listOf(
-                TrueTapContact("1", "Sarah 🌟", "7xKp9Zf3nQmL4dRt8sFg3nFd"),
-                TrueTapContact("2", "Mike 🚀", "9mNqBxR4vTpL5sYh2kJw8kLp"),
-                TrueTapContact("3", "Crypto Coffee ☕", "3bVnMkZ8xQpR7tLs4wHy9mKl", isMerchant = true),
-                TrueTapContact("4", "Lunch Squad 🍕", "5tReFgY7bNmK3pQr8vXz2nMl", isGroup = true)
-            )
+            // Use centralized MockData for consistent contacts across the app
+            val dataContacts = mockData.getDataContacts()
+            // Convert first 4 contacts to TrueTapContacts format for TrueTap button
+            dataContacts.take(4).map { contact ->
+                TrueTapContact(
+                    id = contact.id,
+                    name = contact.name,
+                    address = contact.walletAddress,
+                    isMerchant = false,
+                    isGroup = false
+                )
+            }
         } else {
             TODO("Implement real contact fetching with MWA 2.2.2")
         }

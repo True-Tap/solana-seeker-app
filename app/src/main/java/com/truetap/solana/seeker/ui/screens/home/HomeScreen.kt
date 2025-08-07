@@ -84,7 +84,8 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToTransactionHistory: () -> Unit = {},
     modifier: Modifier = Modifier,
-    walletViewModel: WalletViewModel = hiltViewModel()
+    walletViewModel: WalletViewModel = hiltViewModel(),
+    homeViewModel: HomeViewModel = hiltViewModel()
 ) {
     var isBalanceVisible by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(BottomNavItem.HOME) }
@@ -164,11 +165,8 @@ fun HomeScreen(
     val userName = "Emory"
     val currentDate = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(Date())
     
-    val recentTransactions = listOf(
-        Transaction("1", TransactionType.RECEIVED, "25.5", "Les Grossman", "2 min ago"),
-        Transaction("2", TransactionType.SENT, "12", "Sarah Kim", "1 hour ago"),
-        Transaction("3", TransactionType.RECEIVED, "8.75", "Mike Johnson", "3 hours ago")
-    )
+    // Get recent transactions from MockData via ViewModel
+    val recentTransactions by homeViewModel.recentTransactions.collectAsState()
 
     Column(
         modifier = modifier
