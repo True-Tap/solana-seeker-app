@@ -437,7 +437,9 @@ class MockData @Inject constructor() {
         runtimeTransactions.add(0, transaction) // Add to beginning for most recent first
         
         // Emit updated transactions to reactive flow
-        _transactionsFlow.value = getAllTransactions()
+        val updatedTransactions = getAllTransactions()
+        _transactionsFlow.value = updatedTransactions
+        
         
         return transactionId
     }

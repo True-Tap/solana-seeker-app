@@ -83,6 +83,7 @@ fun HomeScreen(
     onNavigateToContacts: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToTransactionHistory: () -> Unit = {},
+    onNavigateToSchedule: () -> Unit = {},
     modifier: Modifier = Modifier,
     walletViewModel: WalletViewModel = hiltViewModel(),
     homeViewModel: HomeViewModel = hiltViewModel()
@@ -241,7 +242,7 @@ fun HomeScreen(
                 ActionButtonsSection(
                     onTrueTap = { showTrueTapSheet = true },
                     onContacts = { onNavigateToContacts() },
-                    onSchedule = { /* Navigate to Schedule */ }
+                    onSchedule = { onNavigateToSchedule() }
                 )
             }
             

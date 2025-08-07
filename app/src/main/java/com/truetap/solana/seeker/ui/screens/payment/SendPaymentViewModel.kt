@@ -178,7 +178,7 @@ class SendPaymentViewModel @Inject constructor(
                     )
                 }
                 
-                println("Payment sent successfully: ${currentState.amount} ${currentState.selectedToken} to ${currentState.recipientAddress}")
+                // Payment successful - UI state updated with result
                 
             } catch (error: Exception) {
                 _uiState.update {
@@ -255,7 +255,7 @@ class SendPaymentViewModel @Inject constructor(
                     )
                 }
                 
-                println("Payment scheduled successfully: ${currentState.amount} ${currentState.selectedToken} to ${currentState.recipientAddress} starting ${startDate}")
+                // Payment scheduled successfully - UI state updated with result
                 
             } catch (error: Exception) {
                 _uiState.update {
@@ -283,8 +283,8 @@ class SendPaymentViewModel @Inject constructor(
                 // val walletService = WalletFactory.getInstance() as SolanaWalletService
                 // val connected = walletService.isWalletConnected()
                 
-                // Simulate loading wallet info
-                delay(500)
+                // Simulate loading wallet info - removed delay to fix validation issue
+                // delay(500)
                 
                 _uiState.update { currentState ->
                     currentState.copy(
@@ -313,7 +313,7 @@ class SendPaymentViewModel @Inject constructor(
                 }
             } catch (error: Exception) {
                 // Silently fail for contacts - not critical for payment functionality
-                println("Failed to load contacts: ${error.message}")
+                // Contacts loading failed - not critical for payment functionality
             }
         }
     }

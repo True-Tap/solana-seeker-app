@@ -291,12 +291,24 @@ class WalletRepository @Inject constructor(
             if (amount > currentBalance) {
                 Result.failure(Exception("Insufficient balance"))
             } else {
+                val timestamp = System.currentTimeMillis()
+                
+                // Add transaction to MockData so it appears in Recent Activity and Transaction History
+                val transactionId = mockData.addTransaction(
+                    type = com.truetap.solana.seeker.data.models.TransactionType.SENT,
+                    amount = amount,
+                    currency = "SOL", // TrueTap uses SOL by default
+                    otherPartyAddress = toAddress,
+                    otherPartyName = null, // Let MockData resolve from contacts
+                    memo = message
+                )
+                
                 Result.success(
                     TransactionResult(
-                        txId = generateMockTransactionId(),
+                        txId = transactionId, // Use the ID from MockData for consistency
                         status = "confirmed",
                         message = message,
-                        timestamp = System.currentTimeMillis()
+                        timestamp = timestamp
                     )
                 )
             }
@@ -306,14 +318,23 @@ class WalletRepository @Inject constructor(
     }
     
     /**
-     * Generates a mock transaction ID that resembles a real Solana transaction signature.
+     * Generates a deterministic mock transaction ID that resembles a real Solana transaction signature.
+     * Uses transaction parameters to create consistent IDs for demo purposes.
      * Real Solana signatures are Base58 encoded and typically 88 characters long.
      */
-    private fun generateMockTransactionId(): String {
+    private fun generateMockTransactionId(toAddress: String, amount: Double, timestamp: Long): String {
         val base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+        
+        // Create a seed from transaction parameters for deterministic generation
+        val seed = "${toAddress}_${amount}_${timestamp / 1000}" // Use seconds for stability
+        val hash = seed.hashCode().toLong()
+        
+        // Use seeded random for consistent but varied output
+        val random = kotlin.random.Random(hash)
+        
         return buildString {
             repeat(88) {
-                append(base58Chars.random())
+                append(base58Chars[random.nextInt(base58Chars.length)])
             }
         }
     }

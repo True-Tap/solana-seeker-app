@@ -163,10 +163,6 @@ fun WalletConnectionScreen(
         }
     }
 
-    // Handle temp bypass
-    val handleTempBypass: () -> Unit = {
-        onNavigateToNext()
-    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -176,8 +172,7 @@ fun WalletConnectionScreen(
             ConnectionState.Selection -> WalletSelectionContent(
                 walletCategories = walletCategories,
                 onWalletCategorySelect = handleWalletCategorySelect,
-                onCreateWalletWithSolflare = handleCreateWalletWithSolflare,
-                onTempBypass = handleTempBypass
+                onCreateWalletWithSolflare = handleCreateWalletWithSolflare
             )
             ConnectionState.Success -> WalletSuccessContent()
         }
@@ -188,8 +183,7 @@ fun WalletConnectionScreen(
 private fun WalletSelectionContent(
     walletCategories: List<WalletCategory>,
     onWalletCategorySelect: (String) -> Unit,
-    onCreateWalletWithSolflare: () -> Unit,
-    onTempBypass: () -> Unit
+    onCreateWalletWithSolflare: () -> Unit
 ) {
     // Bounce animation for Tappy
     val infiniteTransition = rememberInfiniteTransition(label = "TappyBounce")
@@ -324,47 +318,6 @@ private fun WalletSelectionContent(
                     fontWeight = FontWeight.Bold,  // Changed from SemiBold
                     color = TrueTapPrimary
                 )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Temp Bypass Button - Connect Wallet style
-            Button(
-                onClick = onTempBypass,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-                    .padding(horizontal = 32.dp)
-                    .semantics { 
-                        contentDescription = "Temporary bypass for testing. Skip wallet connection and continue to app"
-                    },
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = TrueTapPrimary
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 6.dp,
-                    pressedElevation = 3.dp
-                )
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "🚀 TEMP BYPASS",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Continue",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
         }
     }

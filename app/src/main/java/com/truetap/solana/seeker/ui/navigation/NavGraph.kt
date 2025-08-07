@@ -32,12 +32,16 @@ import com.truetap.solana.seeker.ui.screens.dashboard.DashboardScreen
 import com.truetap.solana.seeker.ui.screens.contacts.ContactsScreen
 import com.truetap.solana.seeker.ui.screens.contacts.ContactDetailsScreen
 import com.truetap.solana.seeker.ui.screens.contacts.AddContactScreen
+import com.truetap.solana.seeker.ui.screens.contacts.QRContactScreen
+import com.truetap.solana.seeker.ui.screens.contacts.NFCContactScreen
+import com.truetap.solana.seeker.ui.screens.contacts.BluetoothContactScreen
+import com.truetap.solana.seeker.ui.screens.contacts.SendLinkContactScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.truetap.solana.seeker.ui.screens.payment.PaymentScreen
 import com.truetap.solana.seeker.ui.screens.payment.EnhancedSwapScreen
 import com.truetap.solana.seeker.ui.screens.payment.SendPaymentScreen
-import com.truetap.solana.seeker.ui.screens.payment.SchedulePaymentScreen
-import com.truetap.solana.seeker.presentation.screens.scheduled.ScheduledPaymentScreen
+import com.truetap.solana.seeker.ui.screens.schedule.CreateScheduledPaymentScreen
+import com.truetap.solana.seeker.ui.screens.schedule.ScheduleScreen
 import com.truetap.solana.seeker.ui.screens.nft.NFTsScreen
 import com.truetap.solana.seeker.ui.screens.settings.SettingsScreen
 import com.truetap.solana.seeker.ui.screens.bluetooth.BluetoothDiscoveryScreen
@@ -305,7 +309,8 @@ fun NavGraph(
                 onNavigateToNFTs = { navController.navigate(Screen.NFTs.route) },
                 onNavigateToContacts = { navController.navigate(Screen.Contacts.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                onNavigateToTransactionHistory = { navController.navigate(Screen.TransactionHistory.route) }
+                onNavigateToTransactionHistory = { navController.navigate(Screen.TransactionHistory.route) },
+                onNavigateToSchedule = { navController.navigate(Screen.ScheduledPayments.route) }
             )
         }
         
@@ -330,7 +335,35 @@ fun NavGraph(
         composable(Screen.AddContact.route) {
             AddContactScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onContactAdded = { navController.popBackStack() }
+                onContactAdded = { navController.popBackStack() },
+                onNavigateToQRContact = { navController.navigate(Screen.QRContact.route) },
+                onNavigateToNFCContact = { navController.navigate(Screen.NFCContact.route) },
+                onNavigateToBluetoothContact = { navController.navigate(Screen.BluetoothContact.route) },
+                onNavigateToSendLinkContact = { navController.navigate(Screen.SendLinkContact.route) }
+            )
+        }
+        
+        composable(Screen.QRContact.route) {
+            QRContactScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.NFCContact.route) {
+            NFCContactScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.BluetoothContact.route) {
+            BluetoothContactScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.SendLinkContact.route) {
+            SendLinkContactScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         
@@ -398,14 +431,15 @@ fun NavGraph(
         }
         
         composable(Screen.SchedulePayment.route) {
-            SchedulePaymentScreen(
+            CreateScheduledPaymentScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         
         composable(Screen.ScheduledPayments.route) {
-            ScheduledPaymentScreen(
-                onNavigateBack = { navController.popBackStack() }
+            ScheduleScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToCreatePayment = { navController.navigate(Screen.SchedulePayment.route) }
             )
         }
         

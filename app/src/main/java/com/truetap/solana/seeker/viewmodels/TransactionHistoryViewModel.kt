@@ -59,12 +59,12 @@ class TransactionHistoryViewModel @Inject constructor(
 
     // Combined filtered and sorted transactions using MockData
     val filteredTransactions: StateFlow<List<Transaction>> = combine(
-        // Create a flow that emits whenever we want to refresh transactions
-        MutableStateFlow(System.currentTimeMillis()),
+        // Use reactive transactionsFlow for automatic updates when data changes
+        mockData.transactionsFlow,
         _uiState
-    ) { _, uiState ->
-        // Get transactions from MockData which includes scheduled payments
-        val rawTransactions = mockData.getAllTransactions().map { dataTransaction ->
+    ) { transactions, uiState ->
+        // Use reactive transaction data directly
+        val rawTransactions = transactions.map { dataTransaction ->
             dataTransaction.toDisplayTransaction()
         }
         

@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -953,7 +955,7 @@ private fun PaymentErrorDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SchedulePaymentDialog(
+internal fun SchedulePaymentDialog(
     amount: String,
     token: String,
     recipient: String,
@@ -963,7 +965,7 @@ private fun SchedulePaymentDialog(
     onDismiss: () -> Unit
 ) {
     var selectedDate by remember { mutableStateOf<LocalDateTime?>(null) }
-    var selectedRecurrence by remember { mutableStateOf(RepeatInterval.NONE) }
+    var selectedRecurrence by remember { mutableStateOf(RepeatInterval.MONTHLY) }
     var maxExecutions by remember { mutableStateOf("1") }
     var showDatePicker by remember { mutableStateOf(false) }
     
@@ -1039,8 +1041,12 @@ private fun SchedulePaymentDialog(
             }
         },
         text = {
+            val scrollState = rememberScrollState()
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 500.dp)
+                    .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 // Payment summary with better styling
@@ -1175,7 +1181,7 @@ private fun SchedulePaymentDialog(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        RepeatInterval.values().forEach { interval ->
+                        RepeatInterval.values().filter { it != RepeatInterval.NONE }.forEach { interval ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1228,10 +1234,10 @@ private fun SchedulePaymentDialog(
                 }
                 
                 // Simple max executions for recurring payments
-                if (selectedRecurrence != RepeatInterval.NONE) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = TrueTapPrimary.copy(alpha = 0.05f))
-                    ) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = TrueTapPrimary.copy(alpha = 0.1f)),
+                    border = BorderStroke(1.dp, TrueTapPrimary.copy(alpha = 0.2f))
+                ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1279,18 +1285,16 @@ private fun SchedulePaymentDialog(
                             )
                         }
                     }
-                }
             }
         },
         confirmButton = {
             val canSchedule = selectedDate != null && 
-                            (selectedRecurrence == RepeatInterval.NONE || maxExecutions.toIntOrNull()?.let { it > 0 } == true)
+                            maxExecutions.toIntOrNull()?.let { it > 0 } == true
             
             Button(
                 onClick = {
                     selectedDate?.let { startDate ->
-                        val executions = if (selectedRecurrence == RepeatInterval.NONE) null 
-                                       else maxExecutions.toIntOrNull()
+                        val executions = maxExecutions.toIntOrNull()
                         onSchedule(startDate, selectedRecurrence, executions)
                     }
                 },

@@ -235,6 +235,11 @@ class WalletViewModel @Inject constructor(
             val state = _trueTapState.value
             val recipient = state.selectedRecipient ?: return@launch
             
+            // Prevent concurrent executions
+            if (state.isLoading) {
+                return@launch
+            }
+            
             _trueTapState.update { it.copy(isLoading = true) }
             
             val result = walletRepository.sendTransaction(
