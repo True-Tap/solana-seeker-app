@@ -104,22 +104,23 @@ class WalletViewModel @Inject constructor(
     }
 
     fun signAuthMessage(
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+        activity: android.app.Activity?,
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>?,
+        activityResultSender: ActivityResultSender?,
         message: String = "Authenticate with True Tap"
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            
-            // TODO: Fix wallet repository method
-            // when (val result = walletRepository.signAuthMessage(activityResultLauncher, message)) {
-            val result = WalletResult.Success("placeholder")
+            _errorMessage.value = null
+            val result = walletRepository.signAuthMessage(
+                activity = activity as? androidx.activity.ComponentActivity,
+                activityResultLauncher = activityResultLauncher,
+                activityResultSender = activityResultSender,
+                message = message
+            )
             when (result) {
-                is WalletResult.Success -> {
-                    _errorMessage.value = null
-                }
-                is WalletResult.Error -> {
-                    _errorMessage.value = result.message
-                }
+                is WalletResult.Success -> _errorMessage.value = null
+                is WalletResult.Error -> _errorMessage.value = result.message
             }
             _isLoading.value = false
         }
