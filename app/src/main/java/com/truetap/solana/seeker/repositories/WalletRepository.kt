@@ -14,6 +14,7 @@ import com.truetap.solana.seeker.services.SolanaService
 import com.truetap.solana.seeker.services.SolanaRpcService
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
+import com.truetap.solana.seeker.services.TransactionBuilder
 import androidx.activity.ComponentActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -38,6 +39,7 @@ class WalletRepository @Inject constructor(
     private val seedVaultService: SeedVaultService,
     private val solanaService: SolanaService,
     private val solanaRpcService: SolanaRpcService,
+    private val transactionBuilder: TransactionBuilder,
     private val mockData: MockData,
     private val mwaWalletConnector: MwaWalletConnector,
     private val seedVaultWalletConnector: SeedVaultWalletConnector
@@ -359,8 +361,13 @@ class WalletRepository @Inject constructor(
                 val account = _walletState.value.account ?: return Result.failure(IllegalStateException("No connected wallet"))
                 val lamports = (amount * 1_000_000_000L).toLong()
                 val blockhash = solanaRpcService.getLatestBlockhash()
-                // Build a simple memo-like payload to sign (placeholder for real transfer serialization)
-                val payload = "transfer:$toAddress:$lamports:$blockhash".toByteArray()
+                // Build placeholder serialized transfer (to be replaced with real serialization)
+                val payload = transactionBuilder.buildSystemTransferTransaction(
+                    fromPublicKeyBase58 = account.publicKey,
+                    toPublicKeyBase58 = toAddress,
+                    lamports = lamports,
+                    recentBlockhash = blockhash
+                )
                 val signedPayloadResult = when (account.walletType) {
                     WalletType.SOLANA_SEEKER -> seedVaultWalletConnector.signTransaction(
                         com.truetap.solana.seeker.data.SignTransactionParams(

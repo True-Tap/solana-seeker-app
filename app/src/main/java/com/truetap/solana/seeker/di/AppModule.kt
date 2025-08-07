@@ -12,6 +12,7 @@ import com.truetap.solana.seeker.services.SolanaRpcService
 import com.truetap.solana.seeker.services.MobileWalletAdapterService
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
+import com.truetap.solana.seeker.services.TransactionBuilder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -64,13 +65,15 @@ object AppModule {
         solanaRpcService: SolanaRpcService,
         mockData: com.truetap.solana.seeker.data.MockData,
         mwaWalletConnector: MwaWalletConnector,
-        seedVaultWalletConnector: SeedVaultWalletConnector
+        seedVaultWalletConnector: SeedVaultWalletConnector,
+        transactionBuilder: TransactionBuilder
     ): WalletRepository {
         return WalletRepository(
             context,
             seedVaultService,
             solanaService,
             solanaRpcService,
+            transactionBuilder,
             mockData,
             mwaWalletConnector,
             seedVaultWalletConnector
@@ -108,4 +111,8 @@ object AppModule {
     ): SeedVaultWalletConnector {
         return SeedVaultWalletConnector(seedVaultManager)
     }
+
+    @Provides
+    @Singleton
+    fun provideTransactionBuilder(): TransactionBuilder = TransactionBuilder()
 } 
