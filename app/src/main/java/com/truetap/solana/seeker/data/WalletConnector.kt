@@ -24,13 +24,15 @@ data class ConnectParams(
 data class SignMessageParams(
     val message: ByteArray,
     val activity: Activity? = null,
-    val activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null
+    val activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null,
+    val activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
 )
 
 data class SignTransactionParams(
     val transaction: ByteArray,
     val activity: Activity? = null,
-    val activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null
+    val activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null,
+    val activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
 )
 
 

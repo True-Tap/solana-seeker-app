@@ -28,10 +28,10 @@ class MwaWalletConnector @Inject constructor(
     }
 
     override suspend fun signMessage(params: SignMessageParams): WalletResult<ByteArray> =
-        WalletResult.Error(IllegalStateException("Not implemented"), "MWA signMessage not implemented")
+        WalletResult.Error(IllegalStateException("MWA signMessage not implemented"), "MWA signMessage not implemented")
 
     override suspend fun signTransaction(params: SignTransactionParams): WalletResult<ByteArray> =
-        WalletResult.Error(IllegalStateException("Not implemented"), "MWA signTransaction not implemented")
+        WalletResult.Error(IllegalStateException("MWA signTransaction not implemented"), "MWA signTransaction not implemented")
 }
 
 

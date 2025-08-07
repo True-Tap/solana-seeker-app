@@ -11,6 +11,7 @@ import com.truetap.solana.seeker.BuildConfig
 import com.truetap.solana.seeker.data.*
 import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
+import com.truetap.solana.seeker.services.SolanaRpcService
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import androidx.activity.ComponentActivity
@@ -36,6 +37,7 @@ class WalletRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val seedVaultService: SeedVaultService,
     private val solanaService: SolanaService,
+    private val solanaRpcService: SolanaRpcService,
     private val mockData: MockData,
     private val mwaWalletConnector: MwaWalletConnector,
     private val seedVaultWalletConnector: SeedVaultWalletConnector
@@ -352,7 +354,8 @@ class WalletRepository @Inject constructor(
                 )
             }
         } else {
-            TODO("Implement real transaction with MWA 2.2.2")
+            // Real signing path will be implemented next; for now return not implemented
+            Result.failure(UnsupportedOperationException("Real transaction signing not implemented yet"))
         }
     }
     
