@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import javax.inject.Inject
 
 @HiltViewModel
@@ -74,6 +75,7 @@ class WalletViewModel @Inject constructor(
         checkSeedVaultAvailability()
         attemptSessionRestore()
         loadTrueTapContacts()
+        startAutoRefresh()
     }
 
     fun saveWalletConnection(
@@ -263,6 +265,24 @@ class WalletViewModel @Inject constructor(
     private fun attemptSessionRestore() {
         viewModelScope.launch {
             walletRepository.restoreSession()
+        }
+    }
+    
+    // Auto-refresh live wallet data when connected (Phase 3 prep)
+    private var autoRefreshJob: Job? = null
+    private fun startAutoRefresh() {
+        autoRefreshJob?.cancel()
+        autoRefreshJob = viewModelScope.launch {
+            while (true) {
+                try {
+                    val account = walletState.value.account
+                    if (account != null) {
+                        walletRepository.refreshWalletData()
+                    }
+                } catch (_: Exception) {
+                }
+                delay(30_000)
+            }
         }
     }
     
