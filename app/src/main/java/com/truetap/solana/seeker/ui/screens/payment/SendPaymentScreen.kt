@@ -58,6 +58,7 @@ import kotlinx.coroutines.delay
 fun SendPaymentScreen(
     onNavigateBack: () -> Unit,
     recipientAddress: String? = null,
+    activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null,
     modifier: Modifier = Modifier,
     viewModel: SendPaymentViewModel = hiltViewModel()
 ) {
@@ -82,7 +83,7 @@ fun SendPaymentScreen(
     val sendPayment = {
         showConfirmDialog = false
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        viewModel.sendPayment()
+        viewModel.sendPayment(activityResultSender)
     }
     
     // Handle payment result

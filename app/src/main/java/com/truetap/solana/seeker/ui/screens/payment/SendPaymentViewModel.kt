@@ -12,6 +12,9 @@ import com.truetap.solana.seeker.data.models.Contact
 import com.truetap.solana.seeker.data.models.TransactionType
 import com.truetap.solana.seeker.domain.model.RepeatInterval
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.truetap.solana.seeker.repositories.WalletRepository
+import kotlinx.coroutines.flow.collectLatest
+import com.truetap.solana.seeker.utils.SolanaValidation
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
@@ -71,7 +74,8 @@ data class SendPaymentUiState(
 
 @HiltViewModel
 class SendPaymentViewModel @Inject constructor(
-    private val mockData: MockData
+    private val mockData: MockData,
+    private val walletRepository: WalletRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SendPaymentUiState())
@@ -88,6 +92,7 @@ class SendPaymentViewModel @Inject constructor(
     init {
         loadWalletInfo()
         loadContacts()
+        observeWalletState()
     }
     
     // TODO: Add navigation args support later
@@ -137,7 +142,7 @@ class SendPaymentViewModel @Inject constructor(
         validateAmount(_uiState.value.amount)
     }
     
-    fun sendPayment() {
+    fun sendPayment(activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null) {
         val currentState = _uiState.value
         
         if (!currentState.isFormValid) {
@@ -148,37 +153,29 @@ class SendPaymentViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             
             try {
-                // TODO: Replace with actual wallet service integration
-                // val walletService = WalletFactory.getInstance() as SolanaWalletService
-                // val result = walletService.sendPayment(...)
-                
-                // Simulate payment processing
-                delay(2000)
-                
-                // Add transaction to MockData so it appears in recent activity
-                val transactionId = mockData.addTransaction(
-                    type = com.truetap.solana.seeker.data.models.TransactionType.SENT,
-                    amount = currentState.amount.toDoubleOrNull() ?: 0.0,
-                    currency = currentState.selectedToken,
-                    otherPartyAddress = currentState.recipientAddress,
-                    otherPartyName = currentState.selectedContact?.name,
-                    memo = currentState.memo.takeIf { it.isNotBlank() }
+                val amountDouble = currentState.amount.toDoubleOrNull() ?: 0.0
+                val result = walletRepository.sendTransaction(
+                    toAddress = currentState.recipientAddress,
+                    amount = amountDouble,
+                    message = currentState.memo.takeIf { it.isNotBlank() },
+                    activityResultSender = activityResultSender
                 )
-                
-                // Simulate successful payment
-                val result = PaymentResult(
-                    success = true,
-                    transactionHash = transactionId
-                )
-                
-                _uiState.update { 
-                    it.copy(
-                        isLoading = false,
-                        paymentResult = result
-                    )
+                result.onSuccess { tx ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            paymentResult = PaymentResult(success = true, transactionHash = tx.txId)
+                        )
+                    }
+                }.onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message,
+                            paymentResult = PaymentResult(success = false, error = error.message)
+                        )
+                    }
                 }
-                
-                // Payment successful - UI state updated with result
                 
             } catch (error: Exception) {
                 _uiState.update {
@@ -318,6 +315,33 @@ class SendPaymentViewModel @Inject constructor(
         }
     }
     
+    private fun observeWalletState() {
+        viewModelScope.launch {
+            walletRepository.walletState.collectLatest { state ->
+                val isConnected = state.account != null
+                val solBalance = state.balance?.solBalance?.toDouble() ?: 0.0
+                val tokenInfos = buildList {
+                    add(TokenInfo(symbol = "SOL", name = "Solana", balance = solBalance))
+                    state.balance?.tokenBalances?.forEach { tb ->
+                        add(
+                            TokenInfo(
+                                symbol = tb.symbol,
+                                name = tb.name,
+                                balance = tb.uiAmount
+                            )
+                        )
+                    }
+                }
+                _uiState.update { current ->
+                    current.copy(
+                        isWalletConnected = isConnected,
+                        availableTokens = tokenInfos
+                    )
+                }
+            }
+        }
+    }
+    
     private fun validateRecipientAddress(address: String) {
         viewModelScope.launch {
             // Basic Solana address validation
@@ -326,9 +350,7 @@ class SendPaymentViewModel @Inject constructor(
             }
             
             val error = when {
-                address.length < 32 -> "Address too short"
-                address.length > 44 -> "Address too long"
-                !address.all { it.isLetterOrDigit() } -> "Invalid characters in address"
+                !SolanaValidation.isValidPublicKey(address) -> "Invalid Solana address"
                 else -> null
             }
             
