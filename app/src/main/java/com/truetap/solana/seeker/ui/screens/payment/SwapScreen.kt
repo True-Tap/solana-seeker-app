@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.truetap.solana.seeker.viewmodels.SwapViewModel
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import com.truetap.solana.seeker.domain.model.CryptoToken
+import com.truetap.solana.seeker.domain.model.SwapQuote
 
 enum class SwapState {
     None,
@@ -586,11 +587,43 @@ fun SwapScreen(
                     Column(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
-                        // Remove embedded sample values; these should come from quotes/network
-                        // DetailRow("Rate", ...)
-                        // DetailRow("Network Fee", ...)
-                        DetailRow("Route", "Raydium → Orca")
-                        DetailRow("Slippage", currentSlippage)
+            val quote = swapUiState.currentQuote
+                        if (quote != null) {
+                            DetailRow(
+                                label = "Rate",
+                                value = "1 ${quote.inputToken.symbol} = ${"%.6f".format(quote.rate)} ${quote.outputToken.symbol}"
+                            )
+                            DetailRow(
+                                label = "Network Fee",
+                                value = "${quote.networkFee.stripTrailingZeros().toPlainString()} SOL"
+                            )
+                            DetailRow(
+                                label = "Exchange Fee",
+                                value = "${quote.exchangeFee.stripTrailingZeros().toPlainString()} ${quote.outputToken.symbol}"
+                            )
+                            DetailRow(
+                                label = "Price Impact",
+                                value = "${"%.2f".format(quote.priceImpact)}%"
+                            )
+                            DetailRow(
+                                label = "Est. Time",
+                                value = "${quote.estimatedTime}s"
+                            )
+                            DetailRow(
+                                label = "Route",
+                                value = quote.route.joinToString(" → ")
+                            )
+                            DetailRow(
+                                label = "Slippage",
+                                value = "${"%.2f".format(swapUiState.slippagePercent)}%"
+                            )
+                        } else {
+                            Text(
+                                text = "Quote not available. Enter an amount to fetch a quote.",
+                                fontSize = 12.sp,
+                                color = TrueTapTextSecondary
+                            )
+                        }
                     }
                 }
             }
@@ -1181,7 +1214,7 @@ private fun SwapConfirmationModal(
         ) {
             when (swapState) {
                 SwapState.None -> SwapConfirmationContent(
-                    fromToken, toToken, fromAmount, toAmount, transactionSpeed, currentSlippage, onConfirmSwap
+                    fromToken, toToken, fromAmount, toAmount, transactionSpeed, currentSlippage, onConfirmSwap, null
                 )
                 SwapState.Processing -> SwapProcessingContent()
                 SwapState.Success -> SwapSuccessContent(fromToken, toToken, fromAmount, toAmount)
@@ -1201,7 +1234,8 @@ private fun SwapConfirmationContent(
     toAmount: String,
     transactionSpeed: String,
     currentSlippage: String,
-    onConfirmSwap: () -> Unit
+    onConfirmSwap: () -> Unit,
+    quote: SwapQuote?
 ) {
     Text(
         text = "Confirm Swap",
@@ -1342,11 +1376,35 @@ private fun SwapConfirmationContent(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            DetailRow("Rate", "1 SOL = $103.37")
-            DetailRow("Network Fee", "0.00025 SOL")
-            DetailRow("Speed", transactionSpeed)
-            DetailRow("Slippage", currentSlippage)
-            DetailRow("Route", "Raydium → Orca")
+            if (quote != null) {
+                DetailRow(
+                    label = "Rate",
+                    value = "1 ${quote.inputToken.symbol} = ${"%.6f".format(quote.rate)} ${quote.outputToken.symbol}"
+                )
+                DetailRow(
+                    label = "Network Fee",
+                    value = "${quote.networkFee.stripTrailingZeros().toPlainString()} SOL"
+                )
+                DetailRow(
+                    label = "Exchange Fee",
+                    value = "${quote.exchangeFee.stripTrailingZeros().toPlainString()} ${quote.outputToken.symbol}"
+                )
+                DetailRow(
+                    label = "Speed",
+                    value = transactionSpeed
+                )
+                DetailRow(
+                    label = "Slippage",
+                    value = "${"%.2f".format(quote.slippage)}%"
+                )
+                DetailRow(
+                    label = "Route",
+                    value = quote.route.joinToString(" → ")
+                )
+            } else {
+                DetailRow("Speed", transactionSpeed)
+                DetailRow("Slippage", currentSlippage)
+            }
         }
     }
     
