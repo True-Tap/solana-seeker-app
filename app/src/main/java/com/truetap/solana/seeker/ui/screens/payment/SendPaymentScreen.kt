@@ -93,11 +93,11 @@ fun SendPaymentScreen(
         }
     }
     
-    // Handle schedule result
+    // Handle schedule result - longer delay for better UX
     LaunchedEffect(uiState.scheduleResult) {
         uiState.scheduleResult?.let { result ->
             if (result.success) {
-                delay(2000)
+                delay(5000) // Longer delay to let user read the success message
                 onNavigateBack() // Navigate back after successful scheduling
             }
         }
@@ -816,11 +816,18 @@ private fun ScheduleSuccessDialog(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF4CAF50)),
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF4CAF50),
+                                    Color(0xFF388E3C)
+                                )
+                            )
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Schedule,
+                        imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(40.dp)
@@ -828,26 +835,64 @@ private fun ScheduleSuccessDialog(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Payment Scheduled!",
+                    text = "✅ Payment Scheduled!",
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TrueTapTextPrimary
+                    color = Color(0xFF4CAF50),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Your payment is set and ready to go",
+                    fontSize = 14.sp,
+                    color = TrueTapTextSecondary,
+                    textAlign = TextAlign.Center
                 )
             }
         },
         text = {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = TrueTapPrimary.copy(alpha = 0.1f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "$amount $token",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TrueTapPrimary
+                        )
+                        Text(
+                            text = "will be sent to",
+                            fontSize = 12.sp,
+                            color = TrueTapTextSecondary
+                        )
+                        Text(
+                            text = recipient,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                    }
+                }
+                
                 Text(
-                    text = "$amount $token",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TrueTapTextPrimary
-                )
-                Text(
-                    text = "scheduled for $recipient",
+                    text = "You can view and manage scheduled payments in your transaction history.",
                     fontSize = 14.sp,
-                    color = TrueTapTextSecondary
+                    color = TrueTapTextSecondary,
+                    textAlign = TextAlign.Center
+                )
+                
+                Text(
+                    text = "Returning to previous screen...",
+                    fontSize = 12.sp,
+                    color = TrueTapTextSecondary.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
                 )
             }
         },
@@ -969,129 +1014,270 @@ private fun SchedulePaymentDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = "Schedule Payment",
-                fontWeight = FontWeight.Bold,
-                color = TrueTapTextPrimary
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = TrueTapPrimary,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Schedule Payment",
+                    fontWeight = FontWeight.Bold,
+                    color = TrueTapTextPrimary,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Choose when to send this payment",
+                    fontSize = 14.sp,
+                    color = TrueTapTextSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
         },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Payment summary
-                Text(
-                    text = "Scheduling payment of $amount $token to $recipient",
-                    fontSize = 16.sp,
-                    color = TrueTapTextSecondary
-                )
-                
-                HorizontalDivider(color = TrueTapTextSecondary.copy(alpha = 0.2f))
-                
-                // Start Date selection
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Payment summary with better styling
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = TrueTapPrimary.copy(alpha = 0.1f)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Start Date",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TrueTapTextPrimary
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Payment Details",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapPrimary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "$amount $token → $recipient",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TrueTapTextPrimary
+                        )
+                        if (message.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Note: $message",
+                                fontSize = 14.sp,
+                                color = TrueTapTextSecondary
+                            )
+                        }
+                    }
+                }
+                
+                // Start Date selection with better UX
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = TrueTapPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "When should this be sent?",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                    }
                     
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showDatePicker = true },
-                        colors = CardDefaults.cardColors(containerColor = TrueTapContainer),
-                        border = CardDefaults.outlinedCardBorder()
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selectedDate != null) TrueTapPrimary.copy(alpha = 0.1f) else TrueTapContainer
+                        ),
+                        border = BorderStroke(
+                            width = 2.dp,
+                            color = if (selectedDate != null) TrueTapPrimary else TrueTapTextSecondary.copy(alpha = 0.3f)
+                        )
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(20.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = selectedDate?.let { 
-                                    "${it.monthValue}/${it.dayOfMonth}/${it.year}" 
-                                } ?: "Select date",
-                                fontSize = 16.sp,
-                                color = if (selectedDate != null) TrueTapTextPrimary else TrueTapTextSecondary
-                            )
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Select date",
-                                tint = TrueTapPrimary
-                            )
-                        }
-                    }
-                }
-                
-                // Recurrence selection
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Repeat",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TrueTapTextPrimary
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        RepeatInterval.values().forEach { interval ->
-                            FilterChip(
-                                selected = selectedRecurrence == interval,
-                                onClick = { selectedRecurrence = interval },
-                                label = {
-                                    Text(
-                                        text = interval.displayName,
-                                        fontSize = 14.sp
-                                    )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = TrueTapPrimary,
-                                    selectedLabelColor = Color.White
+                            Column {
+                                Text(
+                                    text = selectedDate?.let { 
+                                        val today = LocalDateTime.now()
+                                        val tomorrow = today.plusDays(1)
+                                        when {
+                                            it.toLocalDate() == today.toLocalDate() -> "Today - ${it.monthValue}/${it.dayOfMonth}/${it.year}"
+                                            it.toLocalDate() == tomorrow.toLocalDate() -> "Tomorrow - ${it.monthValue}/${it.dayOfMonth}/${it.year}"
+                                            else -> "${it.monthValue}/${it.dayOfMonth}/${it.year}"
+                                        }
+                                    } ?: "📅 Tap to select date",
+                                    fontSize = 18.sp,
+                                    fontWeight = if (selectedDate != null) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedDate != null) TrueTapPrimary else TrueTapTextSecondary
                                 )
+                                if (selectedDate == null) {
+                                    Text(
+                                        text = "Required: Choose when to send",
+                                        fontSize = 14.sp,
+                                        color = TrueTapTextSecondary.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = if (selectedDate != null) Icons.Default.CheckCircle else Icons.Default.DateRange,
+                                contentDescription = "Select date",
+                                tint = if (selectedDate != null) TrueTapPrimary else TrueTapTextSecondary,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
                 }
                 
-                // Max executions (only for recurring payments)
-                if (selectedRecurrence != RepeatInterval.NONE) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Recurrence selection - simplified
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Repeat,
+                            contentDescription = null,
+                            tint = TrueTapPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Number of payments",
+                            text = "Should this payment repeat?",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TrueTapTextPrimary
                         )
-                        
-                        OutlinedTextField(
-                            value = maxExecutions,
-                            onValueChange = { 
-                                if (it.all { char -> char.isDigit() }) {
-                                    maxExecutions = it
+                    }
+                    
+                    // Simplified recurrence options
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        RepeatInterval.values().forEach { interval ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedRecurrence = interval },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (selectedRecurrence == interval) TrueTapPrimary.copy(alpha = 0.1f) else TrueTapContainer
+                                ),
+                                border = BorderStroke(
+                                    width = if (selectedRecurrence == interval) 2.dp else 1.dp,
+                                    color = if (selectedRecurrence == interval) TrueTapPrimary else TrueTapTextSecondary.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = interval.displayName,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (selectedRecurrence == interval) TrueTapPrimary else TrueTapTextPrimary
+                                        )
+                                        Text(
+                                            text = when (interval) {
+                                                RepeatInterval.NONE -> "Send payment once only"
+                                                RepeatInterval.DAILY -> "Send every day"
+                                                RepeatInterval.WEEKLY -> "Send every week"
+                                                RepeatInterval.MONTHLY -> "Send every month"
+                                            },
+                                            fontSize = 14.sp,
+                                            color = TrueTapTextSecondary
+                                        )
+                                    }
+                                    if (selectedRecurrence == interval) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = TrueTapPrimary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
-                            },
-                            placeholder = { Text("Enter number") },
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = TrueTapPrimary,
-                                unfocusedBorderColor = TrueTapTextSecondary.copy(alpha = 0.3f)
+                            }
+                        }
+                    }
+                }
+                
+                // Simple max executions for recurring payments
+                if (selectedRecurrence != RepeatInterval.NONE) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = TrueTapPrimary.copy(alpha = 0.05f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Numbers,
+                                    contentDescription = null,
+                                    tint = TrueTapPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "How many times should this repeat?",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TrueTapTextPrimary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = maxExecutions,
+                                onValueChange = { newValue ->
+                                    // Only allow numbers up to 3 digits
+                                    if (newValue.all { it.isDigit() } && newValue.length <= 3) {
+                                        maxExecutions = newValue
+                                    }
+                                },
+                                placeholder = { 
+                                    Text(
+                                        "e.g., 12 for one year", 
+                                        color = TrueTapTextSecondary.copy(alpha = 0.7f)
+                                    )
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = TrueTapPrimary,
+                                    focusedLabelColor = TrueTapPrimary
+                                ),
+                                modifier = Modifier.fillMaxWidth()
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -1109,12 +1295,27 @@ private fun SchedulePaymentDialog(
                     }
                 },
                 enabled = canSchedule,
+                modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = TrueTapPrimary,
                     disabledContainerColor = Color(0xFFE5E5E5)
-                )
+                ),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Schedule Payment")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (canSchedule) "Schedule This Payment" else "Please select a date first",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         },
         dismissButton = {
