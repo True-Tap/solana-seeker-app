@@ -557,7 +557,7 @@ fun PairingScreen(
         }
     }
     
-    // Trigger wallet connection when screen loads - use viewModelScope for suspend calls
+    // Trigger wallet connection when screen loads - delegate to ViewModel
     LaunchedEffect(walletId) {
         debugMessage = "LaunchedEffect triggered with walletId: $walletId"
         // Launched effect triggered for wallet pairing
@@ -568,13 +568,11 @@ fun PairingScreen(
             println("PairingScreen: Attempting connection for ${walletType.displayName}")
             
             try {
-                val result = WalletConnectionHelper.attemptWalletConnection(
+                val result = viewModel.connectWithWallet(
                     walletType = walletType,
+                    activity = (context as? android.app.Activity),
                     activityResultLauncher = activityResultLauncher,
-                    context = context,
-                    activityResultSender = activityResultSender,
-                    walletConfig = walletConfig,
-                    mwaService = actualMwaService
+                    activityResultSender = activityResultSender
                 )
                 
                 debugMessage = "Connection result: $result"
@@ -584,8 +582,6 @@ fun PairingScreen(
                     is ConnectionResult.Success -> {
                         debugMessage = "Success! Saving and navigating..."
                         println("PairingScreen: Success! Saving connection and navigating...")
-                        // Save connection result to repository via ViewModel
-                        viewModel.saveWalletConnection(result)
                         
                         // Navigate to success
                         debugMessage = "About to navigate to success"
