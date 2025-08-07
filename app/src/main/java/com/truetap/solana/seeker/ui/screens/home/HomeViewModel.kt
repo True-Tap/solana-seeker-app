@@ -3,6 +3,7 @@ package com.truetap.solana.seeker.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.truetap.solana.seeker.data.MockData
+import com.truetap.solana.seeker.repositories.WalletRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,15 +16,29 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val mockData: MockData
+    private val mockData: MockData,
+    private val walletRepository: WalletRepository
 ) : ViewModel() {
     
     // Reactive recent transactions that automatically update when MockData changes
-    val recentTransactions: StateFlow<List<Transaction>> = mockData.transactionsFlow
-        .map { dataTransactions ->
-            // Convert to HomeScreen's Transaction format and take only 3 most recent
-            dataTransactions
-                .take(3) // Show only 3 most recent in home screen
+    val recentTransactions: StateFlow<List<Transaction>> = walletRepository.walletState
+        .map { state ->
+            val currentWallet = state.account?.publicKey
+            val live = state.transactions.take(3).map { tx ->
+                Transaction(
+                    id = tx.signature,
+                    type = when {
+                        tx.toAddress == currentWallet -> TransactionType.RECEIVED
+                        else -> TransactionType.SENT
+                    },
+                    amount = tx.amount?.toPlainString() ?: "0.00",
+                    otherParty = (if (tx.toAddress == currentWallet) tx.fromAddress else tx.toAddress)?.take(8) ?: "Unknown",
+                    timeAgo = formatTimeAgo(tx.blockTime * 1000),
+                    token = if (tx.tokenMint != null) (state.balance?.tokenBalances?.find { it.mint == tx.tokenMint }?.symbol ?: "TOKEN") else "SOL"
+                )
+            }
+            if (live.isNotEmpty()) live else mockData.transactionsFlow.value
+                .take(3)
                 .map { dataTransaction ->
                     Transaction(
                         id = dataTransaction.id,

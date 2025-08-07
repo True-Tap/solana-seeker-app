@@ -59,16 +59,18 @@ class TransactionHistoryViewModel @Inject constructor(
 
     // Combined filtered and sorted transactions using MockData
     val filteredTransactions: StateFlow<List<Transaction>> = combine(
-        // Use reactive transactionsFlow for automatic updates when data changes
+        // Prefer live transactions from wallet state; fallback to mock if empty
+        walletRepository.walletState.map { it.transactions },
         mockData.transactionsFlow,
         _uiState
-    ) { transactions, uiState ->
-        // Use reactive transaction data directly
-        val rawTransactions = transactions.map { dataTransaction ->
-            dataTransaction.toDisplayTransaction()
+    ) { liveTransactions, mockTransactions, uiState ->
+        val source = if (liveTransactions.isNotEmpty()) {
+            liveTransactions.map { it.toDisplayTransaction() }
+        } else {
+            mockTransactions.map { it.toDisplayTransaction() }
         }
         
-        val filteredTransactions = rawTransactions
+        val filteredTransactions = source
             .filter { transaction -> matchesTypeFilter(transaction, uiState.transactionTypeFilter) }
             .filter { transaction -> matchesTimePeriodFilter(transaction, uiState.timePeriodFilter) }
             .filter { transaction -> matchesSearchQuery(transaction, uiState.searchQuery) }
