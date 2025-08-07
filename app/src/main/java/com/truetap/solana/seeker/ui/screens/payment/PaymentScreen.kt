@@ -59,16 +59,7 @@ fun PaymentScreen(
 ) {
     var selectedTab by remember { mutableStateOf(BottomNavItem.SWAP) }
     
-    // Sample swap tokens
-    val swapTokens = remember {
-        listOf(
-            SwapToken("sol", "Solana", "SOL", "$98.45", "+5.2%", true, "🟣"),
-            SwapToken("usdc", "USD Coin", "USDC", "$1.00", "0.0%", true, "🔵"),
-            SwapToken("usdt", "Tether", "USDT", "$1.00", "0.0%", true, "🟢"),
-            SwapToken("bonk", "Bonk", "BONK", "$0.000023", "+12.8%", true, "🟡"),
-            SwapToken("jup", "Jupiter", "JUP", "$0.85", "-2.1%", false, "🟠")
-        )
-    }
+    // Token list will be driven by live wallet state in dedicated swap screen
     
     Column(
         modifier = modifier
@@ -267,9 +258,7 @@ fun PaymentScreen(
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(swapTokens) { token ->
-                            TokenCard(token = token)
-                        }
+                        // TODO: Drive from WalletState if a popular token list is desired
                     }
                 }
             }
