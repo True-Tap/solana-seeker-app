@@ -14,6 +14,7 @@ import com.truetap.solana.seeker.domain.model.RepeatInterval
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.truetap.solana.seeker.repositories.WalletRepository
 import kotlinx.coroutines.flow.collectLatest
+import com.truetap.solana.seeker.utils.SolanaValidation
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
@@ -348,9 +349,7 @@ class SendPaymentViewModel @Inject constructor(
             }
             
             val error = when {
-                address.length < 32 -> "Address too short"
-                address.length > 44 -> "Address too long"
-                !address.all { it.isLetterOrDigit() } -> "Invalid characters in address"
+                !SolanaValidation.isValidPublicKey(address) -> "Invalid Solana address"
                 else -> null
             }
             
