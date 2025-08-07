@@ -12,6 +12,7 @@ import com.truetap.solana.seeker.data.models.Contact
 import com.truetap.solana.seeker.data.models.TransactionType
 import com.truetap.solana.seeker.domain.model.RepeatInterval
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.truetap.solana.seeker.repositories.WalletRepository
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
@@ -71,7 +72,8 @@ data class SendPaymentUiState(
 
 @HiltViewModel
 class SendPaymentViewModel @Inject constructor(
-    private val mockData: MockData
+    private val mockData: MockData,
+    private val walletRepository: WalletRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SendPaymentUiState())
@@ -148,37 +150,28 @@ class SendPaymentViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             
             try {
-                // TODO: Replace with actual wallet service integration
-                // val walletService = WalletFactory.getInstance() as SolanaWalletService
-                // val result = walletService.sendPayment(...)
-                
-                // Simulate payment processing
-                delay(2000)
-                
-                // Add transaction to MockData so it appears in recent activity
-                val transactionId = mockData.addTransaction(
-                    type = com.truetap.solana.seeker.data.models.TransactionType.SENT,
-                    amount = currentState.amount.toDoubleOrNull() ?: 0.0,
-                    currency = currentState.selectedToken,
-                    otherPartyAddress = currentState.recipientAddress,
-                    otherPartyName = currentState.selectedContact?.name,
-                    memo = currentState.memo.takeIf { it.isNotBlank() }
+                val amountDouble = currentState.amount.toDoubleOrNull() ?: 0.0
+                val result = walletRepository.sendTransaction(
+                    toAddress = currentState.recipientAddress,
+                    amount = amountDouble,
+                    message = currentState.memo.takeIf { it.isNotBlank() }
                 )
-                
-                // Simulate successful payment
-                val result = PaymentResult(
-                    success = true,
-                    transactionHash = transactionId
-                )
-                
-                _uiState.update { 
-                    it.copy(
-                        isLoading = false,
-                        paymentResult = result
-                    )
+                result.onSuccess { tx ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            paymentResult = PaymentResult(success = true, transactionHash = tx.txId)
+                        )
+                    }
+                }.onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message,
+                            paymentResult = PaymentResult(success = false, error = error.message)
+                        )
+                    }
                 }
-                
-                // Payment successful - UI state updated with result
                 
             } catch (error: Exception) {
                 _uiState.update {
