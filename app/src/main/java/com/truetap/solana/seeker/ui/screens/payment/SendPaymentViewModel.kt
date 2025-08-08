@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.truetap.solana.seeker.services.FeePreset
 
 // Data Classes
 data class TokenInfo(
@@ -58,7 +59,8 @@ data class SendPaymentUiState(
     val amountError: String? = null,
     val errorMessage: String? = null,
     val paymentResult: PaymentResult? = null,
-    val scheduleResult: ScheduleResult? = null
+    val scheduleResult: ScheduleResult? = null,
+    val feePreset: com.truetap.solana.seeker.services.FeePreset = com.truetap.solana.seeker.services.FeePreset.NORMAL
 ) {
     val isFormValid: Boolean
         get() = recipientAddress.isNotBlank() && 
@@ -85,6 +87,10 @@ class SendPaymentViewModel @Inject constructor(
         loadWalletInfo()
         loadContacts()
         observeWalletState()
+    }
+
+    fun updateFeePreset(preset: FeePreset) {
+        _uiState.update { it.copy(feePreset = preset) }
     }
     
     // TODO: Add navigation args support later
@@ -146,10 +152,11 @@ class SendPaymentViewModel @Inject constructor(
             
             try {
                 val amountDouble = currentState.amount.toDoubleOrNull() ?: 0.0
-                val result = walletRepository.sendTransaction(
+                val result = walletRepository.sendTransactionWithPreset(
                     toAddress = currentState.recipientAddress,
                     amount = amountDouble,
                     message = currentState.memo.takeIf { it.isNotBlank() },
+                    feePreset = currentState.feePreset,
                     activityResultSender = activityResultSender
                 )
                 result.onSuccess { tx ->

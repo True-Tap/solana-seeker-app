@@ -170,6 +170,31 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(Spacing.large))
                 }
                 
+                // Pending (Queued) Section
+                item {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val outbox = remember { com.truetap.solana.seeker.repositories.TransactionOutboxRepository(context) }
+                    var pending by remember { mutableStateOf<List<com.truetap.solana.seeker.repositories.PendingTransaction>>(emptyList()) }
+                    LaunchedEffect(Unit) {
+                        pending = outbox.getAll()
+                    }
+                    if (pending.isNotEmpty()) {
+                        Card(colors = CardDefaults.cardColors(containerColor = TrueTapContainer)) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Queued—will send when online", fontWeight = FontWeight.Bold, color = TrueTapTextPrimary)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                pending.take(3).forEach { pt ->
+                                    Text("${pt.amount} SOL → ${pt.toAddress.take(6)}...${pt.toAddress.takeLast(4)}", color = TrueTapTextSecondary)
+                                }
+                                if (pending.size > 3) {
+                                    Text("+${pending.size - 3} more queued", color = TrueTapTextInactive, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(Spacing.medium))
+                    }
+                }
+
                 // Recent Activity Header
                 item {
                     Row(

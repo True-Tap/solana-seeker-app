@@ -52,6 +52,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Calendar
 import kotlinx.coroutines.delay
+import com.truetap.solana.seeker.presentation.components.FeePresetSelector
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -252,6 +253,29 @@ fun SendPaymentScreen(
                     message = uiState.memo,
                     onMessageChange = viewModel::updateMemo
                 )
+            }
+
+            // Fee Preset Section
+            item {
+                Column {
+                    Text(
+                        text = "Network speed",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TrueTapTextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FeePresetSelector(
+                        selected = uiState.feePreset,
+                        onSelected = { viewModel.updateFeePreset(it) }
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Normal is free and usually fast—choose Fast if the network is busy.",
+                        fontSize = 12.sp,
+                        color = TrueTapTextSecondary
+                    )
+                }
             }
             
             // Send and Schedule Buttons
