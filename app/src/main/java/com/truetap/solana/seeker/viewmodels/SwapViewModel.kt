@@ -9,6 +9,7 @@ import com.truetap.solana.seeker.services.JupiterSwapService
 import com.truetap.solana.seeker.services.NftService
 import com.truetap.solana.seeker.services.GenesisNFTTier
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.truetap.solana.seeker.services.FeePreset
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -280,17 +281,17 @@ class SwapViewModel @Inject constructor(
                     showSwapConfirmation = false
                 )
                 
-                // Calculate priority fee based on speed
-                val priorityFee = when (currentState.transactionSpeed) {
-                    "Fast" -> 150000 // 0.00015 SOL (~$0.02)
-                    "Normal" -> 50000 // 0.00005 SOL (~$0.007)
-                    else -> 25000 // 0.000025 SOL (~$0.003)
+                // Map fee preset to priority fee (lamports)
+                val priorityFee = when (currentState.feePreset) {
+                    FeePreset.EXPRESS -> 5000L
+                    FeePreset.FAST -> 500L
+                    FeePreset.NORMAL -> 0L
                 }
                 
                 val result = if (activity != null && activityResultLauncher != null) {
                     jupiterSwapService.executeSwap(
                         quote = quote,
-                        priorityFee = priorityFee.toLong(),
+                        priorityFee = priorityFee,
                         activity = activity,
                         activityResultLauncher = activityResultLauncher
                     )
@@ -412,7 +413,12 @@ class SwapViewModel @Inject constructor(
      * Set transaction speed (affects priority fee)
      */
     fun setTransactionSpeed(speed: String) {
-        _uiState.value = _uiState.value.copy(transactionSpeed = speed)
+        val mappedPreset = when (speed) {
+            "Fast" -> FeePreset.FAST
+            "Express" -> FeePreset.EXPRESS
+            else -> FeePreset.NORMAL
+        }
+        _uiState.value = _uiState.value.copy(transactionSpeed = speed, feePreset = mappedPreset)
     }
     
     /**
@@ -596,6 +602,7 @@ data class SwapUiState(
     val estimatedTime: Long = 30,
     val swapState: SwapState = SwapState.IDLE,
     val transactionSpeed: String = "Normal",
+    val feePreset: FeePreset = FeePreset.NORMAL,
     val transactionSignature: String? = null,
     val errorMessage: String? = null,
     val showSwapConfirmation: Boolean = false,

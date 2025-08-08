@@ -170,14 +170,9 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(Spacing.large))
                 }
                 
-                // Pending (Queued) Section
+                // Pending (Queued) Section (live)
                 item {
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    val outbox = remember { com.truetap.solana.seeker.repositories.TransactionOutboxRepository(context) }
-                    var pending by remember { mutableStateOf<List<com.truetap.solana.seeker.repositories.PendingTransaction>>(emptyList()) }
-                    LaunchedEffect(Unit) {
-                        pending = outbox.getAll()
-                    }
+                    val pending = uiState.pendingOutbox
                     if (pending.isNotEmpty()) {
                         Card(colors = CardDefaults.cardColors(containerColor = TrueTapContainer)) {
                             Column(modifier = Modifier.padding(16.dp)) {
@@ -189,6 +184,12 @@ fun DashboardScreen(
                                 if (pending.size > 3) {
                                     Text("+${pending.size - 3} more queued", color = TrueTapTextInactive, fontSize = 12.sp)
                                 }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Fees may change while queued and on retry.",
+                                    color = TrueTapTextInactive,
+                                    fontSize = 12.sp
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.height(Spacing.medium))

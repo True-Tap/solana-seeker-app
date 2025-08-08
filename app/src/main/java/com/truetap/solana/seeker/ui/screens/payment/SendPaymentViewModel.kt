@@ -159,6 +159,7 @@ class SendPaymentViewModel @Inject constructor(
                     feePreset = currentState.feePreset,
                     activityResultSender = activityResultSender
                 )
+                // UX note: fees may change while queued
                 result.onSuccess { tx ->
                     _uiState.update {
                         it.copy(
@@ -170,7 +171,7 @@ class SendPaymentViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message,
+                            errorMessage = error.message ?: "Fees may change while queued.",
                             paymentResult = PaymentResult(success = false, error = error.message)
                         )
                     }

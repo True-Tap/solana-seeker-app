@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.truetap.solana.seeker.services.FeePreset
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -49,6 +50,14 @@ class TransactionOutboxRepository @Inject constructor(
     suspend fun getAll(): List<PendingTransaction> {
         val prefs = context.outboxDataStore.data.first()
         return prefs.asMap().entries
+            .filter { (k, _) -> k.name.startsWith("pt_") }
+            .mapNotNull { (_, v) -> parse(v as String) }
+            .sortedBy { it.createdAt }
+    }
+
+    // Live flow of pending transactions
+    val flow: Flow<List<PendingTransaction>> = context.outboxDataStore.data.map { prefs ->
+        prefs.asMap().entries
             .filter { (k, _) -> k.name.startsWith("pt_") }
             .mapNotNull { (_, v) -> parse(v as String) }
             .sortedBy { it.createdAt }

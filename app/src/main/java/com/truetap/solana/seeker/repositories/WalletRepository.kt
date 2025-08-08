@@ -526,6 +526,7 @@ class WalletRepository @Inject constructor(
             try {
                 val account = _walletState.value.account ?: return Result.failure(IllegalStateException("No connected wallet"))
                 val lamports = (amount * 1_000_000_000L).toLong()
+                // Always use a fresh recentBlockhash to avoid expiry
                 val blockhash = solanaRpcService.getLatestBlockhash()
                 // Build placeholder serialized transfer (to be replaced with real serialization)
                 val payload = transactionBuilder.buildSystemTransferTransaction(

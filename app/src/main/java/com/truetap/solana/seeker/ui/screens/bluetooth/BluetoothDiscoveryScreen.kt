@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -241,7 +243,7 @@ fun BluetoothDiscoveryScreen(
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = TrueTapTextPrimary
                     )
@@ -334,7 +336,7 @@ private fun PermissionRequiredContent(
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(
-                imageVector = Icons.Default.BluetoothSearching,
+                imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp)
             )
@@ -523,7 +525,7 @@ private fun ScanningIndicator(
         shape = RoundedCornerShape(12.dp)
     ) {
         Icon(
-            imageVector = Icons.Default.BluetoothSearching,
+            imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
             contentDescription = null,
             modifier = Modifier
                 .size(16.dp)
@@ -622,7 +624,7 @@ private fun DeviceCard(
             ) {
                 Icon(
                     imageVector = if (device.isConnecting) 
-                        Icons.Default.BluetoothSearching 
+                        Icons.AutoMirrored.Filled.BluetoothSearching
                     else 
                         Icons.Default.Bluetooth,
                     contentDescription = null,

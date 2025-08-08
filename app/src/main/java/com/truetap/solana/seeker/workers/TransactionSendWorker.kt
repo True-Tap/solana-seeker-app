@@ -21,6 +21,10 @@ class TransactionSendWorker @AssistedInject constructor(
         val all = outbox.getAll()
         for (tx in all) {
             try {
+                // Stop after 5 retries
+                if (tx.retries >= 5) {
+                    continue
+                }
                 val res = walletRepository.sendTransactionWithPreset(
                     toAddress = tx.toAddress,
                     amount = tx.amount,
@@ -38,6 +42,26 @@ class TransactionSendWorker @AssistedInject constructor(
             }
         }
         return Result.success()
+    }
+}
+
+object TransactionWorkScheduler {
+    fun enqueue(context: Context) {
+        val constraints = androidx.work.Constraints.Builder()
+            .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(true)
+            .build()
+
+        val work = androidx.work.OneTimeWorkRequestBuilder<TransactionSendWorker>()
+            .setConstraints(constraints)
+            .build()
+
+        androidx.work.WorkManager.getInstance(context)
+            .enqueueUniqueWork(
+                "tx_outbox_sender",
+                androidx.work.ExistingWorkPolicy.KEEP,
+                work
+            )
     }
 }
 
