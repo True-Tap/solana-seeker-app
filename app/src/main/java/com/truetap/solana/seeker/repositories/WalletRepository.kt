@@ -13,6 +13,9 @@ import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
 import com.truetap.solana.seeker.services.UnifiedSolanaRpcService
 import com.truetap.solana.seeker.services.TransactionMonitor
+import com.truetap.solana.seeker.auth.AuthApi
+import com.truetap.solana.seeker.security.SecureStorage
+import com.truetap.solana.seeker.services.FeePreset
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import com.truetap.solana.seeker.services.TransactionBuilder
@@ -48,7 +51,9 @@ class WalletRepository @Inject constructor(
     private val mockData: MockData,
     private val mwaWalletConnector: MwaWalletConnector,
     private val seedVaultWalletConnector: SeedVaultWalletConnector,
-    private val transactionMonitor: TransactionMonitor
+    private val transactionMonitor: TransactionMonitor,
+    private val authApi: AuthApi,
+    private val secureStorage: SecureStorage
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -279,13 +284,20 @@ class WalletRepository @Inject constructor(
                 is MwaTransactionResult.Success<*> -> {
                     val sigBytes = (result.payload as? ByteArray)
                         ?: return WalletResult.Error(IllegalStateException("Invalid signature payload"), "Invalid signature payload")
-                    val verified = verifySiwsBackend(
+                    val token = authApi.verifySiws(
                         publicKey = account.publicKey,
                         message = siws.toCanonicalString(),
                         signatureBase64 = android.util.Base64.encodeToString(sigBytes, android.util.Base64.NO_WRAP)
                     )
-                    if (verified) WalletResult.Success(Unit)
-                    else WalletResult.Error(IllegalStateException("SIWS verification failed"), "Sign-in verification failed")
+                    return if (!token.isNullOrBlank()) {
+                        // Persist in secure storage and DataStore for convenience
+                        secureStorage.putString("siws_token", token)
+                        saveSessionWithWalletType(account, token, account.walletType?.id ?: "")
+                        _authState.value = AuthState.Message("Signed in securely—your wallet is ready for Solana!")
+                        WalletResult.Success(Unit)
+                    } else {
+                        WalletResult.Error(IllegalStateException("SIWS verification failed"), "Sign-in verification failed")
+                    }
                 }
                 is MwaTransactionResult.NoWalletFound -> WalletResult.Error(IllegalStateException("No compatible wallet found"), "No compatible wallet found")
                 is MwaTransactionResult.Failure -> WalletResult.Error(result.e, result.e.message ?: "MWA sign-in error")
@@ -471,6 +483,16 @@ class WalletRepository @Inject constructor(
         message: String? = null,
         activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
     ): Result<TransactionResult> {
+        return sendTransactionWithPreset(toAddress, amount, message, FeePreset.NORMAL, activityResultSender)
+    }
+
+    suspend fun sendTransactionWithPreset(
+        toAddress: String,
+        amount: Double,
+        message: String? = null,
+        feePreset: FeePreset = FeePreset.NORMAL,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
+    ): Result<TransactionResult> {
         return if (isMockMode) {
             delay(1000) // Simulate network delay
             
@@ -509,7 +531,9 @@ class WalletRepository @Inject constructor(
                     fromPublicKeyBase58 = account.publicKey,
                     toPublicKeyBase58 = toAddress,
                     lamports = lamports,
-                    recentBlockhash = blockhash
+                    recentBlockhash = blockhash,
+                    priorityFeeMicrolamports = feePreset.microLamportsPerCU,
+                    computeUnitLimit = feePreset.computeUnits
                 )
                 if (account.walletType == WalletType.SOLFLARE || account.walletType == WalletType.PHANTOM || account.walletType == WalletType.EXTERNAL) {
                     val sender = activityResultSender ?: return Result.failure(IllegalStateException("Missing ActivityResultSender for MWA"))
