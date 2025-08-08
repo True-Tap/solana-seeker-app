@@ -81,14 +81,6 @@ class SendPaymentViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SendPaymentUiState())
     val uiState: StateFlow<SendPaymentUiState> = _uiState.asStateFlow()
     
-    // Mock token data for development
-    private val sampleTokens = listOf(
-        TokenInfo("SOL", "Solana", 12.4567),
-        TokenInfo("USDC", "USD Coin", 250.50),
-        TokenInfo("BONK", "Bonk", 1000000.0),
-        TokenInfo("RAY", "Raydium", 45.75)
-    )
-    
     init {
         loadWalletInfo()
         loadContacts()
@@ -275,28 +267,11 @@ class SendPaymentViewModel @Inject constructor(
     
     private fun loadWalletInfo() {
         viewModelScope.launch {
-            try {
-                // TODO: Replace with actual wallet service integration
-                // val walletService = WalletFactory.getInstance() as SolanaWalletService
-                // val connected = walletService.isWalletConnected()
-                
-                // Simulate loading wallet info - removed delay to fix validation issue
-                // delay(500)
-                
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        isWalletConnected = true,
-                        availableTokens = sampleTokens
-                    )
-                }
-                
-            } catch (error: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isWalletConnected = false,
-                        errorMessage = "Failed to load wallet info: ${error.message}"
-                    )
-                }
+            val isConnected = walletRepository.walletState.value.account != null
+            _uiState.update { currentState ->
+                currentState.copy(
+                    isWalletConnected = isConnected
+                )
             }
         }
     }

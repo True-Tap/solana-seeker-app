@@ -221,7 +221,7 @@ fun SchedulePaymentScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            listOf("SOL", "USDC", "BONK").forEach { token ->
+                            uiState.tokenBalances.keys.forEach { token ->
                                 TokenButton(
                                     token = token,
                                     isSelected = uiState.selectedToken == token,

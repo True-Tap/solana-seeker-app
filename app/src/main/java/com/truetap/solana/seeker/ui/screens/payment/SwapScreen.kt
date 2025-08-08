@@ -28,12 +28,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import com.truetap.solana.seeker.BuildConfig
 import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.ui.screens.home.BottomNavItem
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.truetap.solana.seeker.viewmodels.SwapViewModel
+import com.truetap.solana.seeker.viewmodels.WalletViewModel
+import com.truetap.solana.seeker.domain.model.CryptoToken
+import com.truetap.solana.seeker.domain.model.SwapQuote
+import com.truetap.solana.seeker.data.WalletTransaction
+import com.truetap.solana.seeker.data.TransactionType
 
 enum class SwapState {
     None,
@@ -49,7 +61,9 @@ fun SwapScreen(
     onNavigateToContacts: () -> Unit = {},
     onNavigateToNFTs: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    swapViewModel: SwapViewModel = hiltViewModel(),
+    walletViewModel: WalletViewModel = hiltViewModel()
 ) {
     var selectedTokenFrom by remember { mutableStateOf("SOL") }
     var selectedTokenTo by remember { mutableStateOf("USDC") }
@@ -72,27 +86,49 @@ fun SwapScreen(
     // Coroutine scope for async operations
     val coroutineScope = rememberCoroutineScope()
     
-    // Sample wallet balances and prices
-    val solBalance = 12.45f
-    val usdcBalance = 1234.56f
-    val solPrice = 103.37f
-    val usdcPrice = 1.0f
-    
-    // Calculate conversion rates
-    fun calculateConversion(amount: String, fromToken: String, toToken: String): String {
-        val numAmount = amount.toFloatOrNull() ?: 0f
-        return when {
-            fromToken == "SOL" && toToken == "USDC" -> (numAmount * solPrice).toString()
-            fromToken == "USDC" && toToken == "SOL" -> (numAmount / solPrice).let { "%.6f".format(it) }
-            fromToken == toToken -> amount
-            else -> (numAmount * 1.0f).toString() // Default conversion
+    // Bind to live wallet and swap state
+    val swapUiState by swapViewModel.uiState.collectAsStateWithLifecycle()
+    val walletState by walletViewModel.walletState.collectAsStateWithLifecycle()
+    val fromPrice = swapUiState.tokenPrices[selectedTokenFrom]?.toFloat() ?: 0f
+    val toPrice = swapUiState.tokenPrices[selectedTokenTo]?.toFloat() ?: 0f
+    val availableTokens = remember(walletState) {
+        val dynamicTokens = walletState.balance?.tokenBalances?.map { it.symbol.uppercase() to it.name } ?: emptyList()
+        (listOf("SOL" to "Solana") + dynamicTokens.filter { it.first != "SOL" })
+            .distinctBy { it.first }
+    }
+    fun getBalanceFor(symbol: String): Float {
+        return if (symbol.equals("SOL", true)) {
+            walletState.balance?.solBalance?.toFloat() ?: 0f
+        } else {
+            walletState.balance?.tokenBalances?.find { it.symbol.equals(symbol, true) }?.uiAmount?.toFloat() ?: 0f
         }
     }
     
-    // Update conversion when amounts change
+    // Calculate indicative conversion using live price map if available
+    fun calculateConversion(amount: String, fromToken: String, toToken: String): String {
+        val numAmount = amount.toFloatOrNull() ?: 0f
+        if (fromToken == toToken) return amount
+        val fromP = swapUiState.tokenPrices[fromToken]?.toFloat() ?: 0f
+        val toP = swapUiState.tokenPrices[toToken]?.toFloat() ?: 0f
+        return if (fromP > 0f && toP > 0f) {
+            val converted = numAmount * (fromP / toP)
+            if (toToken.equals("SOL", true)) "%.6f".format(converted) else converted.toString()
+        } else amount
+    }
+    
+    // Update live quote when inputs change
     LaunchedEffect(fromAmount, selectedTokenFrom, selectedTokenTo) {
         if (fromAmount.isNotEmpty() && fromAmount != "0.00") {
-            toAmount = calculateConversion(fromAmount, selectedTokenFrom, selectedTokenTo)
+            swapViewModel.updateInputAmount(fromAmount)
+        }
+        // Update selected tokens in SwapViewModel
+        CryptoToken.fromSymbol(selectedTokenFrom)?.let { swapViewModel.selectInputToken(it) }
+        CryptoToken.fromSymbol(selectedTokenTo)?.let { swapViewModel.selectOutputToken(it) }
+    }
+    // Reflect live output amount from quotes
+    LaunchedEffect(swapUiState.outputAmount) {
+        if (swapUiState.outputAmount.isNotEmpty()) {
+            toAmount = swapUiState.outputAmount
         }
     }
     
@@ -101,6 +137,7 @@ fun SwapScreen(
             .fillMaxSize()
             .background(TrueTapBackground)
     ) {
+        val context = LocalContext.current
         // Main content area
         Column(
             modifier = Modifier
@@ -156,6 +193,52 @@ fun SwapScreen(
             }
             
             Spacer(modifier = Modifier.height(12.dp))
+            // Empty-state: only SOL held
+            val hasOnlySol = (availableTokens.size <= 1)
+            if (hasOnlySol) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF7FBFF))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Add USDC to start swapping",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "We only detected SOL in your wallet. You can acquire USDC via on-ramp or swap when available.",
+                            fontSize = 12.sp,
+                            color = TrueTapTextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                val url = "https://jup.ag/swap/SOL-USDC"
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(text = "Get USDC", color = Color.White)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            // Network congestion banner (optional)
+            swapUiState.networkCongestionMessage?.let { msg ->
+                Text(
+                    text = msg,
+                    fontSize = 12.sp,
+                    color = TrueTapTextSecondary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         
             // Route and Speed Section - Combined
             Row(
@@ -290,11 +373,7 @@ fun SwapScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = TrueTapTextPrimary
                             )
-                            Text(
-                                text = "+5.2%",
-                                fontSize = 12.sp,
-                                color = Color(0xFF22C55E)
-                            )
+                            // Optional price delta could be displayed here if available
                         }
                     }
                     
@@ -324,46 +403,76 @@ fun SwapScreen(
                         Column(
                             horizontalAlignment = Alignment.End
                         ) {
-                            if (showSolBalanceInUSD) {
+                            val fromTokenBalance = getBalanceFor(selectedTokenFrom)
+                            if (showSolBalanceInUSD && fromPrice > 0f) {
                                 Text(
-                                    text = "$${"%.2f".format(solBalance * solPrice)}",
+                                    text = "$${"%.2f".format(fromTokenBalance * fromPrice)}",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = TrueTapTextPrimary
                                 )
                                 Text(
-                                    text = "$solBalance SOL",
+                                    text = "$fromTokenBalance ${selectedTokenFrom}",
                                     fontSize = 12.sp,
                                     color = TrueTapTextSecondary
                                 )
                             } else {
                                 Text(
-                                    text = "$solBalance SOL",
+                                    text = "$fromTokenBalance ${selectedTokenFrom}",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = TrueTapTextPrimary
                                 )
-                                Text(
-                                    text = "$${"%.2f".format(solBalance * solPrice)}",
-                                    fontSize = 12.sp,
-                                    color = TrueTapTextSecondary
-                                )
+                                if (fromPrice > 0f) {
+                                    Text(
+                                        text = "$${"%.2f".format(fromTokenBalance * fromPrice)}",
+                                        fontSize = 12.sp,
+                                        color = TrueTapTextSecondary
+                                    )
+                                }
                             }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "1 SOL = $$solPrice",
-                                    fontSize = 10.sp,
-                                    color = TrueTapTextSecondary
-                                )
+            if (fromPrice > 0f) {
+                Text(
+                    text = "1 ${selectedTokenFrom} = $${fromPrice}",
+                    fontSize = 10.sp,
+                    color = TrueTapTextSecondary
+                )
+            }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "MAX",
                                     fontSize = 10.sp,
                                     color = TrueTapPrimary,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.clickable {
+                                        val bal = getBalanceFor(selectedTokenFrom)
+                                        val decimals = if (selectedTokenFrom.equals("SOL", true)) 6 else 2
+                                        fromAmount = "% .${decimals}f".format(bal).trim()
+                                        toAmount = calculateConversion(fromAmount, selectedTokenFrom, selectedTokenTo)
+                                    }
                                 )
+                            }
+                            // Quick amount selectors
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val percents = listOf(25, 50, 75, 100)
+                                percents.forEach { p ->
+                                    AssistChip(
+                                        onClick = {
+                                            val bal = getBalanceFor(selectedTokenFrom)
+                                            val use = if (p == 100) bal else bal * (p / 100f)
+                                            val decimals = if (selectedTokenFrom.equals("SOL", true)) 6 else 2
+                                            fromAmount = "% .${decimals}f".format(use).trim()
+                                            toAmount = calculateConversion(fromAmount, selectedTokenFrom, selectedTokenTo)
+                                        },
+                                        label = { Text("${p}%") },
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, TrueTapTextSecondary.copy(alpha = 0.2f))
+                                    )
+                                }
                             }
                         }
                     }
@@ -457,11 +566,7 @@ fun SwapScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = TrueTapTextPrimary
                             )
-                            Text(
-                                text = "+0.1%",
-                                fontSize = 12.sp,
-                                color = Color(0xFF22C55E)
-                            )
+                            // Optional price delta could be displayed here if available
                         }
                     }
                     
@@ -497,36 +602,41 @@ fun SwapScreen(
                         Column(
                             horizontalAlignment = Alignment.End
                         ) {
-                            if (showUsdcBalanceInSOL) {
+                            val toTokenBalance = getBalanceFor(selectedTokenTo)
+                            if (showUsdcBalanceInSOL && toPrice > 0f && fromPrice > 0f && selectedTokenFrom.equals("SOL", true)) {
                                 Text(
-                                    text = "${"%.3f".format(usdcBalance / solPrice)} SOL",
+                                    text = "${"%.3f".format(toTokenBalance / fromPrice)} SOL",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = TrueTapTextPrimary
                                 )
                                 Text(
-                                    text = "$${"%.2f".format(usdcBalance)}",
+                                    text = "$${"%.2f".format(toTokenBalance)}",
                                     fontSize = 12.sp,
                                     color = TrueTapTextSecondary
                                 )
                             } else {
                                 Text(
-                                    text = "$${"%.2f".format(usdcBalance)}",
+                                    text = "$${"%.2f".format(toTokenBalance)}",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = TrueTapTextPrimary
                                 )
-                                Text(
-                                    text = "${"%.3f".format(usdcBalance / solPrice)} SOL",
-                                    fontSize = 12.sp,
-                                    color = TrueTapTextSecondary
-                                )
+                                if (fromPrice > 0f && selectedTokenFrom.equals("SOL", true)) {
+                                    Text(
+                                        text = "${"%.3f".format(toTokenBalance / fromPrice)} SOL",
+                                        fontSize = 12.sp,
+                                        color = TrueTapTextSecondary
+                                    )
+                                }
                             }
+                        if (toPrice > 0f) {
                             Text(
-                                text = "1 USDC = $1",
+                                text = "1 ${selectedTokenTo} = $${toPrice}",
                                 fontSize = 10.sp,
                                 color = TrueTapTextSecondary
                             )
+                        }
                         }
                     }
                 }
@@ -556,22 +666,93 @@ fun SwapScreen(
                         fontWeight = FontWeight.Medium,
                         color = TrueTapTextPrimary
                     )
-                    Icon(
-                        imageVector = if (isDetailsExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Toggle Details",
-                        tint = TrueTapTextSecondary,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (swapUiState.isLoadingQuote) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = TrueTapPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        IconButton(onClick = { swapViewModel.getSwapQuote() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh Quote",
+                                tint = TrueTapTextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Icon(
+                            imageVector = if (isDetailsExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Toggle Details",
+                            tint = TrueTapTextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
                 
                 if (isDetailsExpanded) {
                     Column(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
-                        DetailRow("Rate", "1 SOL = $103.37")
-                        DetailRow("Network Fee", "0.00025 SOL")
-                        DetailRow("Route", "Raydium → Orca")
-                        DetailRow("Slippage", currentSlippage)
+            val quote = swapUiState.currentQuote
+                        if (quote != null) {
+                            DetailRow(
+                                label = "Rate",
+                                value = "1 ${quote.inputToken.symbol} = ${"%.6f".format(quote.rate)} ${quote.outputToken.symbol}"
+                            )
+                            DetailRow(
+                                label = "Network Fee",
+                                value = "${quote.networkFee.stripTrailingZeros().toPlainString()} SOL"
+                            )
+                            DetailRow(
+                                label = "Exchange Fee",
+                                value = "${quote.exchangeFee.stripTrailingZeros().toPlainString()} ${quote.outputToken.symbol}"
+                            )
+                            DetailRow(
+                                label = "Price Impact",
+                                value = "${"%.2f".format(quote.priceImpact)}%"
+                            )
+                            DetailRow(
+                                label = "Est. Time",
+                                value = "${quote.estimatedTime}s"
+                            )
+                            DetailRow(
+                                label = "Route",
+                                value = quote.route.joinToString(" → ")
+                            )
+                            DetailRow(
+                                label = "Slippage",
+                                value = "${"%.2f".format(swapUiState.slippagePercent)}%"
+                            )
+                        } else {
+                            Column {
+                                Text(
+                                    text = "Quote not available. Enter an amount and refresh.",
+                                    fontSize = 12.sp,
+                                    color = TrueTapTextSecondary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { swapViewModel.getSwapQuote() },
+                                    enabled = !swapUiState.isLoadingQuote,
+                                    colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    if (swapUiState.isLoadingQuote) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(14.dp),
+                                            strokeWidth = 2.dp,
+                                            color = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    }
+                                    Text(text = "Refresh Quote", fontSize = 12.sp, color = Color.White)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -588,7 +769,11 @@ fun SwapScreen(
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary),
                 shape = RoundedCornerShape(12.dp),
-                enabled = fromAmount.isNotEmpty() && fromAmount != "0.00" && toAmount.isNotEmpty() && toAmount != "0.00"
+                enabled = run {
+                    val amt = fromAmount.toFloatOrNull() ?: 0f
+                    val bal = getBalanceFor(selectedTokenFrom)
+                    amt > 0f && toAmount.isNotEmpty() && toAmount != "0.00" && amt <= bal
+                }
             ) {
                 Text(
                     text = "Review Swap",
@@ -597,8 +782,57 @@ fun SwapScreen(
                     color = Color.White
                 )
             }
+            // Insufficient balance inline warning
+            val amtVal = fromAmount.toFloatOrNull() ?: 0f
+            val balVal = getBalanceFor(selectedTokenFrom)
+            if (amtVal > balVal && amtVal > 0f) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Insufficient ${selectedTokenFrom} balance",
+                    color = Color(0xFFFF4757),
+                    fontSize = 12.sp
+                )
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
+            // Recent swaps recap
+            val recentSwaps = walletState.transactions.filter { it.type == TransactionType.SWAP }.take(3)
+            if (recentSwaps.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = TrueTapContainer)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Recent swaps", fontSize = 12.sp, color = TrueTapTextSecondary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        recentSwaps.forEach { tx ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = tx.signature.take(8) + "…",
+                                    fontSize = 12.sp,
+                                    color = TrueTapTextPrimary
+                                )
+                                Text(
+                                    text = "View",
+                                    fontSize = 12.sp,
+                                    color = TrueTapPrimary,
+                                    modifier = Modifier.clickable {
+                                        val cluster = if (BuildConfig.DEBUG) "?cluster=devnet" else ""
+                                        val url = "https://solscan.io/tx/${tx.signature}${cluster}"
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
         
         // Bottom Navigation Bar
@@ -645,6 +879,7 @@ fun SwapScreen(
     if (showCurrencyFromModal) {
         CurrencySelectionModal(
             currentCurrency = selectedTokenFrom,
+            currencies = availableTokens,
             onCurrencySelected = { currency ->
                 selectedTokenFrom = currency
                 showCurrencyFromModal = false
@@ -657,6 +892,7 @@ fun SwapScreen(
     if (showCurrencyToModal) {
         CurrencySelectionModal(
             currentCurrency = selectedTokenTo,
+            currencies = availableTokens,
             onCurrencySelected = { currency ->
                 selectedTokenTo = currency
                 showCurrencyToModal = false
@@ -964,6 +1200,7 @@ private fun RouteOptionCard(
 @Composable
 private fun CurrencySelectionModal(
     currentCurrency: String,
+    currencies: List<Pair<String, String>>,
     onCurrencySelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -1000,16 +1237,7 @@ private fun CurrencySelectionModal(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Currency Options (as requested by user)
-            val currencies = listOf(
-                Pair("SOL", "Solana"),
-                Pair("USDC", "USD Coin"),
-                Pair("ORCA", "Orca"),
-                Pair("BONK", "Bonk"),
-                Pair("JUP", "Jupiter"),
-                Pair("RAY", "Raydium")
-            )
-            
+            // Drive from live wallet tokens + SOL
             currencies.forEach { (symbol, name) ->
                 CurrencyOptionCard(
                     symbol = symbol,
@@ -1162,7 +1390,7 @@ private fun SwapConfirmationModal(
         ) {
             when (swapState) {
                 SwapState.None -> SwapConfirmationContent(
-                    fromToken, toToken, fromAmount, toAmount, transactionSpeed, currentSlippage, onConfirmSwap
+                    fromToken, toToken, fromAmount, toAmount, transactionSpeed, currentSlippage, onConfirmSwap, null
                 )
                 SwapState.Processing -> SwapProcessingContent()
                 SwapState.Success -> SwapSuccessContent(fromToken, toToken, fromAmount, toAmount)
@@ -1182,7 +1410,8 @@ private fun SwapConfirmationContent(
     toAmount: String,
     transactionSpeed: String,
     currentSlippage: String,
-    onConfirmSwap: () -> Unit
+    onConfirmSwap: () -> Unit,
+    quote: SwapQuote?
 ) {
     Text(
         text = "Confirm Swap",
@@ -1323,11 +1552,35 @@ private fun SwapConfirmationContent(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            DetailRow("Rate", "1 SOL = $103.37")
-            DetailRow("Network Fee", "0.00025 SOL")
-            DetailRow("Speed", transactionSpeed)
-            DetailRow("Slippage", currentSlippage)
-            DetailRow("Route", "Raydium → Orca")
+            if (quote != null) {
+                DetailRow(
+                    label = "Rate",
+                    value = "1 ${quote.inputToken.symbol} = ${"%.6f".format(quote.rate)} ${quote.outputToken.symbol}"
+                )
+                DetailRow(
+                    label = "Network Fee",
+                    value = "${quote.networkFee.stripTrailingZeros().toPlainString()} SOL"
+                )
+                DetailRow(
+                    label = "Exchange Fee",
+                    value = "${quote.exchangeFee.stripTrailingZeros().toPlainString()} ${quote.outputToken.symbol}"
+                )
+                DetailRow(
+                    label = "Speed",
+                    value = transactionSpeed
+                )
+                DetailRow(
+                    label = "Slippage",
+                    value = "${"%.2f".format(quote.slippage)}%"
+                )
+                DetailRow(
+                    label = "Route",
+                    value = quote.route.joinToString(" → ")
+                )
+            } else {
+                DetailRow("Speed", transactionSpeed)
+                DetailRow("Slippage", currentSlippage)
+            }
         }
     }
     
