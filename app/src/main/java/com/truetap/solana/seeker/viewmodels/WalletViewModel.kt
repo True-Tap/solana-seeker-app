@@ -98,6 +98,8 @@ class WalletViewModel @Inject constructor(
 
     fun disconnect() {
         viewModelScope.launch {
+            // Attempt to deauthorize MWA session before clearing local session
+            walletRepository.deauthorizeIfMwa(activityResultSender = null)
             walletRepository.disconnectWallet()
             _errorMessage.value = null
         }
@@ -118,6 +120,19 @@ class WalletViewModel @Inject constructor(
                 activityResultSender = activityResultSender,
                 message = message
             )
+            when (result) {
+                is WalletResult.Success -> _errorMessage.value = null
+                is WalletResult.Error -> _errorMessage.value = result.message
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun signInWithSolana(activityResultSender: ActivityResultSender?, domain: String = "truetap.app", statement: String = "Sign in to TrueTap") {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            val result = walletRepository.signInWithSolana(activityResultSender, domain, statement)
             when (result) {
                 is WalletResult.Success -> _errorMessage.value = null
                 is WalletResult.Error -> _errorMessage.value = result.message

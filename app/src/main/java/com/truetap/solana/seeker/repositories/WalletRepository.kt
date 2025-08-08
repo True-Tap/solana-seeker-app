@@ -19,6 +19,7 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult as MwaTransact
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import org.bitcoinj.core.Base58
 import androidx.activity.ComponentActivity
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -82,8 +83,8 @@ class WalletRepository @Inject constructor(
                 walletType = connectionResult.walletType
             )
             
-            // Generate auth token for session
-            val authToken = "${connectionResult.publicKey}_${System.currentTimeMillis()}"
+            // Use wallet-provided auth token when available (MWA wallets)
+            val authToken = connectionResult.authToken ?: "${connectionResult.publicKey}_${System.currentTimeMillis()}"
             
             // Save session data with wallet type
             saveSessionWithWalletType(account, authToken, connectionResult.walletType.id)
@@ -98,6 +99,13 @@ class WalletRepository @Inject constructor(
                 error = null
             )
             
+            // If using MWA, set adapter authToken for seamless subsequent requests
+            if (connectionResult.walletType.usesMobileWalletAdapter && connectionResult.authToken != null) {
+                try {
+                    com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter.authToken = connectionResult.authToken
+                } catch (_: Exception) { }
+            }
+
             // Fetch wallet data in background
             fetchWalletData(account.publicKey)
             
@@ -163,6 +171,12 @@ class WalletRepository @Inject constructor(
                     isLoading = false,
                     error = null
                 )
+                // If using MWA and token exists, set adapter token for session reuse
+                if (walletTypeEnum?.usesMobileWalletAdapter == true && authToken != null) {
+                    try {
+                        com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter.authToken = authToken
+                    } catch (_: Exception) { }
+                }
                 
                 // Fetch wallet data in background
                 fetchWalletData(account.publicKey)
@@ -178,6 +192,67 @@ class WalletRepository @Inject constructor(
         } catch (e: Exception) {
             _authState.value = AuthState.Error("Failed to restore session: ${e.message}")
             WalletResult.Error(e, "Failed to restore session")
+        }
+    }
+
+    /**
+     * Deauthorize MWA wallet session (if applicable) to invalidate authToken.
+     */
+    suspend fun deauthorizeIfMwa(activityResultSender: ActivityResultSender?): WalletResult<Unit> {
+        val account = _walletState.value.account
+        if (account?.walletType?.usesMobileWalletAdapter != true) {
+            return WalletResult.Success(Unit)
+        }
+        if (activityResultSender == null) {
+            return WalletResult.Error(IllegalStateException("Missing ActivityResultSender"), "Missing ActivityResultSender")
+        }
+        return try {
+            val adapter = com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter
+            val result: MwaTransactionResult<*> = adapter.disconnect(activityResultSender)
+            when (result) {
+                is MwaTransactionResult.Success<*> -> {
+                    // Clear in-memory token for safety
+                    adapter.authToken = null
+                    WalletResult.Success(Unit)
+                }
+                is MwaTransactionResult.NoWalletFound -> WalletResult.Error(IllegalStateException("No compatible wallet found"), "No compatible wallet found")
+                is MwaTransactionResult.Failure -> WalletResult.Error(result.e, result.e.message ?: "MWA disconnect error")
+            }
+        } catch (e: Exception) {
+            WalletResult.Error(e, e.message ?: "MWA disconnect error")
+        }
+    }
+
+    /**
+     * Sign-In With Solana via MWA. Returns success if wallet completed sign-in.
+     */
+    suspend fun signInWithSolana(
+        activityResultSender: ActivityResultSender?,
+        domain: String = "truetap.app",
+        statement: String = "Sign in to TrueTap"
+    ): WalletResult<Unit> {
+        val account = _walletState.value.account
+        if (account?.walletType?.usesMobileWalletAdapter != true) {
+            return WalletResult.Error(IllegalStateException("MWA wallet required"), "MWA wallet required")
+        }
+        if (activityResultSender == null) {
+            return WalletResult.Error(IllegalStateException("Missing ActivityResultSender"), "Missing ActivityResultSender")
+        }
+        return try {
+            val adapter = com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter
+            // Fallback SIWS: sign a domain-specific message using signMessagesDetached
+            val message = "$domain wants you to sign in. $statement"
+            val result: MwaTransactionResult<*> = adapter.transact(activityResultSender) {
+                val pkBytes = Base58.decode(account.publicKey)
+                signMessagesDetached(arrayOf(message.toByteArray()), arrayOf(pkBytes))
+            }
+            when (result) {
+                is MwaTransactionResult.Success<*> -> WalletResult.Success(Unit)
+                is MwaTransactionResult.NoWalletFound -> WalletResult.Error(IllegalStateException("No compatible wallet found"), "No compatible wallet found")
+                is MwaTransactionResult.Failure -> WalletResult.Error(result.e, result.e.message ?: "MWA sign-in error")
+            }
+        } catch (e: Exception) {
+            WalletResult.Error(e, e.message ?: "MWA sign-in error")
         }
     }
 
