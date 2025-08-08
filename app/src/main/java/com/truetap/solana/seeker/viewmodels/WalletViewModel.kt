@@ -98,6 +98,8 @@ class WalletViewModel @Inject constructor(
 
     fun disconnect() {
         viewModelScope.launch {
+            // Attempt to deauthorize MWA session before clearing local session
+            walletRepository.deauthorizeIfMwa(activityResultSender = null)
             walletRepository.disconnectWallet()
             _errorMessage.value = null
         }
