@@ -132,6 +132,8 @@ dependencies {
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+        // Encrypted storage for auth/session tokens
+        implementation("androidx.security:security-crypto:1.1.0-alpha06")
     
     // Room
     implementation(libs.androidx.room.runtime)
