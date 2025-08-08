@@ -16,6 +16,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import javax.inject.Inject
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import androidx.activity.ComponentActivity
+import com.solana.mobilewalletadapter.clientlib.TransactionResult as MwaTransactionResult
+import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
+import org.bitcoinj.core.Base58
 import javax.inject.Singleton
 
 /**
@@ -137,6 +142,7 @@ class JupiterSwapService @Inject constructor(
             // Get real wallet address from repository
             val userWallet = walletRepository.getCurrentWalletAddress()
                 ?: throw IllegalStateException("No wallet connected")
+            val walletType = walletRepository.walletState.value.account?.walletType
             
             // Request swap transaction from Jupiter
             val swapRequest = JSONObject().apply {
@@ -165,39 +171,59 @@ class JupiterSwapService @Inject constructor(
                 val jsonResponse = JSONObject(response)
                 
                 val swapTransaction = jsonResponse.getString("swapTransaction")
-                
-                // Sign transaction using Seed Vault
                 val transactionBytes = android.util.Base64.decode(swapTransaction, android.util.Base64.DEFAULT)
-                val derivationPath = byteArrayOf(
-                    0x80.toByte(), 0x00, 0x00, 0x2C, // 44'
-                    0x80.toByte(), 0x00, 0x01, 0xF5.toByte(), // 501' (Solana)
-                    0x80.toByte(), 0x00, 0x00, 0x00, // 0'
-                    0x00, 0x00, 0x00, 0x00           // 0'
-                )
-                
-                val signingResult = seedVaultProvider.signTransaction(
-                    activity,
-                    transactionBytes,
-                    derivationPath,
-                    activityResultLauncher
-                )
-                
-                val signedTransaction = when (signingResult) {
-                    is SigningResult.Success -> {
-                        android.util.Base64.encodeToString(signingResult.signedTransaction, android.util.Base64.DEFAULT)
+
+                // Choose signing route based on wallet type
+                return@withContext when (walletType) {
+                    com.truetap.solana.seeker.data.WalletType.SOLFLARE,
+                    com.truetap.solana.seeker.data.WalletType.PHANTOM,
+                    com.truetap.solana.seeker.data.WalletType.EXTERNAL -> {
+                        // MWA sign and send
+                        val componentActivity = activity as? ComponentActivity
+                            ?: throw IllegalStateException("ComponentActivity required for MWA transact")
+                        val sender = ActivityResultSender(componentActivity)
+                        val adapter = MobileWalletAdapterServiceHelper.adapter
+                        val mwaResult: MwaTransactionResult<*> = adapter.transact(sender) {
+                            signAndSendTransactions(arrayOf(transactionBytes))
+                        }
+                        when (mwaResult) {
+                            is MwaTransactionResult.Success<*> -> {
+                                val payload = (mwaResult as MwaTransactionResult.Success<*>).payload
+                                val signatures = (payload as? MobileWalletAdapterClient.SignAndSendTransactionsResult)?.signatures
+                                val signatureBase58 = signatures?.firstOrNull()?.let { bytes -> Base58.encode(bytes) }
+                                if (signatureBase58 != null) {
+                                    TransactionResult.Success(signatureBase58)
+                                } else {
+                                    TransactionResult.Error("No signature returned from wallet")
+                                }
+                            }
+                            is MwaTransactionResult.NoWalletFound -> TransactionResult.Error("No compatible wallet found")
+                            is MwaTransactionResult.Failure -> TransactionResult.Error("MWA error: ${mwaResult.e.message}")
+                        }
                     }
-                    is SigningResult.Error -> {
-                        throw Exception("Transaction signing failed: ${signingResult.message}")
-                    }
-                    is SigningResult.UserDenied -> {
-                        throw Exception("Transaction signing was denied by user")
+                    else -> {
+                        // Seed Vault sign then submit
+                        val derivationPath = byteArrayOf(
+                            0x80.toByte(), 0x00, 0x00, 0x2C, // 44'
+                            0x80.toByte(), 0x00, 0x01, 0xF5.toByte(), // 501' (Solana)
+                            0x80.toByte(), 0x00, 0x00, 0x00, // 0'
+                            0x00, 0x00, 0x00, 0x00           // 0'
+                        )
+                        val signingResult = seedVaultProvider.signTransaction(
+                            activity,
+                            transactionBytes,
+                            derivationPath,
+                            activityResultLauncher
+                        )
+                        val signedTransaction = when (signingResult) {
+                            is SigningResult.Success -> android.util.Base64.encodeToString(signingResult.signedTransaction, android.util.Base64.DEFAULT)
+                            is SigningResult.Error -> throw Exception("Transaction signing failed: ${signingResult.message}")
+                            is SigningResult.UserDenied -> throw Exception("Transaction signing was denied by user")
+                        }
+                        val signature = solanaRpcService.sendTransaction(signedTransaction)
+                        TransactionResult.Success(signature)
                     }
                 }
-                
-                // Submit to Solana network
-                val signature = solanaRpcService.sendTransaction(signedTransaction)
-                
-                TransactionResult.Success(signature)
             } else {
                 val errorStream = connection.errorStream
                 val errorResponse = errorStream?.let { 
