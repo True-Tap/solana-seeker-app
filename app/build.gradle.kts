@@ -123,6 +123,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+        // Hilt + WorkManager integration (for @HiltWorker)
+        implementation("androidx.hilt:hilt-work:1.2.0")
+        ksp("androidx.hilt:hilt-compiler:1.2.0")
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
@@ -143,6 +146,8 @@ dependencies {
     // Networking
     implementation(libs.retrofit)
     implementation(libs.okhttp)
+        // WorkManager
+        implementation("androidx.work:work-runtime-ktx:2.9.0")
     
     // Image Loading
     implementation(libs.coil.compose)

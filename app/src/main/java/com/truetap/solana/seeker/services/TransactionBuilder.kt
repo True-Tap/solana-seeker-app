@@ -1,7 +1,6 @@
 package com.truetap.solana.seeker.services
 
 import com.solana.programs.SystemProgram
-import com.solana.programs.ComputeBudgetProgram
 import com.solana.publickey.SolanaPublicKey
 import com.solana.transaction.Message
 import com.solana.transaction.Transaction
@@ -26,12 +25,7 @@ class TransactionBuilder @Inject constructor() {
         val fromKey = SolanaPublicKey(Base58.decode(fromPublicKeyBase58))
         val toKey = SolanaPublicKey(Base58.decode(toPublicKeyBase58))
 
-        val builder = Message.Builder()
-        // Optional compute budget instructions for reliability under congestion
-        if (computeUnitLimit != null) builder.addInstruction(ComputeBudgetProgram.setComputeUnitLimit(computeUnitLimit))
-        if (priorityFeeMicrolamports != null && priorityFeeMicrolamports > 0) builder.addInstruction(ComputeBudgetProgram.setComputeUnitPrice(priorityFeeMicrolamports))
-
-        val message = builder
+        val message = Message.Builder()
             .addInstruction(SystemProgram.transfer(fromKey, toKey, lamports))
             .setRecentBlockhash(recentBlockhash)
             .build()
