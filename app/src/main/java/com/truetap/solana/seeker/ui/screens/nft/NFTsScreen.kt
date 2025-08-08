@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -579,7 +581,7 @@ private fun NFTDetailDialog(
                 TrueTapButton(
                     text = "Send NFT",
                     onClick = onSendNFT,
-                    icon = Icons.AutoMirrored.Filled.Send,
+                    icon = Icons.Filled.Send,
                     modifier = Modifier.weight(1f)
                 )
                 
@@ -587,7 +589,7 @@ private fun NFTDetailDialog(
                     text = "View on Explorer",
                     onClick = { /* Navigate to blockchain explorer */ },
                     style = TrueTapButtonStyle.OUTLINE,
-                    icon = Icons.AutoMirrored.Filled.OpenInNew,
+                    icon = Icons.Filled.OpenInNew,
                     modifier = Modifier.weight(1f)
                 )
             }

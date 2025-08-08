@@ -120,7 +120,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.material.icons.extended)
+    // Use icons-extended without explicit version; rely on Compose BOM for alignment
+    implementation("androidx.compose.material:material-icons-extended")
     
     // Navigation
     implementation(libs.androidx.navigation.compose)
