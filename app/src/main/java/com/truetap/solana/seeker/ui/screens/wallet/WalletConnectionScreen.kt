@@ -42,6 +42,7 @@ import com.truetap.solana.seeker.R
 import com.truetap.solana.seeker.ui.theme.*
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import kotlinx.coroutines.delay
+import com.truetap.solana.seeker.utils.WalletAppDetector
 
 data class WalletCategory(
     val id: String,
@@ -80,13 +81,8 @@ fun WalletConnectionScreen(
     }
     
     // Detect installed wallets
-    val packageManager = context.packageManager
-    val phantomInstalled = remember {
-        try { packageManager.getPackageInfo("app.phantom.mobile", 0); true } catch (_: Exception) { false }
-    }
-    val solflareInstalled = remember {
-        try { packageManager.getPackageInfo("com.solflare.mobile", 0); true } catch (_: Exception) { false }
-    }
+    val phantomInstalled = remember { WalletAppDetector.isPhantomInstalled(context) }
+    val solflareInstalled = remember { WalletAppDetector.isSolflareInstalled(context) }
 
     // Wallet categories with availability flags
     val walletCategories = listOf(
@@ -294,14 +290,8 @@ private fun WalletSelectionContent(
                     onClick = {
                         if (isAvailable) onWalletCategorySelect(category.id) else {
                             // Open Play Store for install
-                            val pkg = if (category.id == "phantom") "app.phantom.mobile" else "com.solflare.mobile"
-                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$pkg"))
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            if (intent.resolveActivity(context.packageManager) != null) context.startActivity(intent) else {
-                                val web = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
-                                web.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(web)
-                            }
+                            if (category.id == "phantom") WalletAppDetector.openStoreForPhantom(context)
+                            else WalletAppDetector.openStoreForSolflare(context)
                         }
                     },
                     enabled = isAvailable || category.id == "solana",
