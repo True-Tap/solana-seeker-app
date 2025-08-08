@@ -38,7 +38,10 @@ import com.truetap.solana.seeker.ui.screens.contacts.BluetoothContactScreen
 import com.truetap.solana.seeker.ui.screens.contacts.SendLinkContactScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.truetap.solana.seeker.ui.screens.payment.PaymentScreen
-import com.truetap.solana.seeker.ui.screens.payment.EnhancedSwapScreen
+import com.truetap.solana.seeker.ui.components.MainNavItem
+import com.truetap.solana.seeker.ui.components.MainScreenScaffold
+import com.truetap.solana.seeker.ui.navigation.rememberMainNavigationHandler
+import com.truetap.solana.seeker.ui.screens.EnhancedSwapScreenContent
 import com.truetap.solana.seeker.ui.screens.payment.SendPaymentScreen
 import com.truetap.solana.seeker.ui.screens.schedule.CreateScheduledPaymentScreen
 import com.truetap.solana.seeker.ui.screens.schedule.ScheduleScreen
@@ -392,13 +395,15 @@ fun NavGraph(
         }
         
         composable(Screen.Swap.route) {
-            EnhancedSwapScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToHome = { navController.navigate(Screen.Home.route) },
-                onNavigateToContacts = { navController.navigate(Screen.Contacts.route) },
-                onNavigateToNFTs = { navController.navigate(Screen.NFTs.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
-            )
+            val onNavigate = rememberMainNavigationHandler(navController)
+            MainScreenScaffold(
+                currentScreen = MainNavItem.SWAP,
+                onNavigate = onNavigate
+            ) { paddingValues ->
+                EnhancedSwapScreenContent(
+                    paddingValues = paddingValues
+                )
+            }
         }
         
         composable(
