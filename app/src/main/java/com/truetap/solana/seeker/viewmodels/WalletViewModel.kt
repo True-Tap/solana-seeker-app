@@ -185,6 +185,9 @@ class WalletViewModel @Inject constructor(
         _isLoading.value = true
         _errorMessage.value = null
         return try {
+            // Remember user's selection for preselection next time
+            viewModelScope.launch { walletRepository.setLastWalletChoice(walletType.id) }
+            
             val connector = when (walletType) {
                 com.truetap.solana.seeker.data.WalletType.SOLANA_SEEKER -> seedVaultWalletConnector
                 else -> mwaWalletConnector
@@ -216,6 +219,11 @@ class WalletViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
+
+    /**
+     * Retrieve last wallet selection to preselect in the UI.
+     */
+    suspend fun getLastWalletChoice(): String? = walletRepository.getLastWalletChoice()
     
     /**
      * Check if connected wallet has Genesis NFT

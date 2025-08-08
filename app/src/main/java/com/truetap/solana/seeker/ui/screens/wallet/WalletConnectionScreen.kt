@@ -67,34 +67,49 @@ fun WalletConnectionScreen(
     val context = LocalContext.current
     var currentState by remember { mutableStateOf<ConnectionState>(ConnectionState.Selection) }
     var selectedWallet by remember { mutableStateOf<String?>(null) }
+    var lastChoiceId by remember { mutableStateOf<String?>(null) }
     
     // Animation states
     val infiniteTransition = rememberInfiniteTransition(label = "wallet_connection")
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     
-    // Wallet categories
+    // Load last choice for badge/preselection hint
+    LaunchedEffect(Unit) {
+        lastChoiceId = viewModel.getLastWalletChoice()
+    }
+    
+    // Detect installed wallets
+    val packageManager = context.packageManager
+    val phantomInstalled = remember {
+        try { packageManager.getPackageInfo("app.phantom.mobile", 0); true } catch (_: Exception) { false }
+    }
+    val solflareInstalled = remember {
+        try { packageManager.getPackageInfo("com.solflare.mobile", 0); true } catch (_: Exception) { false }
+    }
+
+    // Wallet categories with availability flags
     val walletCategories = listOf(
         WalletCategory(
-            id = "solana",
-            name = "Use Hardware Wallet",
-            description = "Built-in Seeker hardware security",
-            iconRes = R.drawable.skr, // Using Seeker icon
-            gradient = listOf(Color(0xFF00D4FF), Color(0xFF00FFA3)) // Seeker colors
-        ),
-        WalletCategory(
             id = "phantom",
-            name = "Use Phantom Wallet",
-            description = "Connect external Phantom wallet",
-            iconRes = R.drawable.phantom, // Using Phantom icon
-            gradient = listOf(Color(0xFF9945FF), Color(0xFF14F195)) // Phantom colors
+            name = "Phantom",
+            description = if (phantomInstalled) "Mobile Wallet Adapter" else "Install from Play Store",
+            iconRes = R.drawable.phantom,
+            gradient = listOf(Color(0xFF9945FF), Color(0xFF14F195))
         ),
         WalletCategory(
             id = "solflare",
-            name = "Use Solflare Wallet",
-            description = "Connect external Solflare wallet",
-            iconRes = R.drawable.solflare, // Using Solflare icon
-            gradient = listOf(Color(0xFFFFC107), Color(0xFFFF6B00)) // Solflare colors
+            name = "Solflare",
+            description = if (solflareInstalled) "Mobile Wallet Adapter" else "Install from Play Store",
+            iconRes = R.drawable.solflare,
+            gradient = listOf(Color(0xFFFFC107), Color(0xFFFF6B00))
+        ),
+        WalletCategory(
+            id = "solana",
+            name = "Seed Vault (Hardware)",
+            description = "Hardware wallet on Seeker",
+            iconRes = R.drawable.skr,
+            gradient = listOf(Color(0xFF00D4FF), Color(0xFF00FFA3))
         )
     )
     
@@ -172,7 +187,11 @@ fun WalletConnectionScreen(
             ConnectionState.Selection -> WalletSelectionContent(
                 walletCategories = walletCategories,
                 onWalletCategorySelect = handleWalletCategorySelect,
-                onCreateWalletWithSolflare = handleCreateWalletWithSolflare
+                onCreateWalletWithSolflare = handleCreateWalletWithSolflare,
+                phantomInstalled = phantomInstalled,
+                solflareInstalled = solflareInstalled,
+                context = context,
+                lastChoiceId = lastChoiceId
             )
             ConnectionState.Success -> WalletSuccessContent()
         }
@@ -183,7 +202,11 @@ fun WalletConnectionScreen(
 private fun WalletSelectionContent(
     walletCategories: List<WalletCategory>,
     onWalletCategorySelect: (String) -> Unit,
-    onCreateWalletWithSolflare: () -> Unit
+    onCreateWalletWithSolflare: () -> Unit,
+    phantomInstalled: Boolean,
+    solflareInstalled: Boolean,
+    context: android.content.Context,
+    lastChoiceId: String?
 ) {
     // Bounce animation for Tappy
     val infiniteTransition = rememberInfiniteTransition(label = "TappyBounce")
@@ -261,9 +284,33 @@ private fun WalletSelectionContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(walletCategories) { category ->
+                val isAvailable = when (category.id) {
+                    "phantom" -> phantomInstalled
+                    "solflare" -> solflareInstalled
+                    else -> true
+                }
                 WalletCategoryCard(
                     category = category,
-                    onClick = { onWalletCategorySelect(category.id) }
+                    onClick = {
+                        if (isAvailable) onWalletCategorySelect(category.id) else {
+                            // Open Play Store for install
+                            val pkg = if (category.id == "phantom") "app.phantom.mobile" else "com.solflare.mobile"
+                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$pkg"))
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            if (intent.resolveActivity(context.packageManager) != null) context.startActivity(intent) else {
+                                val web = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
+                                web.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(web)
+                            }
+                        }
+                    },
+                    enabled = isAvailable || category.id == "solana",
+                    ctaText = if (!isAvailable && category.id != "solana") "Install" else null,
+                    badgeText = when {
+                        category.id == "solana" -> "hardware"
+                        lastChoiceId != null && category.id == lastChoiceId -> "last used"
+                        else -> null
+                    }
                 )
             }
         }
@@ -326,7 +373,10 @@ private fun WalletSelectionContent(
 @Composable
 private fun WalletCategoryCard(
     category: WalletCategory,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    ctaText: String? = null,
+    badgeText: String? = null
 ) {
     Card(
         onClick = onClick,
@@ -338,7 +388,7 @@ private fun WalletCategoryCard(
                 role = androidx.compose.ui.semantics.Role.Button
             },
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = if (enabled) Color.White else Color.LightGray.copy(alpha = 0.3f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
@@ -369,24 +419,46 @@ private fun WalletCategoryCard(
                     text = category.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TrueTapTextPrimary
+                    color = if (enabled) TrueTapTextPrimary else TrueTapTextInactive
                 )
                 
                 Text(
                     text = category.description,
                     fontSize = 14.sp,
-                    color = TrueTapTextSecondary,
+                    color = if (enabled) TrueTapTextSecondary else TrueTapTextInactive,
                     lineHeight = 20.sp
                 )
             }
             
-            // Arrow Icon
-            Icon(
-                imageVector = Icons.Default.AccountBalanceWallet,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = TrueTapTextInactive
-            )
+            if (badgeText != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(TrueTapPrimary.copy(alpha = 0.1f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = badgeText.uppercase(),
+                        fontSize = 12.sp,
+                        color = TrueTapPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            } else if (ctaText != null) {
+                Text(
+                    text = ctaText,
+                    fontSize = 14.sp,
+                    color = TrueTapPrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.AccountBalanceWallet,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = TrueTapTextInactive
+                )
+            }
         }
     }
 }

@@ -60,6 +60,7 @@ class WalletRepository @Inject constructor(
         private val WALLET_LABEL = stringPreferencesKey("wallet_label")
         private val WALLET_TYPE = stringPreferencesKey("wallet_type")
         private val AUTH_TOKEN = stringPreferencesKey("auth_token")
+        private val LAST_WALLET_CHOICE = stringPreferencesKey("last_wallet_choice")
     }
     
     /**
@@ -264,6 +265,7 @@ class WalletRepository @Inject constructor(
                 prefs.remove(WALLET_LABEL)
                 prefs.remove(WALLET_TYPE)
                 prefs.remove(AUTH_TOKEN)
+                // Do not clear LAST_WALLET_CHOICE on disconnect; keep it for convenience
             }
             _authState.value = AuthState.Idle
             _walletState.value = WalletState(null, null)
@@ -355,7 +357,26 @@ class WalletRepository @Inject constructor(
             prefs[WALLET_LABEL] = account.accountLabel ?: ""
             prefs[WALLET_TYPE] = walletTypeId
             prefs[AUTH_TOKEN] = authToken
+            // Record last selected wallet for future preselection
+            prefs[LAST_WALLET_CHOICE] = walletTypeId
         }
+    }
+
+    /**
+     * Persist the last wallet choice selected by the user.
+     */
+    suspend fun setLastWalletChoice(walletId: String) {
+        context.dataStore.edit { prefs ->
+            prefs[LAST_WALLET_CHOICE] = walletId
+        }
+    }
+
+    /**
+     * Retrieve the last wallet choice if available.
+     */
+    suspend fun getLastWalletChoice(): String? {
+        val prefs = context.dataStore.data.first()
+        return prefs[LAST_WALLET_CHOICE]
     }
     
     // TrueTap specific implementation
