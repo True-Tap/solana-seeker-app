@@ -128,6 +128,19 @@ class WalletViewModel @Inject constructor(
         }
     }
 
+    fun signInWithSolana(activityResultSender: ActivityResultSender?, domain: String = "truetap.app", statement: String = "Sign in to TrueTap") {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            val result = walletRepository.signInWithSolana(activityResultSender, domain, statement)
+            when (result) {
+                is WalletResult.Success -> _errorMessage.value = null
+                is WalletResult.Error -> _errorMessage.value = result.message
+            }
+            _isLoading.value = false
+        }
+    }
+
     fun clearError() {
         _errorMessage.value = null
     }

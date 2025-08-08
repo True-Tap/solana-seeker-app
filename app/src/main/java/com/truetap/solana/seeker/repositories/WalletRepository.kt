@@ -223,6 +223,39 @@ class WalletRepository @Inject constructor(
         }
     }
 
+    /**
+     * Sign-In With Solana via MWA. Returns success if wallet completed sign-in.
+     */
+    suspend fun signInWithSolana(
+        activityResultSender: ActivityResultSender?,
+        domain: String = "truetap.app",
+        statement: String = "Sign in to TrueTap"
+    ): WalletResult<Unit> {
+        val account = _walletState.value.account
+        if (account?.walletType?.usesMobileWalletAdapter != true) {
+            return WalletResult.Error(IllegalStateException("MWA wallet required"), "MWA wallet required")
+        }
+        if (activityResultSender == null) {
+            return WalletResult.Error(IllegalStateException("Missing ActivityResultSender"), "Missing ActivityResultSender")
+        }
+        return try {
+            val adapter = com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter
+            // Fallback SIWS: sign a domain-specific message using signMessagesDetached
+            val message = "$domain wants you to sign in. $statement"
+            val result: MwaTransactionResult<*> = adapter.transact(activityResultSender) {
+                val pkBytes = Base58.decode(account.publicKey)
+                signMessagesDetached(arrayOf(message.toByteArray()), arrayOf(pkBytes))
+            }
+            when (result) {
+                is MwaTransactionResult.Success<*> -> WalletResult.Success(Unit)
+                is MwaTransactionResult.NoWalletFound -> WalletResult.Error(IllegalStateException("No compatible wallet found"), "No compatible wallet found")
+                is MwaTransactionResult.Failure -> WalletResult.Error(result.e, result.e.message ?: "MWA sign-in error")
+            }
+        } catch (e: Exception) {
+            WalletResult.Error(e, e.message ?: "MWA sign-in error")
+        }
+    }
+
     suspend fun disconnectWallet() {
         try {
             context.dataStore.edit { prefs ->

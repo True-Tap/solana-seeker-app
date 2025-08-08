@@ -440,6 +440,14 @@ fun PairingScreen(
     )
     
     val walletConfig = walletConfigs[walletId]
+    // Detect installed wallets: Phantom & Solflare
+    val pm = context.packageManager
+    val phantomInstalled = remember {
+        try { pm.getPackageInfo("app.phantom", 0); true } catch (_: Exception) { false }
+    }
+    val solflareInstalled = remember {
+        try { pm.getPackageInfo("io.solflare.wallet", 0); true } catch (_: Exception) { false }
+    }
     
     // Animation states
     val infiniteTransition = rememberInfiniteTransition(label = "pairing")
