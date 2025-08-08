@@ -17,7 +17,7 @@ import javax.inject.Singleton
  * Unified Solana RPC client with failover and backoff using OkHttp
  */
 @Singleton
-class UnifiedSolanaRpcService @Inject constructor() {
+open class UnifiedSolanaRpcService @Inject constructor() {
     private val jsonMedia = "application/json".toMediaType()
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -30,7 +30,7 @@ class UnifiedSolanaRpcService @Inject constructor() {
     private val secondary = com.truetap.solana.seeker.BuildConfig.RPC_SECONDARY
     private val tertiary = com.truetap.solana.seeker.BuildConfig.RPC_TERTIARY
 
-    suspend fun call(method: String, params: Any, requestId: Int = 1): JSONObject =
+    open suspend fun call(method: String, params: Any, requestId: Int = 1): JSONObject =
         withContext(Dispatchers.IO) {
             val body = JSONObject().apply {
                 put("jsonrpc", "2.0")
@@ -67,7 +67,7 @@ class UnifiedSolanaRpcService @Inject constructor() {
             throw Exception("RPC call failed: ${lastError?.message}", lastError)
         }
 
-    suspend fun sendTransaction(base64: String, skipPreflight: Boolean = false): String {
+    open suspend fun sendTransaction(base64: String, skipPreflight: Boolean = false): String {
         val params = JSONArray().apply {
             put(base64)
             put(JSONObject().apply {
@@ -83,7 +83,7 @@ class UnifiedSolanaRpcService @Inject constructor() {
         throw Exception("Transaction failed: $err")
     }
 
-    suspend fun getLatestBlockhash(): String {
+    open suspend fun getLatestBlockhash(): String {
         val params = JSONArray().apply {
             put(JSONObject().apply { put("commitment", "confirmed") })
         }
@@ -95,7 +95,7 @@ class UnifiedSolanaRpcService @Inject constructor() {
     /**
      * Wrapper to fetch SOL balance in SOL (Double).
      */
-    suspend fun getBalanceSol(publicKey: String): Double {
+    open suspend fun getBalanceSol(publicKey: String): Double {
         val params = JSONArray().apply { put(publicKey) }
         val response = call("getBalance", params)
         val lamports = response.optJSONObject("result")?.optLong("value") ?: 0L

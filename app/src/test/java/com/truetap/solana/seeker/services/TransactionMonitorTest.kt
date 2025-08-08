@@ -7,13 +7,6 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class FakeRpc(private val responses: List<JSONObject>) : UnifiedSolanaRpcService() {
-    private var idx = 0
-    override suspend fun call(method: String, params: Any, requestId: Int): JSONObject {
-        return responses.getOrElse(idx++) { responses.last() }
-    }
-}
-
 class TransactionMonitorTest {
     @Test
     fun emits_statuses_until_finalized() = runBlocking {
