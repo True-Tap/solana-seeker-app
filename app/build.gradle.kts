@@ -98,6 +98,13 @@ android {
             excludes += "META-INF/versions/9/previous-compilation-data.bin"
         }
     }
+
+    // Increase DX/D8 memory to avoid OOMs in CI during dex merging
+    // CI can also set ORG_GRADLE_JVM_ARGS but this provides a sane default
+    tasks.withType<com.android.build.gradle.internal.tasks.DexMergingTask>().configureEach {
+        // Limit worker count to reduce peak memory
+        this.workerExecutor.noIsolation()
+    }
 }
 
 dependencies {
