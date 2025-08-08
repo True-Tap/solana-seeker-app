@@ -35,7 +35,7 @@ android {
             buildConfigField("boolean", "DEMO_MODE", "true")
             val heliusDev = System.getenv("HELIUS_DEVNET_KEY") ?: ""
             buildConfigField("String", "RPC_PRIMARY", "\"https://api.devnet.solana.com\"")
-            buildConfigField("String", "RPC_SECONDARY", "\"https://rpc.helius.xyz/?api-key=${'$'}heliusDev\"")
+            buildConfigField("String", "RPC_SECONDARY", "\"https://rpc.helius.xyz/?api-key=$heliusDev\"")
             buildConfigField("String", "RPC_TERTIARY", "\"https://api.mainnet-beta.solana.com\"")
             buildConfigField("String", "BUILD_FLAVOR", "\"dev\"")
             
@@ -49,7 +49,7 @@ android {
             buildConfigField("boolean", "USE_FAKE_SEED_VAULT", "false")
             buildConfigField("boolean", "DEMO_MODE", "false")
             val heliusMain = System.getenv("HELIUS_MAINNET_KEY") ?: ""
-            buildConfigField("String", "RPC_PRIMARY", "\"https://rpc.helius.xyz/?api-key=${'$'}heliusMain\"")
+            buildConfigField("String", "RPC_PRIMARY", "\"https://rpc.helius.xyz/?api-key=$heliusMain\"")
             buildConfigField("String", "RPC_SECONDARY", "\"https://api.mainnet-beta.solana.com\"")
             buildConfigField("String", "RPC_TERTIARY", "\"https://api.quicknode.com\"")
             buildConfigField("String", "BUILD_FLAVOR", "\"prod\"")
@@ -163,9 +163,8 @@ dependencies {
     // Google Services
     implementation(libs.google.services.auth)
     
-    // Solana
+        // Solana
     implementation(libs.solana.seed.vault)
-    implementation("com.solanamobile:mobile-wallet-adapter-clientlib:2.0.8")
     implementation("com.solanamobile:mobile-wallet-adapter-common:2.0.8")
     implementation("com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.8")
     implementation(libs.solana.kmp)
@@ -179,6 +178,13 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
         testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+        testImplementation("org.mockito:mockito-core:5.18.0")
+        testImplementation("org.mockito.kotlin:mockito-kotlin:6.0.0")
+        // Compose UI testing in local unit tests (via Robolectric)
+        testImplementation(platform(libs.androidx.compose.bom))
+        testImplementation(libs.androidx.ui.test.junit4)
+        testImplementation("androidx.test:core:1.6.1")
+        testImplementation("org.robolectric:robolectric:4.12.2")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
