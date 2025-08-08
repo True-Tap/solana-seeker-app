@@ -53,7 +53,8 @@ class WalletRepository @Inject constructor(
     private val seedVaultWalletConnector: SeedVaultWalletConnector,
     private val transactionMonitor: TransactionMonitor,
     private val authApi: AuthApi,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val outboxRepository: TransactionOutboxRepository
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -576,6 +577,24 @@ class WalletRepository @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                // Network/offline handling: enqueue to outbox
+                if (e is java.io.IOException) {
+                    val pending = PendingTransaction(
+                        id = java.util.UUID.randomUUID().toString(),
+                        toAddress = toAddress,
+                        amount = amount,
+                        memo = message,
+                        feePreset = feePreset,
+                        createdAt = System.currentTimeMillis()
+                    )
+                    try {
+                        outboxRepository.enqueue(pending)
+                        _authState.value = AuthState.Message("Queued—will send when online")
+                        return Result.failure(e)
+                    } catch (_: Exception) {
+                        return Result.failure(e)
+                    }
+                }
                 Result.failure(e)
             }
         }

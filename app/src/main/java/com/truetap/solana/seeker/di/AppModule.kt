@@ -75,7 +75,8 @@ object AppModule {
         transactionBuilder: TransactionBuilder,
         transactionMonitor: TransactionMonitor,
         authApi: com.truetap.solana.seeker.auth.AuthApi,
-        secureStorage: com.truetap.solana.seeker.security.SecureStorage
+        secureStorage: com.truetap.solana.seeker.security.SecureStorage,
+        outboxRepository: TransactionOutboxRepository
     ): WalletRepository {
         return WalletRepository(
             context,
@@ -88,7 +89,8 @@ object AppModule {
             seedVaultWalletConnector,
             transactionMonitor,
             authApi,
-            secureStorage
+            secureStorage,
+            outboxRepository
         )
     }
 
