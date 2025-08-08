@@ -20,10 +20,7 @@ class UnifiedSolanaRpcServiceTest {
         server2 = MockWebServer()
         server1.start()
         server2.start()
-        // Override BuildConfig endpoints via reflection for tests
-        setBuildField("RPC_PRIMARY", server1.url("/").toString())
-        setBuildField("RPC_SECONDARY", server2.url("/").toString())
-        setBuildField("RPC_TERTIARY", "")
+        // Endpoints will be injected into the service under test
     }
 
     @After
@@ -37,8 +34,12 @@ class UnifiedSolanaRpcServiceTest {
         val body = JSONObject().apply { put("result", "ok") }.toString()
         server1.enqueue(MockResponse().setResponseCode(200).setBody(body))
 
-        val svc = UnifiedSolanaRpcService()
-        val res = svc.call("getHealth", JSONArray())
+        val svc = UnifiedSolanaRpcService(
+            primaryEndpoint = server1.url("/").toString(),
+            secondaryEndpoint = server2.url("/").toString(),
+            tertiaryEndpoint = ""
+        )
+        val res = svc.call("getHealth", JSONArray(), requestId = 1)
         assertEquals("ok", res.optString("result"))
     }
 
@@ -48,17 +49,16 @@ class UnifiedSolanaRpcServiceTest {
         val body = JSONObject().apply { put("result", "ok2") }.toString()
         server2.enqueue(MockResponse().setResponseCode(200).setBody(body))
 
-        val svc = UnifiedSolanaRpcService()
-        val res = svc.call("getHealth", JSONArray())
+        val svc = UnifiedSolanaRpcService(
+            primaryEndpoint = server1.url("/").toString(),
+            secondaryEndpoint = server2.url("/").toString(),
+            tertiaryEndpoint = ""
+        )
+        val res = svc.call("getHealth", JSONArray(), requestId = 1)
         assertEquals("ok2", res.optString("result"))
     }
 
-    private fun setBuildField(name: String, value: String) {
-        val clazz = com.truetap.solana.seeker.BuildConfig::class.java
-        val field = clazz.getDeclaredField(name)
-        field.isAccessible = true
-        field.set(null, value)
-    }
+    // No reflection needed after constructor injection change
 }
 
 

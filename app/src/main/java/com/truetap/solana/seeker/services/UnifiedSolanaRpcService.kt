@@ -17,7 +17,11 @@ import javax.inject.Singleton
  * Unified Solana RPC client with failover and backoff using OkHttp
  */
 @Singleton
-open class UnifiedSolanaRpcService @Inject constructor() {
+open class UnifiedSolanaRpcService @Inject constructor(
+    private val primaryEndpoint: String = com.truetap.solana.seeker.BuildConfig.RPC_PRIMARY,
+    private val secondaryEndpoint: String = com.truetap.solana.seeker.BuildConfig.RPC_SECONDARY,
+    private val tertiaryEndpoint: String = com.truetap.solana.seeker.BuildConfig.RPC_TERTIARY
+) {
     private val jsonMedia = "application/json".toMediaType()
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -25,10 +29,6 @@ open class UnifiedSolanaRpcService @Inject constructor() {
         .writeTimeout(30, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
-
-    private val primary = com.truetap.solana.seeker.BuildConfig.RPC_PRIMARY
-    private val secondary = com.truetap.solana.seeker.BuildConfig.RPC_SECONDARY
-    private val tertiary = com.truetap.solana.seeker.BuildConfig.RPC_TERTIARY
 
     open suspend fun call(method: String, params: Any, requestId: Int = 1): JSONObject =
         withContext(Dispatchers.IO) {
@@ -40,7 +40,8 @@ open class UnifiedSolanaRpcService @Inject constructor() {
             }.toString().toRequestBody(jsonMedia)
 
             var lastError: Exception? = null
-            val endpoints = listOf(primary, secondary, tertiary).filter { it.isNotBlank() }
+            val endpoints = listOf(primaryEndpoint, secondaryEndpoint, tertiaryEndpoint)
+                .filter { it.isNotBlank() }
             for (endpoint in endpoints) {
                 var attempt = 0
                 while (attempt < 3) {

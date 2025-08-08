@@ -193,6 +193,8 @@ dependencies {
         testImplementation(libs.androidx.ui.test.junit4)
         testImplementation("androidx.test:core:1.6.1")
         testImplementation("org.robolectric:robolectric:4.12.2")
+        // Real org.json implementation for local unit tests (avoid "not mocked" errors)
+        testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
