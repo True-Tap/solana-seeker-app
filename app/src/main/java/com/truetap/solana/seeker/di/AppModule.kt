@@ -14,6 +14,8 @@ import com.truetap.solana.seeker.services.MobileWalletAdapterService
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import com.truetap.solana.seeker.services.TransactionBuilder
+import com.truetap.solana.seeker.auth.AuthApi
+import com.truetap.solana.seeker.auth.HttpAuthApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -120,4 +122,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideTransactionBuilder(): TransactionBuilder = TransactionBuilder()
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(): AuthApi = HttpAuthApi()
 } 

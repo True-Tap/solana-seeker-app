@@ -18,12 +18,23 @@ class TransactionBuilder @Inject constructor() {
         fromPublicKeyBase58: String,
         toPublicKeyBase58: String,
         lamports: Long,
-        recentBlockhash: String
+        recentBlockhash: String,
+        priorityFeeMicrolamports: Long? = null,
+        computeUnitLimit: Int? = 200_000
     ): ByteArray {
         val fromKey = SolanaPublicKey(Base58.decode(fromPublicKeyBase58))
         val toKey = SolanaPublicKey(Base58.decode(toPublicKeyBase58))
 
-        val message = Message.Builder()
+        val builder = Message.Builder()
+        // Optional compute budget instructions for reliability under congestion
+        if (computeUnitLimit != null) {
+            builder.addInstruction(com.solana.programs.ComputeBudgetProgram.setComputeUnitLimit(computeUnitLimit))
+        }
+        if (priorityFeeMicrolamports != null && priorityFeeMicrolamports > 0) {
+            builder.addInstruction(com.solana.programs.ComputeBudgetProgram.setComputeUnitPrice(priorityFeeMicrolamports))
+        }
+
+        val message = builder
             .addInstruction(SystemProgram.transfer(fromKey, toKey, lamports))
             .setRecentBlockhash(recentBlockhash)
             .build()
