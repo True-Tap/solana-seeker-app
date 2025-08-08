@@ -8,7 +8,8 @@ import com.truetap.solana.seeker.repositories.ContactsRepository
 import com.truetap.solana.seeker.repositories.WalletRepository
 import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
-import com.truetap.solana.seeker.services.SolanaRpcService
+import com.truetap.solana.seeker.services.UnifiedSolanaRpcService
+import com.truetap.solana.seeker.services.TransactionMonitor
 import com.truetap.solana.seeker.services.MobileWalletAdapterService
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
@@ -43,9 +44,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSolanaRpcService(): SolanaRpcService {
-        return SolanaRpcService()
-    }
+    fun provideUnifiedSolanaRpcService(): UnifiedSolanaRpcService = UnifiedSolanaRpcService()
+
+    @Provides
+    @Singleton
+    fun provideTransactionMonitor(rpc: UnifiedSolanaRpcService): TransactionMonitor = TransactionMonitor(rpc)
 
     @Provides
     @Singleton
@@ -62,11 +65,12 @@ object AppModule {
         @ApplicationContext context: Context,
         seedVaultService: SeedVaultService,
         solanaService: SolanaService,
-        solanaRpcService: SolanaRpcService,
+        solanaRpcService: UnifiedSolanaRpcService,
         mockData: com.truetap.solana.seeker.data.MockData,
         mwaWalletConnector: MwaWalletConnector,
         seedVaultWalletConnector: SeedVaultWalletConnector,
-        transactionBuilder: TransactionBuilder
+        transactionBuilder: TransactionBuilder,
+        transactionMonitor: TransactionMonitor
     ): WalletRepository {
         return WalletRepository(
             context,
@@ -76,7 +80,8 @@ object AppModule {
             transactionBuilder,
             mockData,
             mwaWalletConnector,
-            seedVaultWalletConnector
+            seedVaultWalletConnector,
+            transactionMonitor
         )
     }
 

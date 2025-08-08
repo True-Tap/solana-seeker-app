@@ -32,6 +32,10 @@ android {
             versionNameSuffix = "-dev"
             
             buildConfigField("boolean", "USE_FAKE_SEED_VAULT", "true")
+            buildConfigField("boolean", "DEMO_MODE", "true")
+            buildConfigField("String", "RPC_PRIMARY", "\"https://api.devnet.solana.com\"")
+            buildConfigField("String", "RPC_SECONDARY", "\"https://rpc.helius.xyz/?api-key=${'$'}{System.getenv(\"HELIUS_DEVNET_KEY\") ?: \"\"}\"")
+            buildConfigField("String", "RPC_TERTIARY", "\"https://api.mainnet-beta.solana.com\"")
             buildConfigField("String", "BUILD_FLAVOR", "\"dev\"")
             
             resValue("string", "app_name", "TrueTap (Dev)")
@@ -42,6 +46,10 @@ android {
             dimension = "environment"
             
             buildConfigField("boolean", "USE_FAKE_SEED_VAULT", "false")
+            buildConfigField("boolean", "DEMO_MODE", "false")
+            buildConfigField("String", "RPC_PRIMARY", "\"https://rpc.helius.xyz/?api-key=${'$'}{System.getenv(\"HELIUS_MAINNET_KEY\") ?: \"\"}\"")
+            buildConfigField("String", "RPC_SECONDARY", "\"https://api.mainnet-beta.solana.com\"")
+            buildConfigField("String", "RPC_TERTIARY", "\"https://api.quicknode.com\"")
             buildConfigField("String", "BUILD_FLAVOR", "\"prod\"")
             
             resValue("string", "app_name", "TrueTap")
@@ -161,6 +169,7 @@ dependencies {
     
     // Testing
     testImplementation(libs.junit)
+        testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
