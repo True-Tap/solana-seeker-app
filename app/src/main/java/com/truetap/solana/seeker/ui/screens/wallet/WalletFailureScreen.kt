@@ -291,25 +291,68 @@ fun WalletFailureScreen(
                     }
                 }
                 
-                // Secondary Button - Try Different Wallet
-                Button(
-                    onClick = onTryDifferentWallet,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White
-                    ),
-                    border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)),
-                    shape = RoundedCornerShape(12.dp)
+                // Secondary row of actions: Install or Use Seed Vault
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "Try Different Wallet",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TrueTapTextPrimary,
-                        letterSpacing = (-0.3).sp
-                    )
+                    // Install Phantom/Solflare if applicable
+                    val installLabel = when (walletId) {
+                        "phantom" -> "Install Phantom"
+                        "solflare" -> "Install Solflare"
+                        else -> "Try Different Wallet"
+                    }
+                    Button(
+                        onClick = {
+                            if (walletId == "phantom" || walletId == "solflare") {
+                                val pkg = if (walletId == "phantom") "app.phantom.mobile" else "com.solflare.mobile"
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$pkg"))
+                                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                if (intent.resolveActivity(context.packageManager) != null) context.startActivity(intent) else {
+                                    val web = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
+                                    web.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(web)
+                                }
+                            } else {
+                                onTryDifferentWallet()
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White
+                        ),
+                        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = installLabel,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                    }
+                    
+                    // Use Seed Vault alternative
+                    Button(
+                        onClick = onTryDifferentWallet,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White
+                        ),
+                        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "Use Seed Vault",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TrueTapTextPrimary
+                        )
+                    }
                 }
                 
                 // Tertiary Button - Get Help

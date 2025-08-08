@@ -217,7 +217,8 @@ fun NavGraph(
                     }
                 },
                 onTryDifferentWallet = { 
-                    navController.navigate(Screen.WalletConnection.route) {
+                    // Route directly to Seed Vault flow as a safe fallback
+                    navController.navigate(Screen.WalletPairing.createRoute("solana")) {
                         popUpTo(Screen.WalletFailure.route) { inclusive = true }
                     }
                 },
