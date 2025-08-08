@@ -54,6 +54,8 @@ class UnifiedSolanaRpcService @Inject constructor() {
                         ).execute()
 
                         val text = resp.body?.string().orEmpty()
+                        // If response is empty or not JSON, throw to allow failover
+                        if (text.isBlank()) throw IllegalStateException("Empty RPC response")
                         return@withContext JSONObject(text)
                     } catch (e: Exception) {
                         lastError = e
@@ -88,6 +90,16 @@ class UnifiedSolanaRpcService @Inject constructor() {
         val response = call("getLatestBlockhash", params)
         val value = response.optJSONObject("result")?.optJSONObject("value")
         return value?.optString("blockhash") ?: throw Exception("Failed to get latest blockhash")
+    }
+
+    /**
+     * Wrapper to fetch SOL balance in SOL (Double).
+     */
+    suspend fun getBalanceSol(publicKey: String): Double {
+        val params = JSONArray().apply { put(publicKey) }
+        val response = call("getBalance", params)
+        val lamports = response.optJSONObject("result")?.optLong("value") ?: 0L
+        return lamports / 1_000_000_000.0
     }
 }
 
