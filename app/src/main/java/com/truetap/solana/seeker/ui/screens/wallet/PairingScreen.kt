@@ -52,6 +52,7 @@ import kotlin.coroutines.resumeWithException
 import com.truetap.solana.seeker.viewmodels.WalletViewModel
 import com.truetap.solana.seeker.utils.SolflareDeepLinkParser
 import kotlinx.coroutines.delay
+import com.truetap.solana.seeker.utils.WalletAppDetector
 
 data class WalletConfig(
     val id: String,
@@ -441,13 +442,8 @@ fun PairingScreen(
     
     val walletConfig = walletConfigs[walletId]
     // Detect installed wallets: Phantom & Solflare
-    val pm = context.packageManager
-    val phantomInstalled = remember {
-        try { pm.getPackageInfo("app.phantom", 0); true } catch (_: Exception) { false }
-    }
-    val solflareInstalled = remember {
-        try { pm.getPackageInfo("io.solflare.wallet", 0); true } catch (_: Exception) { false }
-    }
+    val phantomInstalled = remember { WalletAppDetector.isPhantomInstalled(context) }
+    val solflareInstalled = remember { WalletAppDetector.isSolflareInstalled(context) }
     
     // Animation states
     val infiniteTransition = rememberInfiniteTransition(label = "pairing")
