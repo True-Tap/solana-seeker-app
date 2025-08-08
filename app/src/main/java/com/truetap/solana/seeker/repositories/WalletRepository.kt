@@ -19,6 +19,7 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult as MwaTransact
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import org.bitcoinj.core.Base58
 import androidx.activity.ComponentActivity
+import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -191,6 +192,34 @@ class WalletRepository @Inject constructor(
         } catch (e: Exception) {
             _authState.value = AuthState.Error("Failed to restore session: ${e.message}")
             WalletResult.Error(e, "Failed to restore session")
+        }
+    }
+
+    /**
+     * Deauthorize MWA wallet session (if applicable) to invalidate authToken.
+     */
+    suspend fun deauthorizeIfMwa(activityResultSender: ActivityResultSender?): WalletResult<Unit> {
+        val account = _walletState.value.account
+        if (account?.walletType?.usesMobileWalletAdapter != true) {
+            return WalletResult.Success(Unit)
+        }
+        if (activityResultSender == null) {
+            return WalletResult.Error(IllegalStateException("Missing ActivityResultSender"), "Missing ActivityResultSender")
+        }
+        return try {
+            val adapter = com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter
+            val result: MwaTransactionResult<*> = adapter.disconnect(activityResultSender)
+            when (result) {
+                is MwaTransactionResult.Success<*> -> {
+                    // Clear in-memory token for safety
+                    adapter.authToken = null
+                    WalletResult.Success(Unit)
+                }
+                is MwaTransactionResult.NoWalletFound -> WalletResult.Error(IllegalStateException("No compatible wallet found"), "No compatible wallet found")
+                is MwaTransactionResult.Failure -> WalletResult.Error(result.e, result.e.message ?: "MWA disconnect error")
+            }
+        } catch (e: Exception) {
+            WalletResult.Error(e, e.message ?: "MWA disconnect error")
         }
     }
 
