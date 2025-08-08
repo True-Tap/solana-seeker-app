@@ -82,8 +82,8 @@ class WalletRepository @Inject constructor(
                 walletType = connectionResult.walletType
             )
             
-            // Generate auth token for session
-            val authToken = "${connectionResult.publicKey}_${System.currentTimeMillis()}"
+            // Use wallet-provided auth token when available (MWA wallets)
+            val authToken = connectionResult.authToken ?: "${connectionResult.publicKey}_${System.currentTimeMillis()}"
             
             // Save session data with wallet type
             saveSessionWithWalletType(account, authToken, connectionResult.walletType.id)
@@ -98,6 +98,13 @@ class WalletRepository @Inject constructor(
                 error = null
             )
             
+            // If using MWA, set adapter authToken for seamless subsequent requests
+            if (connectionResult.walletType.usesMobileWalletAdapter && connectionResult.authToken != null) {
+                try {
+                    com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter.authToken = connectionResult.authToken
+                } catch (_: Exception) { }
+            }
+
             // Fetch wallet data in background
             fetchWalletData(account.publicKey)
             
@@ -163,6 +170,12 @@ class WalletRepository @Inject constructor(
                     isLoading = false,
                     error = null
                 )
+                // If using MWA and token exists, set adapter token for session reuse
+                if (walletTypeEnum?.usesMobileWalletAdapter == true && authToken != null) {
+                    try {
+                        com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter.authToken = authToken
+                    } catch (_: Exception) { }
+                }
                 
                 // Fetch wallet data in background
                 fetchWalletData(account.publicKey)
