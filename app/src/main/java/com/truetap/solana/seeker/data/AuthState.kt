@@ -6,6 +6,7 @@ sealed class AuthState {
     object Authenticating : AuthState()
     data class Connected(val account: WalletAccount) : AuthState()
     data class Error(val message: String) : AuthState()
+    data class Message(val message: String) : AuthState()
 }
 
 sealed class WalletResult<out T> {

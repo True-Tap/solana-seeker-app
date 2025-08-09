@@ -8,11 +8,15 @@ import com.truetap.solana.seeker.repositories.ContactsRepository
 import com.truetap.solana.seeker.repositories.WalletRepository
 import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
-import com.truetap.solana.seeker.services.SolanaRpcService
+import com.truetap.solana.seeker.services.UnifiedSolanaRpcService
+import com.truetap.solana.seeker.services.TransactionMonitor
 import com.truetap.solana.seeker.services.MobileWalletAdapterService
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import com.truetap.solana.seeker.services.TransactionBuilder
+import com.truetap.solana.seeker.auth.AuthApi
+import com.truetap.solana.seeker.auth.HttpAuthApi
+import com.truetap.solana.seeker.repositories.TransactionOutboxRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,9 +47,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSolanaRpcService(): SolanaRpcService {
-        return SolanaRpcService()
-    }
+    fun provideUnifiedSolanaRpcService(): UnifiedSolanaRpcService = UnifiedSolanaRpcService()
+
+    @Provides
+    @Singleton
+    fun provideTransactionMonitor(rpc: UnifiedSolanaRpcService): TransactionMonitor = TransactionMonitor(rpc)
 
     @Provides
     @Singleton
@@ -62,11 +68,15 @@ object AppModule {
         @ApplicationContext context: Context,
         seedVaultService: SeedVaultService,
         solanaService: SolanaService,
-        solanaRpcService: SolanaRpcService,
+        solanaRpcService: UnifiedSolanaRpcService,
         mockData: com.truetap.solana.seeker.data.MockData,
         mwaWalletConnector: MwaWalletConnector,
         seedVaultWalletConnector: SeedVaultWalletConnector,
-        transactionBuilder: TransactionBuilder
+        transactionBuilder: TransactionBuilder,
+        transactionMonitor: TransactionMonitor,
+        authApi: com.truetap.solana.seeker.auth.AuthApi,
+        secureStorage: com.truetap.solana.seeker.security.SecureStorage,
+        outboxRepository: TransactionOutboxRepository
     ): WalletRepository {
         return WalletRepository(
             context,
@@ -76,7 +86,11 @@ object AppModule {
             transactionBuilder,
             mockData,
             mwaWalletConnector,
-            seedVaultWalletConnector
+            seedVaultWalletConnector,
+            transactionMonitor,
+            authApi,
+            secureStorage,
+            outboxRepository
         )
     }
 
@@ -115,4 +129,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideTransactionBuilder(): TransactionBuilder = TransactionBuilder()
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(): AuthApi = HttpAuthApi()
+
+    @Provides
+    @Singleton
+    fun provideOutboxRepository(
+        @ApplicationContext context: Context
+    ): TransactionOutboxRepository = TransactionOutboxRepository(context)
 } 

@@ -18,7 +18,9 @@ class TransactionBuilder @Inject constructor() {
         fromPublicKeyBase58: String,
         toPublicKeyBase58: String,
         lamports: Long,
-        recentBlockhash: String
+        recentBlockhash: String,
+        priorityFeeMicrolamports: Long? = null,
+        computeUnitLimit: Int? = 200_000
     ): ByteArray {
         val fromKey = SolanaPublicKey(Base58.decode(fromPublicKeyBase58))
         val toKey = SolanaPublicKey(Base58.decode(toPublicKeyBase58))

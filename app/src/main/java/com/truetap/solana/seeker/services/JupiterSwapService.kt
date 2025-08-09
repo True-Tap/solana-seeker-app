@@ -134,7 +134,7 @@ class JupiterSwapService @Inject constructor(
      */
     suspend fun executeSwap(
         quote: SwapQuote,
-        priorityFee: Long = 0, // Optional priority fee in lamports
+        priorityFee: Long = 0, // Optional priority fee in microLamports per CU or lamports?
         activity: android.app.Activity,
         activityResultLauncher: androidx.activity.result.ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): TransactionResult = withContext(Dispatchers.IO) {
@@ -150,6 +150,7 @@ class JupiterSwapService @Inject constructor(
                 put("userPublicKey", userWallet)
                 put("wrapAndUnwrapSol", true)
                 if (priorityFee > 0) {
+                    // Jupiter accepts prioritizationFeeLamports as total lamports; map microLamports per CU upstream if needed
                     put("prioritizationFeeLamports", priorityFee)
                 }
             }
@@ -420,7 +421,7 @@ class JupiterSwapService @Inject constructor(
             outputAmount = outputAmountDecimal,
             inputToken = CryptoToken.fromSymbol(inputToken)!!,
             outputToken = CryptoToken.fromSymbol(outputToken)!!,
-            rate = outputAmountDecimal.divide(inputAmount, 6, BigDecimal.ROUND_HALF_UP).toDouble(),
+            rate = outputAmountDecimal.divide(inputAmount, 6, java.math.RoundingMode.HALF_UP).toDouble(),
             slippage = slippageBps / 10000.0,
             networkFee = networkFee,
             exchangeFee = platformFeeAmount,

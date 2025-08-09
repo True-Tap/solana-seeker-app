@@ -597,7 +597,7 @@ private fun ScheduledPaymentCard(
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Divider(color = TrueTapTextSecondary.copy(alpha = 0.2f))
+                    HorizontalDivider(color = TrueTapTextSecondary.copy(alpha = 0.2f))
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     Row(

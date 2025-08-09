@@ -66,6 +66,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
                 return@suspendCancellableCoroutine
             }
             
+            @Suppress("UNCHECKED_CAST")
             pendingContinuation = continuation as kotlin.coroutines.Continuation<Any>
             activity.startActivityForResult(authIntent, REQUEST_CODE_AUTHORIZE_SEED)
             
@@ -94,6 +95,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
                 return@suspendCancellableCoroutine
             }
             
+            @Suppress("UNCHECKED_CAST")
             pendingContinuation = continuation as kotlin.coroutines.Continuation<Any>
             activity.startActivityForResult(getPublicKeyIntent, REQUEST_CODE_GET_PUBLIC_KEY)
             
@@ -124,6 +126,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
                 return@suspendCancellableCoroutine
             }
             
+            @Suppress("UNCHECKED_CAST")
             pendingContinuation = continuation as kotlin.coroutines.Continuation<Any>
             activity.startActivityForResult(signTransactionIntent, REQUEST_CODE_SIGN_TRANSACTION)
             
@@ -154,6 +157,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
                 return@suspendCancellableCoroutine
             }
             
+            @Suppress("UNCHECKED_CAST")
             pendingContinuation = continuation as kotlin.coroutines.Continuation<Any>
             activity.startActivityForResult(signMessageIntent, REQUEST_CODE_SIGN_MESSAGE)
             

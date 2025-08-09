@@ -10,6 +10,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -180,7 +183,7 @@ fun ScanningIndicator(
             
             // Rotating radar sweep
             Icon(
-                imageVector = Icons.Default.BluetoothSearching,
+                imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier
@@ -261,7 +264,7 @@ fun ConnectedDeviceSection(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
@@ -460,7 +463,7 @@ fun EmptyStateContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Default.BluetoothSearching,
+            imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
             contentDescription = null,
             tint = TrueTapTextInactive,
             modifier = Modifier.size(64.dp)
@@ -494,7 +497,7 @@ fun EmptyStateContent(
             shape = RoundedCornerShape(12.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.BluetoothSearching,
+                imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp)
             )

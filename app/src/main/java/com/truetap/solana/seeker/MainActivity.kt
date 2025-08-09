@@ -177,9 +177,9 @@ class MainActivity : ComponentActivity() {
         }
     }
     
+    @Deprecated("Replaced by Activity Result API")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        // Forward Seed Vault and related results that rely on request codes
         seedVaultManager.handleActivityResult(requestCode, resultCode, data)
     }
 }
