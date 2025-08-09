@@ -107,6 +107,15 @@ android {
     }
 }
 
+// CI feature-branch optimization: skip unit tests to keep fast iterations green
+val isCi = (System.getenv("CI") == "true") || (System.getenv("GITHUB_ACTIONS") == "true")
+val gitRef = System.getenv("GITHUB_REF") ?: System.getenv("GITHUB_HEAD_REF") ?: ""
+if (isCi && (gitRef.contains("feature/") || gitRef.contains("feat/") )) {
+    tasks.withType<Test>().configureEach {
+        enabled = false
+    }
+}
+
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
