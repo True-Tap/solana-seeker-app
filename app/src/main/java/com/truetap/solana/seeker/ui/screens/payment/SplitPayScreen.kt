@@ -57,6 +57,8 @@ fun SplitPayScreen(
                         onClick = { viewModel.toggleEvenSplit(false) },
                         label = { Text("Custom shares") }
                     )
+                    // Contact picker shortcut (demo)
+                    TextButton(onClick = { viewModel.addDemoContacts() }) { Text("Add contacts") }
                 }
             }
             itemsIndexed(uiState.participants) { _, p ->
