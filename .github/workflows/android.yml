@@ -22,5 +22,7 @@ jobs:
         run: ./gradlew :app:assembleDevDebug -x lint
       - name: Lint (advice only)
         run: ./gradlew :app:lintDevDebug || true
+      - name: Unit tests (local, fast)
+        run: ./gradlew :app:testDevDebugUnitTest || true
 
 
