@@ -1,6 +1,7 @@
 package com.truetap.solana.seeker.services
 
 import com.solana.programs.SystemProgram
+import com.solana.programs.ComputeBudgetProgram
 import com.solana.publickey.SolanaPublicKey
 import com.solana.transaction.Message
 import com.solana.transaction.Transaction
@@ -26,9 +27,19 @@ class TransactionBuilder @Inject constructor() {
         val toKey = SolanaPublicKey(Base58.decode(toPublicKeyBase58))
 
         val message = Message.Builder()
-            // Compute budget instructions disabled until a resolvable artifact is added
-            // .addInstruction(ComputeBudgetProgram.setComputeUnitLimit((computeUnitLimit ?: 300_000)))
-            // .also { if ((priorityFeeMicrolamports ?: 0L) > 0L) it.addInstruction(ComputeBudgetProgram.setComputeUnitPrice(priorityFeeMicrolamports!!)) }
+            .addInstruction(
+                ComputeBudgetProgram.setComputeUnitLimit(
+                    computeUnitLimit ?: 330_000
+                )
+            )
+            .also { builder ->
+                val microLamports = priorityFeeMicrolamports ?: 0L
+                if (microLamports > 0L) {
+                    builder.addInstruction(
+                        ComputeBudgetProgram.setComputeUnitPrice(microLamports)
+                    )
+                }
+            }
             .addInstruction(SystemProgram.transfer(fromKey, toKey, lamports))
             .setRecentBlockhash(recentBlockhash)
             .build()
