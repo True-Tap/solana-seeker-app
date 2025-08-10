@@ -263,6 +263,9 @@ fun DashboardScreen(
                         TextButton(onClick = { navController.navigate(com.truetap.solana.seeker.ui.navigation.Screen.RequestPay.route) }) {
                             Text(text = "Request", fontSize = 14.sp, color = TrueTapTextSecondary)
                         }
+                        TextButton(onClick = { navController.navigate(com.truetap.solana.seeker.ui.navigation.Screen.RequestsInbox.route) }) {
+                            Text(text = "Requests Inbox", fontSize = 14.sp, color = TrueTapTextSecondary)
+                        }
                         TextButton(onClick = { navController.navigate(com.truetap.solana.seeker.ui.navigation.Screen.SolanaPay.route) }) {
                             Text(text = "Solana Pay", fontSize = 14.sp, color = TrueTapTextSecondary)
                         }
