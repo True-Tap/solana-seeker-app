@@ -19,6 +19,7 @@ import com.truetap.solana.seeker.services.FeePreset
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import com.truetap.solana.seeker.services.TransactionBuilder
+import com.truetap.solana.seeker.workers.TransactionWorkScheduler
 import com.solana.mobilewalletadapter.clientlib.TransactionResult as MwaTransactionResult
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import org.bitcoinj.core.Base58
@@ -201,8 +202,8 @@ class WalletRepository @Inject constructor(
                     isLoading = false,
                     error = null
                 )
-                // If using MWA and token exists, set adapter token for session reuse
-                if (walletTypeEnum?.usesMobileWalletAdapter == true && authToken != null) {
+                // If using MWA, set adapter token for session reuse
+                if (walletTypeEnum?.usesMobileWalletAdapter == true) {
                     try {
                         com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter.authToken = authToken
                     } catch (_: Exception) { }
@@ -590,6 +591,8 @@ class WalletRepository @Inject constructor(
                     )
                     try {
                         outboxRepository.enqueue(pending)
+                        // Schedule constrained background send
+                        TransactionWorkScheduler.enqueue(context)
                         _authState.value = AuthState.Message("Queued—will send when online")
                         return Result.failure(e)
                     } catch (_: Exception) {

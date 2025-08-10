@@ -179,7 +179,8 @@ fun DashboardScreen(
                                 Text("Queued—will send when online", fontWeight = FontWeight.Bold, color = TrueTapTextPrimary)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 pending.take(3).forEach { pt ->
-                                    Text("${pt.amount} SOL → ${pt.toAddress.take(6)}...${pt.toAddress.takeLast(4)}", color = TrueTapTextSecondary)
+                                    val retryText = if (pt.retries > 0) "  (retries: ${pt.retries})" else ""
+                                    Text("${pt.amount} SOL → ${pt.toAddress.take(6)}...${pt.toAddress.takeLast(4)}$retryText", color = TrueTapTextSecondary)
                                 }
                                 if (pending.size > 3) {
                                     Text("+${pending.size - 3} more queued", color = TrueTapTextInactive, fontSize = 12.sp)
