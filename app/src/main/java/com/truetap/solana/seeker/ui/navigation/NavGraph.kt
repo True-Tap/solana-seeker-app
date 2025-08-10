@@ -393,6 +393,13 @@ fun NavGraph(
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
+
+        // Request Payment flow
+        composable(Screen.RequestPay.route) {
+            com.truetap.solana.seeker.ui.screens.payment.RequestPayScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
         
         composable(Screen.Swap.route) {
             val onNavigate = rememberMainNavigationHandler(navController)
