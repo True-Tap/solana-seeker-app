@@ -484,6 +484,18 @@ fun NavGraph(
                 onNavigateToOnboarding = { navController.navigate(Screen.Onboarding.route) }
             )
         }
+
+        // Phase 3: Split Pay & Request Payment
+        composable(Screen.SplitPay.route) {
+            com.truetap.solana.seeker.ui.screens.payment.SplitPayScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.RequestPay.route) {
+            com.truetap.solana.seeker.ui.screens.payment.SplitPayScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
         
         composable(Screen.BluetoothDiscovery.route) {
             BluetoothDiscoveryScreen(
