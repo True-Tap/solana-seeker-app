@@ -23,7 +23,9 @@ data class AppSettings(
     val highContrastMode: Boolean = false,
     val largeButtonMode: Boolean = false,
     val audioConfirmations: Boolean = false,
-    val simplifiedUIMode: Boolean = false
+    val simplifiedUIMode: Boolean = false,
+    // Rewards/Boosts opt-in
+    val boostsEnabled: Boolean = false
 )
 
 @Singleton
@@ -55,6 +57,10 @@ class SettingsRepository @Inject constructor() {
     
     fun updateSimplifiedUIMode(enabled: Boolean) {
         _settings.value = _settings.value.copy(simplifiedUIMode = enabled)
+    }
+
+    fun updateBoostsEnabled(enabled: Boolean) {
+        _settings.value = _settings.value.copy(boostsEnabled = enabled)
     }
     
     fun updateLanguage(language: String) {

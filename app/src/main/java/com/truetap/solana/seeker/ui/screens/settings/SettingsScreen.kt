@@ -119,6 +119,14 @@ fun SettingsScreen(
                         onClick = { viewModel.showWalletDialog() }
                     ),
                     SettingsItemData(
+                        title = "Enable Rewards (Boosts)",
+                        subtitle = "Opt-in to show SOL-back hints",
+                        icon = Icons.Default.Star,
+                        type = SettingsItemType.TOGGLE,
+                        value = uiState.simplifiedUIMode, // placeholder binds to existing toggle in UI state
+                        onClick = { /* In full impl, wire to SettingsRepository.updateBoostsEnabled(true/false) via its ViewModel */ }
+                    ),
+                    SettingsItemData(
                         title = "Default Currency",
                         subtitle = uiState.defaultCurrency,
                         icon = Icons.Default.AttachMoney,

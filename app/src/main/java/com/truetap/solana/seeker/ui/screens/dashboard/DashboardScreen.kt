@@ -247,7 +247,14 @@ fun DashboardScreen(
                     ) {
                         val likeCount = uiState.likesByTx[transaction.transactionHash ?: transaction.id] ?: 0
                         val comments = uiState.commentsByTx[transaction.transactionHash ?: transaction.id] ?: emptyList()
-                        Text("❤ $likeCount  💬 ${comments.size}", color = TrueTapTextInactive, fontSize = 12.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            TextButton(onClick = { viewModel.likeTransaction(transaction.transactionHash ?: transaction.id) }) {
+                                Text("❤ $likeCount", color = TrueTapTextSecondary, fontSize = 12.sp)
+                            }
+                            TextButton(onClick = { viewModel.addComment(transaction.transactionHash ?: transaction.id, text = "Nice!") }) {
+                                Text("💬 ${comments.size}", color = TrueTapTextSecondary, fontSize = 12.sp)
+                            }
+                        }
                         viewModel.computeRewardSuggestion(transaction.amount)?.let { hint ->
                             Text(hint, color = TrueTapSuccess, fontSize = 12.sp)
                         }
