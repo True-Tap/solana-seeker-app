@@ -44,6 +44,18 @@ class SplitPayViewModel @Inject constructor(
         recalcSplits()
     }
 
+    fun addDemoContacts(count: Int = 3) {
+        viewModelScope.launch {
+            try {
+                val contacts = walletRepository.getTrueTapContacts().take(count)
+                val added = contacts.map { c ->
+                    SplitParticipant(id = c.id, name = c.name, address = c.address)
+                }
+                setParticipants(added)
+            } catch (_: Exception) { }
+        }
+    }
+
     fun toggleEvenSplit(even: Boolean) {
         _uiState.value = _uiState.value.copy(splitEvenly = even)
         recalcSplits()

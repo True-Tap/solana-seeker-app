@@ -240,6 +240,18 @@ fun DashboardScreen(
                             viewModel.selectTransaction(transaction)
                         }
                     )
+                    // Social / Rewards row (likes, comments count, reward suggestion)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        val likeCount = uiState.likesByTx[transaction.transactionHash ?: transaction.id] ?: 0
+                        val comments = uiState.commentsByTx[transaction.transactionHash ?: transaction.id] ?: emptyList()
+                        Text("❤ $likeCount  💬 ${comments.size}", color = TrueTapTextInactive, fontSize = 12.sp)
+                        viewModel.computeRewardSuggestion(transaction.amount)?.let { hint ->
+                            Text(hint, color = TrueTapSuccess, fontSize = 12.sp)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(Spacing.medium))
                 }
             }
@@ -257,7 +269,8 @@ fun DashboardScreen(
                 onOpenExplorer = { hash ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     viewModel.openExplorer(hash)
-                }
+                },
+                onAddNote = { txId, message, isPrivate -> viewModel.addNote(txId, message, isPrivate) }
             )
         }
         
@@ -603,7 +616,8 @@ private fun TransactionDetailModal(
     transaction: Transaction,
     onDismiss: () -> Unit,
     onCopyHash: (String) -> Unit,
-    onOpenExplorer: (String) -> Unit
+    onOpenExplorer: (String) -> Unit,
+    onAddNote: (txId: String, message: String, isPrivate: Boolean) -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -669,6 +683,14 @@ private fun TransactionDetailModal(
             
             Spacer(modifier = Modifier.height(32.dp))
             
+            // Privacy and scam alerts
+            Text(
+                text = "Private by default — hide from feed. Verify sender before accepting.",
+                fontSize = 12.sp,
+                color = TrueTapTextInactive
+            )
+            Spacer(modifier = Modifier.height(Spacing.medium))
+
             // Details
             TransactionDetailRow(
                 label = "Status",
@@ -706,7 +728,7 @@ private fun TransactionDetailModal(
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Action Buttons
+            // Action Buttons and social interactions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -725,6 +747,23 @@ private fun TransactionDetailModal(
                 ) {
                     Text("Repeat Transaction")
                 }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.medium))
+            Text("Add a note (private by default)", fontSize = 12.sp, color = TrueTapTextSecondary)
+            var note by remember { mutableStateOf("") }
+            OutlinedTextField(value = note, onValueChange = { note = it }, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    val txId = transaction.transactionHash ?: transaction.id
+                    if (note.isNotBlank()) onAddNote(txId, note, true)
+                    note = ""
+                }) { Text("Save Note") }
+                OutlinedButton(onClick = {
+                    val txId = transaction.transactionHash ?: transaction.id
+                    if (note.isNotBlank()) onAddNote(txId, note, false)
+                    note = ""
+                }) { Text("Post Public") }
             }
             
             Spacer(modifier = Modifier.height(20.dp))
