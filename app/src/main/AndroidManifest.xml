@@ -17,6 +17,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Solanaseekerapp">
+        <!-- WorkManager/Hilt default worker factory is provided by Hilt -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

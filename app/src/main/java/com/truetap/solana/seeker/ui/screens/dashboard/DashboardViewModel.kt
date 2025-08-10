@@ -14,6 +14,8 @@ import androidx.lifecycle.ViewModel
 import com.truetap.solana.seeker.BuildConfig
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.truetap.solana.seeker.repositories.TransactionOutboxRepository
+import com.truetap.solana.seeker.repositories.PendingTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,13 +38,15 @@ data class DashboardUiState(
     val tokenBalances: List<TokenBalance> = emptyList(),
     val transactions: List<Transaction> = emptyList(),
     val selectedTransaction: Transaction? = null,
+    val pendingOutbox: List<PendingTransaction> = emptyList(),
     val greeting: String = "",
     val subtitle: String = ""
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val outboxRepository: TransactionOutboxRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -52,6 +56,12 @@ class DashboardViewModel @Inject constructor(
     
     init {
         updateGreeting()
+        // Observe outbox live
+        viewModelScope.launch {
+            outboxRepository.flow.collect { pending ->
+                _uiState.update { it.copy(pendingOutbox = pending) }
+            }
+        }
     }
     
     fun startAnimations() {

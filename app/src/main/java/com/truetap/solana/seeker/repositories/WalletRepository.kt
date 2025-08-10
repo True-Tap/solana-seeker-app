@@ -11,10 +11,15 @@ import com.truetap.solana.seeker.BuildConfig
 import com.truetap.solana.seeker.data.*
 import com.truetap.solana.seeker.services.SeedVaultService
 import com.truetap.solana.seeker.services.SolanaService
-import com.truetap.solana.seeker.services.SolanaRpcService
+import com.truetap.solana.seeker.services.UnifiedSolanaRpcService
+import com.truetap.solana.seeker.services.TransactionMonitor
+import com.truetap.solana.seeker.auth.AuthApi
+import com.truetap.solana.seeker.security.SecureStorage
+import com.truetap.solana.seeker.services.FeePreset
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import com.truetap.solana.seeker.services.TransactionBuilder
+import com.truetap.solana.seeker.workers.TransactionWorkScheduler
 import com.solana.mobilewalletadapter.clientlib.TransactionResult as MwaTransactionResult
 import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient
 import org.bitcoinj.core.Base58
@@ -42,11 +47,15 @@ class WalletRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val seedVaultService: SeedVaultService,
     private val solanaService: SolanaService,
-    private val solanaRpcService: SolanaRpcService,
+    private val solanaRpcService: UnifiedSolanaRpcService,
     private val transactionBuilder: TransactionBuilder,
     private val mockData: MockData,
     private val mwaWalletConnector: MwaWalletConnector,
-    private val seedVaultWalletConnector: SeedVaultWalletConnector
+    private val seedVaultWalletConnector: SeedVaultWalletConnector,
+    private val transactionMonitor: TransactionMonitor,
+    private val authApi: AuthApi,
+    private val secureStorage: SecureStorage,
+    private val outboxRepository: TransactionOutboxRepository
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -118,6 +127,27 @@ class WalletRepository @Inject constructor(
         }
     }
 
+    private suspend fun trackConfirmation(signature: String, message: String?): TransactionResult {
+        var lastStatus = "submitted"
+        var ts = System.currentTimeMillis()
+        transactionMonitor.watch(signature).collect { status ->
+            lastStatus = status.state
+            ts = System.currentTimeMillis()
+        }
+        return TransactionResult(
+            txId = signature,
+            status = lastStatus,
+            message = message,
+            timestamp = ts
+        )
+    }
+
+    // Dev-only fallback for SIWS verification
+    private fun verifySiwsBackend(publicKey: String, message: String, signatureBase64: String): Boolean {
+        // In production, replace with AuthApi.verify(publicKey, message, signature)
+        // For dev, accept non-empty signature and valid message
+        return signatureBase64.isNotBlank() && message.contains("Nonce:")
+    }
     /**
      * Sign an authentication message using the connected wallet
      */
@@ -172,8 +202,8 @@ class WalletRepository @Inject constructor(
                     isLoading = false,
                     error = null
                 )
-                // If using MWA and token exists, set adapter token for session reuse
-                if (walletTypeEnum?.usesMobileWalletAdapter == true && authToken != null) {
+                // If using MWA, set adapter token for session reuse
+                if (walletTypeEnum?.usesMobileWalletAdapter == true) {
                     try {
                         com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter.authToken = authToken
                     } catch (_: Exception) { }
@@ -241,14 +271,36 @@ class WalletRepository @Inject constructor(
         }
         return try {
             val adapter = com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter
-            // Fallback SIWS: sign a domain-specific message using signMessagesDetached
-            val message = "$domain wants you to sign in. $statement"
+            val siws = com.truetap.solana.seeker.auth.SiwsMessage.create(
+                domain = domain,
+                statement = statement,
+                uri = "https://truetap.app",
+                isDevnet = BuildConfig.DEBUG
+            )
+            val messageBytes = siws.toCanonicalString().toByteArray(Charsets.UTF_8)
             val result: MwaTransactionResult<*> = adapter.transact(activityResultSender) {
                 val pkBytes = Base58.decode(account.publicKey)
-                signMessagesDetached(arrayOf(message.toByteArray()), arrayOf(pkBytes))
+                signMessagesDetached(arrayOf(messageBytes), arrayOf(pkBytes))
             }
             when (result) {
-                is MwaTransactionResult.Success<*> -> WalletResult.Success(Unit)
+                is MwaTransactionResult.Success<*> -> {
+                    val sigBytes = (result.payload as? ByteArray)
+                        ?: return WalletResult.Error(IllegalStateException("Invalid signature payload"), "Invalid signature payload")
+                    val token = authApi.verifySiws(
+                        publicKey = account.publicKey,
+                        message = siws.toCanonicalString(),
+                        signatureBase64 = android.util.Base64.encodeToString(sigBytes, android.util.Base64.NO_WRAP)
+                    )
+                    return if (!token.isNullOrBlank()) {
+                        // Persist in secure storage and DataStore for convenience
+                        secureStorage.putString("siws_token", token)
+                        saveSessionWithWalletType(account, token, account.walletType?.id ?: "")
+                        _authState.value = AuthState.Message("Signed in securely—your wallet is ready for Solana!")
+                        WalletResult.Success(Unit)
+                    } else {
+                        WalletResult.Error(IllegalStateException("SIWS verification failed"), "Sign-in verification failed")
+                    }
+                }
                 is MwaTransactionResult.NoWalletFound -> WalletResult.Error(IllegalStateException("No compatible wallet found"), "No compatible wallet found")
                 is MwaTransactionResult.Failure -> WalletResult.Error(result.e, result.e.message ?: "MWA sign-in error")
             }
@@ -407,7 +459,12 @@ class WalletRepository @Inject constructor(
             42.5 + Random.nextDouble(-0.5, 0.5)
         } else {
             val publicKey = _walletState.value.account?.publicKey
-            if (publicKey.isNullOrBlank()) 0.0 else solanaRpcService.getBalance(publicKey)
+            if (publicKey.isNullOrBlank()) 0.0 else {
+                when (val res = solanaService.getBalance(publicKey)) {
+                    is WalletResult.Success -> res.data.solBalance.toDouble()
+                    is WalletResult.Error -> 0.0
+                }
+            }
         }
     }
     
@@ -426,6 +483,16 @@ class WalletRepository @Inject constructor(
         toAddress: String, 
         amount: Double, 
         message: String? = null,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
+    ): Result<TransactionResult> {
+        return sendTransactionWithPreset(toAddress, amount, message, FeePreset.NORMAL, activityResultSender)
+    }
+
+    suspend fun sendTransactionWithPreset(
+        toAddress: String,
+        amount: Double,
+        message: String? = null,
+        feePreset: FeePreset = FeePreset.NORMAL,
         activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender? = null
     ): Result<TransactionResult> {
         return if (isMockMode) {
@@ -460,13 +527,16 @@ class WalletRepository @Inject constructor(
             try {
                 val account = _walletState.value.account ?: return Result.failure(IllegalStateException("No connected wallet"))
                 val lamports = (amount * 1_000_000_000L).toLong()
+                // Always use a fresh recentBlockhash to avoid expiry
                 val blockhash = solanaRpcService.getLatestBlockhash()
                 // Build placeholder serialized transfer (to be replaced with real serialization)
                 val payload = transactionBuilder.buildSystemTransferTransaction(
                     fromPublicKeyBase58 = account.publicKey,
                     toPublicKeyBase58 = toAddress,
                     lamports = lamports,
-                    recentBlockhash = blockhash
+                    recentBlockhash = blockhash,
+                    priorityFeeMicrolamports = feePreset.microLamportsPerCU,
+                    computeUnitLimit = feePreset.computeUnits
                 )
                 if (account.walletType == WalletType.SOLFLARE || account.walletType == WalletType.PHANTOM || account.walletType == WalletType.EXTERNAL) {
                     val sender = activityResultSender ?: return Result.failure(IllegalStateException("Missing ActivityResultSender for MWA"))
@@ -480,14 +550,8 @@ class WalletRepository @Inject constructor(
                             val signatures = (payload as? MobileWalletAdapterClient.SignAndSendTransactionsResult)?.signatures
                             val signatureBase58 = signatures?.firstOrNull()?.let { bytes -> Base58.encode(bytes) }
                             if (signatureBase58 != null) {
-                                Result.success(
-                                    TransactionResult(
-                                        txId = signatureBase58,
-                                        status = "submitted",
-                                        message = message,
-                                        timestamp = System.currentTimeMillis()
-                                    )
-                                )
+                                val tracked = trackConfirmation(signatureBase58, message)
+                                Result.success(tracked)
                             } else {
                                 Result.failure(IllegalStateException("No signature returned from wallet"))
                             }
@@ -508,19 +572,33 @@ class WalletRepository @Inject constructor(
                         is WalletResult.Success -> {
                             val signedBase64 = android.util.Base64.encodeToString(signedPayloadResult.data, android.util.Base64.NO_WRAP)
                             val signature = solanaRpcService.sendTransaction(signedBase64)
-                        Result.success(
-                            TransactionResult(
-                                txId = signature,
-                                status = "submitted",
-                                message = message,
-                                timestamp = System.currentTimeMillis()
-                            )
-                        )
+                            val tracked = trackConfirmation(signature, message)
+                            Result.success(tracked)
                         }
                         is WalletResult.Error -> Result.failure(Exception(signedPayloadResult.message))
                     }
                 }
             } catch (e: Exception) {
+                // Network/offline handling: enqueue to outbox
+                if (e is java.io.IOException) {
+                    val pending = PendingTransaction(
+                        id = java.util.UUID.randomUUID().toString(),
+                        toAddress = toAddress,
+                        amount = amount,
+                        memo = message,
+                        feePreset = feePreset,
+                        createdAt = System.currentTimeMillis()
+                    )
+                    try {
+                        outboxRepository.enqueue(pending)
+                        // Schedule constrained background send
+                        TransactionWorkScheduler.enqueue(context)
+                        _authState.value = AuthState.Message("Queued—will send when online")
+                        return Result.failure(e)
+                    } catch (_: Exception) {
+                        return Result.failure(e)
+                    }
+                }
                 Result.failure(e)
             }
         }

@@ -51,6 +51,7 @@ import com.truetap.solana.seeker.viewmodels.SwapState
 import com.truetap.solana.seeker.domain.model.CryptoToken
 import com.truetap.solana.seeker.data.WalletState
 import com.truetap.solana.seeker.presentation.components.*
+import com.truetap.solana.seeker.services.FeePreset
 import kotlinx.coroutines.delay
 import java.math.BigDecimal
 import android.content.Context
@@ -200,7 +201,7 @@ fun EnhancedSwapScreen(
                 }
             }
             
-            // Route and Speed controls
+            // Route and Speed controls + Fee preset selector
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -219,6 +220,29 @@ fun EnhancedSwapScreen(
                         slippage = swapUiState.slippagePercent,
                         onClick = { showSpeedSelectorModal = true },
                         isRecommended = swapUiState.transactionSpeed == swapUiState.recommendedSpeed
+                    )
+                }
+            }
+
+            // Fee preset selector with tooltip
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    FeePresetSelector(
+                        selected = swapUiState.feePreset,
+                        onSelected = { preset ->
+                            when (preset) {
+                                FeePreset.NORMAL -> swapViewModel.setTransactionSpeed("Normal")
+                                FeePreset.FAST -> swapViewModel.setTransactionSpeed("Fast")
+                                FeePreset.EXPRESS -> swapViewModel.setTransactionSpeed("Express")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Normal (0), Fast (500), Express (5000) microLamports per compute unit. Fees may increase on retry during congestion.",
+                        color = TrueTapTextSecondary,
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -312,6 +336,12 @@ fun EnhancedSwapScreen(
                         }
                     },
                     onShowConfirmation = { swapViewModel.showSwapConfirmation(true) }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Fees may change while queued.",
+                    color = TrueTapTextSecondary,
+                    fontSize = 12.sp
                 )
             }
             

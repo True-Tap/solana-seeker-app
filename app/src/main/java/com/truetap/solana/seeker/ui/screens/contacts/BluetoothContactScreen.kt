@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,7 +101,7 @@ fun BluetoothContactScreen(
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = TrueTapTextPrimary,
                         modifier = Modifier.size(24.dp)
@@ -166,7 +168,7 @@ fun BluetoothContactScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = if (isScanning) Icons.Default.BluetoothSearching else Icons.Default.Bluetooth,
+                                            imageVector = if (isScanning) Icons.AutoMirrored.Filled.BluetoothSearching else Icons.Default.Bluetooth,
                                             contentDescription = "Bluetooth",
                                             tint = Color.White,
                                             modifier = if (isScanning) 
@@ -233,7 +235,7 @@ fun BluetoothContactScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.BluetoothSearching,
+                                    imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
                                     contentDescription = "No devices",
                                     tint = TrueTapTextSecondary,
                                     modifier = Modifier.size(48.dp)

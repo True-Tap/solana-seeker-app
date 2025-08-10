@@ -15,7 +15,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +54,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Calendar
 import kotlinx.coroutines.delay
+import com.truetap.solana.seeker.presentation.components.FeePresetSelector
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -185,7 +188,7 @@ fun SendPaymentScreen(
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = TrueTapTextPrimary
                     )
@@ -252,6 +255,29 @@ fun SendPaymentScreen(
                     message = uiState.memo,
                     onMessageChange = viewModel::updateMemo
                 )
+            }
+
+            // Fee Preset Section
+            item {
+                Column {
+                    Text(
+                        text = "Network speed",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TrueTapTextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FeePresetSelector(
+                        selected = uiState.feePreset,
+                        onSelected = { viewModel.updateFeePreset(it) }
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Normal is free and usually fast—choose Fast if the network is busy.",
+                        fontSize = 12.sp,
+                        color = TrueTapTextSecondary
+                    )
+                }
             }
             
             // Send and Schedule Buttons
@@ -638,7 +664,7 @@ private fun SendAndScheduleButtons(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = Icons.Filled.Send,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )

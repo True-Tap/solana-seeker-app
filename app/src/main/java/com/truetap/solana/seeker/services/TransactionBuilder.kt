@@ -1,6 +1,7 @@
 package com.truetap.solana.seeker.services
 
 import com.solana.programs.SystemProgram
+import com.solana.programs.ComputeBudgetProgram
 import com.solana.publickey.SolanaPublicKey
 import com.solana.transaction.Message
 import com.solana.transaction.Transaction
@@ -18,12 +19,27 @@ class TransactionBuilder @Inject constructor() {
         fromPublicKeyBase58: String,
         toPublicKeyBase58: String,
         lamports: Long,
-        recentBlockhash: String
+        recentBlockhash: String,
+        priorityFeeMicrolamports: Long? = null,
+        computeUnitLimit: Int? = 200_000
     ): ByteArray {
         val fromKey = SolanaPublicKey(Base58.decode(fromPublicKeyBase58))
         val toKey = SolanaPublicKey(Base58.decode(toPublicKeyBase58))
 
         val message = Message.Builder()
+            .addInstruction(
+                ComputeBudgetProgram.setComputeUnitLimit(
+                    computeUnitLimit ?: 330_000
+                )
+            )
+            .also { builder ->
+                val microLamports = priorityFeeMicrolamports ?: 0L
+                if (microLamports > 0L) {
+                    builder.addInstruction(
+                        ComputeBudgetProgram.setComputeUnitPrice(microLamports)
+                    )
+                }
+            }
             .addInstruction(SystemProgram.transfer(fromKey, toKey, lamports))
             .setRecentBlockhash(recentBlockhash)
             .build()

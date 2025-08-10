@@ -2,7 +2,6 @@ package com.truetap.solana.seeker.utils
 
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
 import com.truetap.solana.seeker.data.ConnectionResult
 import com.truetap.solana.seeker.data.WalletType
 import kotlinx.serialization.Serializable
@@ -27,9 +26,7 @@ object SolflareDeepLinkParser {
      */
     fun parseWalletConnectionResponse(uri: Uri): ConnectionResult {
         return try {
-            Log.d(TAG, "Parsing Solflare deep link: $uri")
-            Log.d(TAG, "Full URI: $uri")
-            Log.d(TAG, "URI Query: ${uri.query}")
+            Logx.d(TAG) { "Parsing Solflare deep link" }
             
             // Extract parameters from URI
             val publicKey = uri.getQueryParameter("public_key")
@@ -39,20 +36,14 @@ object SolflareDeepLinkParser {
             val solflarePublicKey = uri.getQueryParameter("solflare_encryption_public_key")
             
             // Log all parameters for debugging
-            Log.d(TAG, "public_key parameter: $publicKey")
-            Log.d(TAG, "data parameter: $encodedData")
-            Log.d(TAG, "error parameter: $errorParam")
-            Log.d(TAG, "phantom_encryption_public_key parameter: $phantomPublicKey")
-            Log.d(TAG, "solflare_encryption_public_key parameter: $solflarePublicKey")
+            Logx.d(TAG) { "public_key=${Logx.redact(publicKey)} error=${Logx.redact(errorParam)}" }
             
             // Log all query parameters
-            uri.queryParameterNames.forEach { paramName ->
-                Log.d(TAG, "Parameter '$paramName': '${uri.getQueryParameter(paramName)}'")
-            }
+            // Avoid logging raw query parameters in release builds
             
             // Check for error response
             if (errorParam != null) {
-                Log.e(TAG, "Solflare returned error: $errorParam")
+                Logx.e(TAG, { "Solflare returned error" })
                 return ConnectionResult.Failure(
                     error = "Solflare connection failed: $errorParam",
                     walletType = WalletType.SOLFLARE
@@ -65,18 +56,17 @@ object SolflareDeepLinkParser {
             
             // If public_key is missing, try to extract from encoded data
             if (extractedPublicKey.isNullOrEmpty() && !encodedData.isNullOrEmpty()) {
-                Log.d(TAG, "public_key missing, attempting to extract from data parameter")
+                Logx.d(TAG) { "public_key missing, attempting to extract from data parameter" }
                 try {
                     val decodedData = Base64.decode(encodedData, Base64.DEFAULT)
                     val dataString = String(decodedData)
-                    Log.d(TAG, "Decoded Solflare data: $dataString")
                     
                     val solflareResponse = json.decodeFromString<SolflareResponse>(dataString)
                     extractedPublicKey = solflareResponse.publicKey
                     extractedAccountLabel = solflareResponse.accountLabel ?: solflareResponse.walletName
-                    Log.d(TAG, "Extracted publicKey from data: $extractedPublicKey")
+                    Logx.d(TAG) { "Extracted publicKey from data: ${Logx.redact(extractedPublicKey)}" }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Failed to extract public key from data: ${e.message}")
+                    Logx.w(TAG) { "Failed to extract public key from data: ${e.message}" }
                 }
             }
             
@@ -87,12 +77,12 @@ object SolflareDeepLinkParser {
                     ?: uri.getQueryParameter("wallet_public_key")
                     ?: uri.getQueryParameter("address")
                     ?: uri.getQueryParameter("account")
-                Log.d(TAG, "Tried alternative parameter names, found: $extractedPublicKey")
+                Logx.d(TAG) { "Tried alternative parameter names" }
             }
             
             // Final validation
             if (extractedPublicKey.isNullOrEmpty()) {
-                Log.e(TAG, "Could not find public key in any expected parameter or data")
+                Logx.e(TAG, { "Could not find public key in any expected parameter or data" })
                 return ConnectionResult.Failure(
                     error = "Invalid response from Solflare: missing public key. Please try connecting again or use a different wallet.",
                     walletType = WalletType.SOLFLARE
@@ -104,14 +94,14 @@ object SolflareDeepLinkParser {
             
             // Validate public key format (basic Solana public key validation)
             if (!isValidSolanaPublicKey(extractedPublicKey)) {
-                Log.e(TAG, "Invalid Solana public key format: $extractedPublicKey")
+                Logx.e(TAG, { "Invalid Solana public key format" })
                 return ConnectionResult.Failure(
                     error = "Invalid public key format received from Solflare: $extractedPublicKey",
                     walletType = WalletType.SOLFLARE
                 )
             }
             
-            Log.d(TAG, "Successfully parsed Solflare connection - publicKey: $extractedPublicKey, label: $finalAccountLabel")
+            Logx.d(TAG) { "Successfully parsed Solflare connection" }
             
             ConnectionResult.Success(
                 publicKey = extractedPublicKey,
@@ -120,7 +110,7 @@ object SolflareDeepLinkParser {
             )
             
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing Solflare deep link: ${e.message}", e)
+            Logx.e(TAG, { "Error parsing Solflare deep link: ${e.message}" }, e)
             ConnectionResult.Failure(
                 error = "Failed to process Solflare response: ${e.message}",
                 exception = e,
