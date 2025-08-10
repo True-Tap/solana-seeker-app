@@ -19,6 +19,7 @@ fun SplitPayScreen(
     viewModel: SplitPayViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showContacts by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -34,9 +35,7 @@ fun SplitPayScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                uiState.info?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
+            item { uiState.info?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
             item {
                 OutlinedTextField(
                     value = uiState.totalAmount,
@@ -58,7 +57,7 @@ fun SplitPayScreen(
                         label = { Text("Custom shares") }
                     )
                     // Contact picker shortcut (demo)
-                    TextButton(onClick = { viewModel.addDemoContacts() }) { Text("Add contacts") }
+                    TextButton(onClick = { viewModel.loadContacts(); showContacts = true }) { Text("Add contacts") }
                 }
             }
             itemsIndexed(uiState.participants) { _, p ->
@@ -91,6 +90,27 @@ fun SplitPayScreen(
                 }
             }
         }
+    }
+    // Contacts modal
+    if (showContacts) {
+        AlertDialog(
+            onDismissRequest = { showContacts = false },
+            confirmButton = {
+                TextButton(onClick = { showContacts = false }) { Text("Done") }
+            },
+            title = { Text("Select Contacts") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    uiState.availableContacts.forEach { c ->
+                        val selected = uiState.participants.any { it.id == c.id }
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Column { Text(c.name); Text("${c.address.take(6)}...${c.address.takeLast(4)}", style = MaterialTheme.typography.bodySmall) }
+                            FilterChip(selected = selected, onClick = { viewModel.toggleContactSelection(c) }, label = { Text(if (selected) "Selected" else "Add") })
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 

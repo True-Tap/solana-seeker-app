@@ -3,6 +3,7 @@ package com.truetap.solana.seeker.ui.screens.payment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.truetap.solana.seeker.repositories.WalletRepository
+import com.truetap.solana.seeker.repositories.TrueTapContact
 import com.truetap.solana.seeker.repositories.TransactionOutboxRepository
 import com.truetap.solana.seeker.services.FeePreset
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +24,7 @@ data class SplitParticipant(
 
 data class SplitPayUiState(
     val participants: List<SplitParticipant> = emptyList(),
+    val availableContacts: List<TrueTapContact> = emptyList(),
     val totalAmount: String = "",
     val splitEvenly: Boolean = true,
     val feePreset: FeePreset = FeePreset.NORMAL,
@@ -42,6 +44,28 @@ class SplitPayViewModel @Inject constructor(
     fun setParticipants(list: List<SplitParticipant>) {
         _uiState.value = _uiState.value.copy(participants = list)
         recalcSplits()
+    }
+
+    fun loadContacts() {
+        viewModelScope.launch {
+            try {
+                val contacts = walletRepository.getTrueTapContacts()
+                _uiState.value = _uiState.value.copy(availableContacts = contacts)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to load contacts")
+            }
+        }
+    }
+
+    fun toggleContactSelection(contact: TrueTapContact) {
+        val current = _uiState.value.participants.toMutableList()
+        val existingIndex = current.indexOfFirst { it.id == contact.id }
+        if (existingIndex >= 0) {
+            current.removeAt(existingIndex)
+        } else {
+            current.add(SplitParticipant(id = contact.id, name = contact.name, address = contact.address))
+        }
+        setParticipants(current)
     }
 
     fun addDemoContacts(count: Int = 3) {
