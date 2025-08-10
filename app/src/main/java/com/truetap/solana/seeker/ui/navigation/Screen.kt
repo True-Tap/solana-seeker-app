@@ -55,6 +55,8 @@ sealed class Screen(val route: String) {
     object TransactionHistory : Screen("transaction_history")
     object NFTs : Screen("nfts")
     object Settings : Screen("settings")
+    object SplitPay : Screen("split_pay")
+    object RequestPay : Screen("request_pay")
     
     // Additional Features
     object BluetoothDiscovery : Screen("bluetooth_discovery")
