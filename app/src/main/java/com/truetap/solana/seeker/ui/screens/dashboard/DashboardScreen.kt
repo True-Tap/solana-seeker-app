@@ -219,6 +219,9 @@ fun DashboardScreen(
                                 color = TrueTapTextSecondary
                             )
                         }
+                    TextButton(onClick = { navController.navigate(com.truetap.solana.seeker.ui.navigation.Screen.SplitPay.route) }) {
+                        Text(text = "Split Pay", fontSize = 14.sp, color = TrueTapTextSecondary)
+                    }
                     }
                     Spacer(modifier = Modifier.height(Spacing.medium))
                 }
