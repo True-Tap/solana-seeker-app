@@ -240,7 +240,7 @@ fun EnhancedSwapScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Normal is free and usually fast—choose Fast if the network is busy",
+                        text = "Normal (0), Fast (500), Express (5000) microLamports per compute unit. Fees may increase on retry during congestion.",
                         color = TrueTapTextSecondary,
                         fontSize = 12.sp
                     )

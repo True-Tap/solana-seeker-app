@@ -26,9 +26,9 @@ class TransactionBuilder @Inject constructor() {
         val toKey = SolanaPublicKey(Base58.decode(toPublicKeyBase58))
 
         val message = Message.Builder()
-            // Compute budget instructions (disabled until artifact available)
-            // .addInstruction(ComputeBudgetProgram.setComputeUnitLimit((computeUnitLimit ?: 300_000) * 11 / 10))
-            // .also { if ((priorityFeeMicrolamports ?: 0L) > 0) it.addInstruction(ComputeBudgetProgram.setComputeUnitPrice(priorityFeeMicrolamports!!)) }
+            // Compute budget instructions disabled until a resolvable artifact is added
+            // .addInstruction(ComputeBudgetProgram.setComputeUnitLimit((computeUnitLimit ?: 300_000)))
+            // .also { if ((priorityFeeMicrolamports ?: 0L) > 0L) it.addInstruction(ComputeBudgetProgram.setComputeUnitPrice(priorityFeeMicrolamports!!)) }
             .addInstruction(SystemProgram.transfer(fromKey, toKey, lamports))
             .setRecentBlockhash(recentBlockhash)
             .build()
