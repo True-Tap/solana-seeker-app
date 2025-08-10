@@ -17,6 +17,7 @@ import com.truetap.solana.seeker.services.TransactionBuilder
 import com.truetap.solana.seeker.auth.AuthApi
 import com.truetap.solana.seeker.auth.HttpAuthApi
 import com.truetap.solana.seeker.repositories.TransactionOutboxRepository
+import com.truetap.solana.seeker.repository.SettingsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -139,4 +140,8 @@ object AppModule {
     fun provideOutboxRepository(
         @ApplicationContext context: Context
     ): TransactionOutboxRepository = TransactionOutboxRepository(context)
+
+    @Provides
+    @Singleton
+    fun provideSettingsRepository(): SettingsRepository = SettingsRepository()
 } 
