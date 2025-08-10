@@ -63,4 +63,5 @@ sealed class Screen(val route: String) {
     object BluetoothPayment : Screen("bluetooth_payment")
     object SeedVault : Screen("seed_vault")
     object NfcPayment : Screen("nfc_payment")
+    object SolanaPay : Screen("solana_pay")
 } 

@@ -528,5 +528,17 @@ fun NavGraph(
             )
         }
 
+        // Merchant checkout via Solana Pay
+        composable(Screen.SolanaPay.route) {
+            com.truetap.solana.seeker.ui.screens.payment.SolanaPayScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onOpenScanner = { /* TODO: integrate scanner */ },
+                onPasteLink = { link ->
+                    // TODO: parse Solana Pay link and route into SendPayment flow
+                    navController.navigate(Screen.SendPayment.route)
+                }
+            )
+        }
+
     }
 } 
