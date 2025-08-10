@@ -48,7 +48,9 @@ data class DashboardUiState(
     val likesByTx: Map<String, Int> = emptyMap(),
     val commentsByTx: Map<String, List<SocialComment>> = emptyMap(),
     val notesByTx: Map<String, SocialNote> = emptyMap(),
-    val defaultPrivate: Boolean = true
+    val defaultPrivate: Boolean = true,
+    val weeklySpendSol: Double = 0.0,
+    val categoryTotals: Map<String, Double> = emptyMap()
 )
 
 @HiltViewModel
@@ -137,7 +139,9 @@ class DashboardViewModel @Inject constructor(
                         walletBalance = 0.0,
                         walletPublicKey = "",
                         tokenBalances = emptyList(),
-                        transactions = emptyList()
+                        transactions = emptyList(),
+                        weeklySpendSol = 0.0,
+                        categoryTotals = emptyMap()
                     )
                 }
                 
@@ -147,6 +151,30 @@ class DashboardViewModel @Inject constructor(
                 // Handle error
                 // Failed to load wallet data
             }
+        }
+    }
+
+    // Naive spending aggregation for dashboard summaries
+    fun computeSpendingSummaries(transactions: List<Transaction>) {
+        val weekAgo = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
+        val recentSends = transactions.filter { (it.timestamp ?: 0) >= weekAgo && it.type == TransactionType.SENT }
+        val weekly = recentSends.sumOf { parseAmount(it.amount) }
+        val cats = recentSends.groupBy { inferCategory(it) }.mapValues { (_, list) -> list.sumOf { parseAmount(it.amount) } }
+        _uiState.update { it.copy(weeklySpendSol = weekly, categoryTotals = cats) }
+    }
+
+    private fun parseAmount(text: String): Double = try {
+        val head = text.replace("+", "").replace("-", "").trim().split(" ").firstOrNull() ?: "0"
+        head.toDouble()
+    } catch (_: Exception) { 0.0 }
+
+    private fun inferCategory(tx: Transaction): String {
+        val note = tx.fee ?: tx.otherParty ?: ""
+        return when {
+            note.contains("food", true) || note.contains("coffee", true) -> "Food"
+            note.contains("ride", true) || note.contains("uber", true) -> "Transport"
+            note.contains("rent", true) || note.contains("bill", true) -> "Housing"
+            else -> "Other"
         }
     }
     
