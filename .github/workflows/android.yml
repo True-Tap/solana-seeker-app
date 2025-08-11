@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 18
+      - name: Set up JDK 18 (Zulu to avoid Adoptium 503s)
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: zulu
           java-version: '18'
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v3
