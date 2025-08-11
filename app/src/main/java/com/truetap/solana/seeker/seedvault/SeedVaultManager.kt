@@ -64,7 +64,7 @@ class SeedVaultManager @Inject constructor(
      */
     suspend fun initializeAndAuthorize(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<Intent>
     ) {
         _isLoading.value = true
         _error.value = null
@@ -126,7 +126,7 @@ class SeedVaultManager @Inject constructor(
      */
     private suspend fun requestSeedAuthorization(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<Intent>
     ) {
         try {
             // Create intent using WalletContractV1
@@ -140,7 +140,7 @@ class SeedVaultManager @Inject constructor(
                 throw Exception("Seed Vault not available on this device")
             }
             
-            activity.startActivityForResult(authIntent, REQUEST_CODE_AUTHORIZE_SEED)
+            activityResultLauncher.launch(authIntent)
             
         } catch (e: Exception) {
             _error.value = "Authorization failed: ${e.message}"
@@ -155,7 +155,7 @@ class SeedVaultManager @Inject constructor(
      */
     suspend fun getPublicKey(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+        activityResultLauncher: ActivityResultLauncher<Intent>,
         accountIndex: Int = 0
     ): String? {
         _isLoading.value = true
@@ -200,7 +200,7 @@ class SeedVaultManager @Inject constructor(
     suspend fun signTransaction(
         transactionBytes: ByteArray,
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<Intent>
     ): ByteArray? {
         _isLoading.value = true
         _error.value = null
@@ -213,15 +213,12 @@ class SeedVaultManager @Inject constructor(
                 putExtra("derivation_path", DEFAULT_DERIVATION_PATH)
             }
             
-            // Check if Seed Vault is available
             val resolveInfo = activity.packageManager.resolveActivity(signTransactionIntent, 0)
             if (resolveInfo == null) {
                 throw Exception("Seed Vault not available on this device")
             }
-            
-            activity.startActivityForResult(signTransactionIntent, REQUEST_CODE_SIGN_TRANSACTION)
-            
-            null // Will be set in handleActivityResult
+            activityResultLauncher.launch(signTransactionIntent)
+            null
         } catch (e: Exception) {
             _error.value = "Signing error: ${e.message}"
             _isLoading.value = false
@@ -238,7 +235,7 @@ class SeedVaultManager @Inject constructor(
     suspend fun signMessage(
         messageBytes: ByteArray,
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<Intent>
     ): ByteArray? {
         _isLoading.value = true
         _error.value = null
@@ -251,15 +248,13 @@ class SeedVaultManager @Inject constructor(
                 putExtra("derivation_path", DEFAULT_DERIVATION_PATH)
             }
             
-            // Check if Seed Vault is available
             val resolveInfo = activity.packageManager.resolveActivity(signMessageIntent, 0)
             if (resolveInfo == null) {
                 throw Exception("Seed Vault not available on this device")
             }
             
-            activity.startActivityForResult(signMessageIntent, REQUEST_CODE_SIGN_TRANSACTION)
-            
-            null // Will be set in handleActivityResult
+            activityResultLauncher.launch(signMessageIntent)
+            null
         } catch (e: Exception) {
             _error.value = "Message signing error: ${e.message}"
             _isLoading.value = false

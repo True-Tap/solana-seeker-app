@@ -664,7 +664,7 @@ private fun SendAndScheduleButtons(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Filled.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
