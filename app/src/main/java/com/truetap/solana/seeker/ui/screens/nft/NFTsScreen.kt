@@ -581,7 +581,7 @@ private fun NFTDetailDialog(
                 TrueTapButton(
                     text = "Send NFT",
                     onClick = onSendNFT,
-                    icon = Icons.Filled.Send,
+                    icon = Icons.AutoMirrored.Filled.Send,
                     modifier = Modifier.weight(1f)
                 )
                 
@@ -589,7 +589,7 @@ private fun NFTDetailDialog(
                     text = "View on Explorer",
                     onClick = { /* Navigate to blockchain explorer */ },
                     style = TrueTapButtonStyle.OUTLINE,
-                    icon = Icons.Filled.OpenInNew,
+                    icon = Icons.AutoMirrored.Filled.OpenInNew,
                     modifier = Modifier.weight(1f)
                 )
             }

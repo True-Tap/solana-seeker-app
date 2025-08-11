@@ -56,7 +56,8 @@ import com.truetap.solana.seeker.ui.screens.nfc.NfcPaymentScreen
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
+    activityResultLauncher: ActivityResultLauncher<android.content.Intent>,
+    activityResultLauncherIntentSender: ActivityResultLauncher<IntentSenderRequest>,
     activityResultSender: ActivityResultSender,
     pendingWalletConnection: android.net.Uri? = null,
     onWalletConnectionHandled: () -> Unit = {},
@@ -164,7 +165,7 @@ fun NavGraph(
                         }
                     },
                     onNavigateBack = { navController.popBackStack() },
-                    activityResultLauncher = activityResultLauncher,
+                    activityResultLauncher = activityResultLauncherIntentSender,
                     activityResultSender = activityResultSender,
                     pendingWalletConnection = pendingWalletConnection,
                     onWalletConnectionHandled = onWalletConnectionHandled
