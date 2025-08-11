@@ -29,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -264,6 +266,9 @@ fun DashboardScreen(
                         TextButton(onClick = { navController.navigate(com.truetap.solana.seeker.ui.navigation.Screen.SolanaPay.route) }) {
                             Text(text = "Solana Pay", fontSize = 14.sp, color = TrueTapTextSecondary)
                         }
+                        TextButton(onClick = { navController.navigate(com.truetap.solana.seeker.ui.navigation.Screen.Recurring.route) }) {
+                            Text(text = "Recurring", fontSize = 14.sp, color = TrueTapTextSecondary)
+                        }
                         // Weekly spend summary
                         Text(
                             text = "Weekly spend: ${String.format("%.3f", uiState.weeklySpendSol)} SOL",
@@ -277,14 +282,22 @@ fun DashboardScreen(
 
                 // Category breakdown
                 item {
-                    if (uiState.categoryTotals.isNotEmpty()) {
+                    if (uiState.categoryTotals.isNotEmpty() || uiState.weeklyByDay.isNotEmpty()) {
                         Card(colors = CardDefaults.cardColors(containerColor = TrueTapContainer)) {
-                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("Spending by category", fontWeight = FontWeight.Bold, color = TrueTapTextPrimary)
-                                uiState.categoryTotals.entries.forEach { (cat, total) ->
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text(cat, color = TrueTapTextSecondary)
-                                        Text("${String.format("%.3f", total)} SOL", color = TrueTapTextSecondary)
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                // Weekly bar chart
+                                if (uiState.weeklyByDay.isNotEmpty()) {
+                                    Text("Weekly spend (last 7 days)", fontWeight = FontWeight.Bold, color = TrueTapTextPrimary)
+                                    WeeklyBarChart(values = uiState.weeklyByDay)
+                                }
+                                // Category list
+                                if (uiState.categoryTotals.isNotEmpty()) {
+                                    Text("Spending by category", fontWeight = FontWeight.Bold, color = TrueTapTextPrimary)
+                                    uiState.categoryTotals.entries.forEach { (cat, total) ->
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text(cat, color = TrueTapTextSecondary)
+                                            Text("${String.format("%.3f", total)} SOL", color = TrueTapTextSecondary)
+                                        }
                                     }
                                 }
                             }
@@ -405,6 +418,42 @@ private fun DashboardHeader(
                 fontSize = 14.sp,
                 color = TrueTapTextSecondary
             )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyBarChart(values: List<Double>) {
+    val maxVal = (values.maxOrNull() ?: 0.0).coerceAtLeast(0.000001)
+    val barColor = TrueTapPrimary
+    val background = TrueTapBackground
+    val labels = listOf("M", "T", "W", "T", "F", "S", "S")
+    Column {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            values.forEach { v ->
+                val fraction = (v / maxVal).toFloat().coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .background(background.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height((48.dp.value * fraction).dp)
+                            .align(Alignment.BottomStart)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(barColor)
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            labels.take(values.size).forEach { l ->
+                Text(l, fontSize = 10.sp, color = TrueTapTextInactive)
+            }
         }
     }
 }
