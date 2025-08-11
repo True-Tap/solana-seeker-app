@@ -533,14 +533,9 @@ fun NavGraph(
             com.truetap.solana.seeker.ui.screens.payment.SolanaPayScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onOpenScanner = { /* integrated in screen via launcher */ },
-                onPasteLink = { link ->
-                    // Minimal Solana Pay link parsing: solana:<address>?amount=..&memo=..
-                    val uri = android.net.Uri.parse(link)
-                    val address = uri.schemeSpecificPart.substringBefore("?").removePrefix("//")
-                    val amount = uri.getQueryParameter("amount")
-                    val memo = uri.getQueryParameter("memo")
+                onConfirm = { recipient, amount, memo ->
                     val route = com.truetap.solana.seeker.ui.navigation.Screen.SendPayment.createRoute(
-                        recipientAddress = address.ifBlank { null },
+                        recipientAddress = recipient,
                         amount = amount,
                         token = null
                     )
