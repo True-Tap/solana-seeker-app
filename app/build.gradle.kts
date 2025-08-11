@@ -176,6 +176,8 @@ dependencies {
     
     // QR Code Generation
     implementation(libs.zxing.core)
+    // QR Scanning (JourneyApps ZXing Android Embedded)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     
     // Google Services
     implementation(libs.google.services.auth)

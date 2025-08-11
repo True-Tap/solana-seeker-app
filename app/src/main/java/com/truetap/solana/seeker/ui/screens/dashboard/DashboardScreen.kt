@@ -107,6 +107,11 @@ fun DashboardScreen(
         delay(600)
         viewModel.loadWalletData()
     }
+
+    // Recompute spending summaries when transactions change
+    LaunchedEffect(uiState.transactions) {
+        viewModel.computeSpendingSummaries(uiState.transactions)
+    }
     
     Box(
         modifier = Modifier
@@ -169,6 +174,36 @@ fun DashboardScreen(
                     )
                     Spacer(modifier = Modifier.height(Spacing.large))
                 }
+
+                // Favorites strip (quick send)
+                item {
+                    val favorites = walletViewModel.trueTapContacts.collectAsState().value.take(5)
+                    if (favorites.isNotEmpty()) {
+                        Card(colors = CardDefaults.cardColors(containerColor = TrueTapContainer)) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text("Quick send to favorites", fontWeight = FontWeight.Bold, color = TrueTapTextPrimary)
+                                Spacer(Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    favorites.forEach { c ->
+                                        Button(onClick = {
+                                            val route = com.truetap.solana.seeker.ui.navigation.Screen.SendPayment.createRoute(
+                                                recipientAddress = c.address,
+                                                amount = null,
+                                                token = null
+                                            )
+                                            navController.navigate(route)
+                                        }, colors = ButtonDefaults.buttonColors(containerColor = TrueTapPrimary.copy(alpha = 0.1f), contentColor = TrueTapPrimary)) {
+                                            Text("${c.name.take(8)} • ${c.address.take(4)}…${c.address.takeLast(4)}")
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text("Tip: Quick send to favorites? Select amount on next screen.", fontSize = 12.sp, color = TrueTapTextInactive)
+                            }
+                        }
+                        Spacer(Modifier.height(Spacing.medium))
+                    }
+                }
                 
                 // Pending (Queued) Section (live)
                 item {
@@ -226,9 +261,36 @@ fun DashboardScreen(
                         TextButton(onClick = { navController.navigate(com.truetap.solana.seeker.ui.navigation.Screen.RequestPay.route) }) {
                             Text(text = "Request", fontSize = 14.sp, color = TrueTapTextSecondary)
                         }
+                        TextButton(onClick = { navController.navigate(com.truetap.solana.seeker.ui.navigation.Screen.SolanaPay.route) }) {
+                            Text(text = "Solana Pay", fontSize = 14.sp, color = TrueTapTextSecondary)
+                        }
+                        // Weekly spend summary
+                        Text(
+                            text = "Weekly spend: ${String.format("%.3f", uiState.weeklySpendSol)} SOL",
+                            fontSize = 12.sp,
+                            color = TrueTapTextInactive
+                        )
                     }
                     }
                     Spacer(modifier = Modifier.height(Spacing.medium))
+                }
+
+                // Category breakdown
+                item {
+                    if (uiState.categoryTotals.isNotEmpty()) {
+                        Card(colors = CardDefaults.cardColors(containerColor = TrueTapContainer)) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Spending by category", fontWeight = FontWeight.Bold, color = TrueTapTextPrimary)
+                                uiState.categoryTotals.entries.forEach { (cat, total) ->
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(cat, color = TrueTapTextSecondary)
+                                        Text("${String.format("%.3f", total)} SOL", color = TrueTapTextSecondary)
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(Spacing.medium))
+                    }
                 }
                 
                 // Transaction List
@@ -255,9 +317,7 @@ fun DashboardScreen(
                                 Text("💬 ${comments.size}", color = TrueTapTextSecondary, fontSize = 12.sp)
                             }
                         }
-                        viewModel.computeRewardSuggestion(transaction.amount)?.let { hint ->
-                            Text(hint, color = TrueTapSuccess, fontSize = 12.sp)
-                        }
+                        // Removed monetary boosts display per spec
                     }
                     Spacer(modifier = Modifier.height(Spacing.medium))
                 }
