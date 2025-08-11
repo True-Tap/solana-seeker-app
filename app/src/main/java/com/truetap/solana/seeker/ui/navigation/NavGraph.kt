@@ -528,5 +528,33 @@ fun NavGraph(
             )
         }
 
+        // Merchant checkout via Solana Pay
+        composable(Screen.SolanaPay.route) {
+            com.truetap.solana.seeker.ui.screens.payment.SolanaPayScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onOpenScanner = { /* integrated in screen via launcher */ },
+                onPasteLink = { link ->
+                    // Minimal Solana Pay link parsing: solana:<address>?amount=..&memo=..
+                    val uri = android.net.Uri.parse(link)
+                    val address = uri.schemeSpecificPart.substringBefore("?").removePrefix("//")
+                    val amount = uri.getQueryParameter("amount")
+                    val memo = uri.getQueryParameter("memo")
+                    val route = com.truetap.solana.seeker.ui.navigation.Screen.SendPayment.createRoute(
+                        recipientAddress = address.ifBlank { null },
+                        amount = amount,
+                        token = null
+                    )
+                    navController.navigate(route)
+                }
+            )
+        }
+
+        // Recurring payments
+        composable(Screen.Recurring.route) {
+            com.truetap.solana.seeker.ui.screens.payment.RecurringPaymentScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
     }
 } 
