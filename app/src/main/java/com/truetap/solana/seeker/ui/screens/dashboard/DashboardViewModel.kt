@@ -50,7 +50,8 @@ data class DashboardUiState(
     val notesByTx: Map<String, SocialNote> = emptyMap(),
     val defaultPrivate: Boolean = true,
     val weeklySpendSol: Double = 0.0,
-    val categoryTotals: Map<String, Double> = emptyMap()
+    val categoryTotals: Map<String, Double> = emptyMap(),
+    val weeklyByDay: List<Double> = emptyList()
 )
 
 @HiltViewModel
@@ -141,7 +142,8 @@ class DashboardViewModel @Inject constructor(
                         tokenBalances = emptyList(),
                         transactions = emptyList(),
                         weeklySpendSol = 0.0,
-                        categoryTotals = emptyMap()
+                        categoryTotals = emptyMap(),
+                        weeklyByDay = List(7) { 0.0 }
                     )
                 }
                 
@@ -156,11 +158,25 @@ class DashboardViewModel @Inject constructor(
 
     // Naive spending aggregation for dashboard summaries
     fun computeSpendingSummaries(transactions: List<Transaction>) {
-        val weekAgo = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
+        val now = System.currentTimeMillis()
+        val dayMs = 24L * 60 * 60 * 1000
+        val weekAgo = now - 7L * dayMs
         val recentSends = transactions.filter { (it.timestamp ?: 0) >= weekAgo && it.type == TransactionType.SENT }
         val weekly = recentSends.sumOf { parseAmount(it.amount) }
         val cats = recentSends.groupBy { inferCategory(it) }.mapValues { (_, list) -> list.sumOf { parseAmount(it.amount) } }
-        _uiState.update { it.copy(weeklySpendSol = weekly, categoryTotals = cats) }
+
+        // Build buckets for each of the last 7 days (oldest -> newest)
+        val calendar = Calendar.getInstance()
+        val buckets = MutableList(7) { 0.0 }
+        for (i in 6 downTo 0) {
+            val start = now - (i + 1) * dayMs
+            val end = now - i * dayMs
+            val sum = recentSends.filter { (it.timestamp ?: 0) in (start + 1)..end }
+                .sumOf { parseAmount(it.amount) }
+            buckets[6 - i] = sum
+        }
+
+        _uiState.update { it.copy(weeklySpendSol = weekly, categoryTotals = cats, weeklyByDay = buckets) }
     }
 
     private fun parseAmount(text: String): Double = try {
