@@ -13,11 +13,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up JDK 18
+    - name: Set up JDK 18 (Zulu to avoid Adoptium 503s)
       uses: actions/setup-java@v4
       with:
         java-version: '18'
-        distribution: 'temurin'
+        distribution: 'zulu'
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
