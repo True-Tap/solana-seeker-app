@@ -2,6 +2,7 @@ package com.truetap.solana.seeker.ui.screens
 
 import android.app.Activity
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -42,7 +43,7 @@ import com.truetap.solana.seeker.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeedVaultScreen(
-    activityResultLauncher: ActivityResultLauncher<android.content.Intent>,
+    activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
     modifier: Modifier = Modifier,
     onNavigateToSuccess: (() -> Unit)? = null,
     onNavigateToFailure: ((String, String?) -> Unit)? = null,

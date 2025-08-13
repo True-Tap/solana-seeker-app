@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import com.solanamobile.seedvault.WalletContractV1
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
@@ -50,7 +51,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
     
     override suspend fun requestAuthorization(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<Intent>
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
     ): AuthResult = suspendCancellableCoroutine { continuation ->
         try {
             Log.d(TAG, "Requesting Seed Vault authorization")
@@ -67,7 +68,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
             
             @Suppress("UNCHECKED_CAST")
             pendingContinuation = continuation as kotlin.coroutines.Continuation<Any>
-            activityResultLauncher.launch(authIntent)
+            activity.startActivityForResult(authIntent, REQUEST_CODE_AUTHORIZE_SEED)
             
         } catch (e: Exception) {
             Log.e(TAG, "Authorization request failed", e)
@@ -78,7 +79,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
     override suspend fun getPublicKey(
         activity: Activity,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<Intent>
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
     ): PublicKeyResult = suspendCancellableCoroutine { continuation ->
         try {
             Log.d(TAG, "Requesting public key")
@@ -96,7 +97,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
             
             @Suppress("UNCHECKED_CAST")
             pendingContinuation = continuation as kotlin.coroutines.Continuation<Any>
-            activityResultLauncher.launch(getPublicKeyIntent)
+            activity.startActivityForResult(getPublicKeyIntent, REQUEST_CODE_GET_PUBLIC_KEY)
             
         } catch (e: Exception) {
             Log.e(TAG, "Public key request failed", e)
@@ -108,7 +109,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
         activity: Activity,
         transactionBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<Intent>
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
     ): SigningResult = suspendCancellableCoroutine { continuation ->
         try {
             Log.d(TAG, "Requesting transaction signing")
@@ -127,7 +128,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
             
             @Suppress("UNCHECKED_CAST")
             pendingContinuation = continuation as kotlin.coroutines.Continuation<Any>
-            activityResultLauncher.launch(signTransactionIntent)
+            activity.startActivityForResult(signTransactionIntent, REQUEST_CODE_SIGN_TRANSACTION)
             
         } catch (e: Exception) {
             Log.e(TAG, "Transaction signing request failed", e)
@@ -139,7 +140,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
         activity: Activity,
         messageBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<Intent>
+        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
     ): SigningResult = suspendCancellableCoroutine { continuation ->
         try {
             Log.d(TAG, "Requesting message signing")
@@ -158,7 +159,7 @@ class RealSeedVaultProvider @Inject constructor() : SeedVaultProvider {
             
             @Suppress("UNCHECKED_CAST")
             pendingContinuation = continuation as kotlin.coroutines.Continuation<Any>
-            activityResultLauncher.launch(signMessageIntent)
+            activity.startActivityForResult(signMessageIntent, REQUEST_CODE_SIGN_MESSAGE)
             
         } catch (e: Exception) {
             Log.e(TAG, "Message signing request failed", e)

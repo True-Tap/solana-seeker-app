@@ -603,6 +603,81 @@ class WalletRepository @Inject constructor(
             }
         }
     }
+
+    /**
+     * Sign and send a prebuilt transaction provided as base64 (e.g., Solana Pay transaction-request).
+     * Chooses MWA sign+send when connected to an external wallet, or Seed Vault sign then RPC send.
+     */
+    suspend fun signAndSendPreparedTransaction(
+        transactionBase64: String,
+        message: String? = null,
+        activity: androidx.activity.ComponentActivity,
+        activityResultLauncher: androidx.activity.result.ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>,
+        activityResultSender: com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+    ): Result<TransactionResult> {
+        return try {
+            val account = _walletState.value.account
+                ?: return Result.failure(IllegalStateException("No connected wallet"))
+            val txBytes = android.util.Base64.decode(transactionBase64, android.util.Base64.DEFAULT)
+
+            if (account.walletType?.usesMobileWalletAdapter == true) {
+                val adapter = com.truetap.solana.seeker.services.MobileWalletAdapterServiceHelper.adapter
+                val mwaResult: MwaTransactionResult<*> = adapter.transact(activityResultSender) {
+                    signAndSendTransactions(arrayOf(txBytes))
+                }
+                when (mwaResult) {
+                    is MwaTransactionResult.Success<*> -> {
+                        val payload = (mwaResult as MwaTransactionResult.Success<*>).payload
+                        val signatures = (payload as? com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.SignAndSendTransactionsResult)?.signatures
+                        val signatureBase58 = signatures?.firstOrNull()?.let { bytes -> org.bitcoinj.core.Base58.encode(bytes) }
+                        if (signatureBase58 != null) {
+                            val tracked = trackConfirmation(signatureBase58, message)
+                            Result.success(tracked)
+                        } else {
+                            Result.failure(IllegalStateException("No signature returned from wallet"))
+                        }
+                    }
+                    is MwaTransactionResult.NoWalletFound -> Result.failure(IllegalStateException("No compatible wallet found"))
+                    is MwaTransactionResult.Failure -> Result.failure(mwaResult.e)
+                }
+            } else {
+                val signedResult = seedVaultWalletConnector.signTransaction(
+                    com.truetap.solana.seeker.data.SignTransactionParams(
+                        transaction = txBytes,
+                        activity = activity,
+                        activityResultLauncher = activityResultLauncher,
+                        activityResultSender = null
+                    )
+                )
+                when (signedResult) {
+                    is WalletResult.Success -> {
+                        val signedBase64 = android.util.Base64.encodeToString(signedResult.data, android.util.Base64.NO_WRAP)
+                        val signature = solanaRpcService.sendTransaction(signedBase64)
+                        val tracked = trackConfirmation(signature, message)
+                        Result.success(tracked)
+                    }
+                    is WalletResult.Error -> Result.failure(Exception(signedResult.message))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Lightweight recipient risk assessment for P2P payments.
+     * Returns a short warning string if we detect elevated risk, otherwise null.
+     */
+    suspend fun assessRecipientRisk(recipientAddress: String): String? {
+        return try {
+            val balance = solanaRpcService.getBalanceSol(recipientAddress)
+            if (balance <= 0.0) {
+                "Heads up: This wallet looks new or empty. Double-check the recipient."
+            } else null
+        } catch (_: Exception) {
+            null
+        }
+    }
     
     /**
      * Generates a deterministic mock transaction ID that resembles a real Solana transaction signature.

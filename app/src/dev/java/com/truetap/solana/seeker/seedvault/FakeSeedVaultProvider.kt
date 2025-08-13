@@ -45,7 +45,7 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
     
     override suspend fun requestAuthorization(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): AuthResult {
         Log.d(TAG, "Simulating authorization request...")
         
@@ -70,7 +70,7 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
     override suspend fun getPublicKey(
         activity: Activity,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): PublicKeyResult {
         Log.d(TAG, "Generating fake public key for derivation path")
         
@@ -99,7 +99,7 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
         activity: Activity,
         transactionBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult {
         Log.d(TAG, "Simulating transaction signing...")
         
@@ -130,7 +130,7 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
         activity: Activity,
         messageBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult {
         Log.d(TAG, "Simulating message signing...")
         
