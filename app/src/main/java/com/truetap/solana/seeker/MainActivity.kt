@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
     
     // Activity Result launchers
     private lateinit var mwaActivityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
-    private lateinit var seedVaultActivityResultLauncher: ActivityResultLauncher<Intent>
+    private lateinit var seedVaultActivityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
 
     // ActivityResultSender for Mobile Wallet Adapter (created early to avoid lifecycle issues)
     private lateinit var activityResultSender: ActivityResultSender
@@ -109,7 +109,7 @@ class MainActivity : ComponentActivity() {
         ) { /* handled by MWA clientlib via ActivityResultSender */ }
 
         seedVaultActivityResultLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
+            ActivityResultContracts.StartIntentSenderForResult()
         ) { result ->
             seedVaultManager.handleActivityResult(0, result.resultCode, result.data)
         }
@@ -189,7 +189,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun SolanaSeekerApp(
     activityResultLauncherIntentSender: ActivityResultLauncher<IntentSenderRequest>,
-    seedVaultActivityResultLauncher: ActivityResultLauncher<Intent>,
+    seedVaultActivityResultLauncher: ActivityResultLauncher<IntentSenderRequest>,
     activityResultSender: ActivityResultSender,
     pendingWalletConnection: Uri?,
     onWalletConnectionHandled: () -> Unit,
@@ -226,7 +226,7 @@ fun SolanaSeekerApp(
         NavGraph(
             navController = navController,
             activityResultLauncher = seedVaultActivityResultLauncher,
-            activityResultLauncherIntentSender = this@MainActivity.mwaActivityResultLauncher,
+            activityResultLauncherIntentSender = activityResultLauncherIntentSender,
             activityResultSender = activityResultSender,
             pendingWalletConnection = pendingWalletConnection,
             onWalletConnectionHandled = onWalletConnectionHandled,

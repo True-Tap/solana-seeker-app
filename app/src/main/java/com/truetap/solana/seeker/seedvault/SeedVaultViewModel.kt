@@ -40,7 +40,7 @@ class SeedVaultViewModel @Inject constructor(
      */
     fun initializeSeedVault(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ) {
         android.util.Log.d("SeedVaultViewModel", "initializeSeedVault called")
         viewModelScope.launch {
@@ -68,7 +68,7 @@ class SeedVaultViewModel @Inject constructor(
      */
     fun fetchPublicKey(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>,
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>,
         accountIndex: Int = 0
     ) {
         viewModelScope.launch {
@@ -83,7 +83,7 @@ class SeedVaultViewModel @Inject constructor(
     fun signTransaction(
         transactionBytes: ByteArray,
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ) {
         viewModelScope.launch {
             val signedTransaction = seedVaultManager.signTransaction(
@@ -104,7 +104,7 @@ class SeedVaultViewModel @Inject constructor(
     fun signMessage(
         message: String,
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ) {
         viewModelScope.launch {
             val messageBytes = message.toByteArray(Charsets.UTF_8)

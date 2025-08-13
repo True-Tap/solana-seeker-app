@@ -24,7 +24,7 @@ interface SeedVaultProvider {
      */
     suspend fun requestAuthorization(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): AuthResult
     
     /**
@@ -33,7 +33,7 @@ interface SeedVaultProvider {
     suspend fun getPublicKey(
         activity: Activity,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): PublicKeyResult
     
     /**
@@ -43,7 +43,7 @@ interface SeedVaultProvider {
         activity: Activity,
         transactionBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult
     
     /**
@@ -53,7 +53,7 @@ interface SeedVaultProvider {
         activity: Activity,
         messageBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<android.content.Intent>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult
     
     /**

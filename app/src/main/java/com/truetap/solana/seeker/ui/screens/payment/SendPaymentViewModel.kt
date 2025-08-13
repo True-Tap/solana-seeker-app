@@ -60,7 +60,8 @@ data class SendPaymentUiState(
     val errorMessage: String? = null,
     val paymentResult: PaymentResult? = null,
     val scheduleResult: ScheduleResult? = null,
-    val feePreset: com.truetap.solana.seeker.services.FeePreset = com.truetap.solana.seeker.services.FeePreset.NORMAL
+    val feePreset: com.truetap.solana.seeker.services.FeePreset = com.truetap.solana.seeker.services.FeePreset.NORMAL,
+    val riskWarning: String? = null
 ) {
     val isFormValid: Boolean
         get() = recipientAddress.isNotBlank() && 
@@ -107,6 +108,11 @@ class SendPaymentViewModel @Inject constructor(
         
         // Validate address format
         validateRecipientAddress(address)
+        // Trigger background risk assessment
+        viewModelScope.launch {
+            val warning = walletRepository.assessRecipientRisk(address)
+            _uiState.update { it.copy(riskWarning = warning) }
+        }
     }
     
     fun updateAmount(amount: String) {

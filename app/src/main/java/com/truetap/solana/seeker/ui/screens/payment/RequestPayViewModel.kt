@@ -3,6 +3,9 @@ package com.truetap.solana.seeker.ui.screens.payment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.truetap.solana.seeker.repositories.TransactionOutboxRepository
+import com.truetap.solana.seeker.repositories.RequestsRepository
+import com.truetap.solana.seeker.repositories.PaymentRequest
+import com.truetap.solana.seeker.repositories.RequestStatus
 import com.truetap.solana.seeker.repositories.WalletRepository
 import com.truetap.solana.seeker.services.FeePreset
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +29,8 @@ data class RequestPayUiState(
 @HiltViewModel
 class RequestPayViewModel @Inject constructor(
     private val outboxRepository: TransactionOutboxRepository,
-    private val walletRepository: WalletRepository
+    private val walletRepository: WalletRepository,
+    private val requestsRepository: RequestsRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(RequestPayUiState())
     val uiState: StateFlow<RequestPayUiState> = _uiState.asStateFlow()
@@ -66,6 +70,19 @@ class RequestPayViewModel @Inject constructor(
                         amount = 0.0,
                         memo = "Request: ${_uiState.value.amount} SOL • ${_uiState.value.memo}",
                         feePreset = _uiState.value.feePreset,
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+                // Add a pending request for demo inbox (from recipient's perspective)
+                val me = walletRepository.walletState.value.account?.publicKey ?: "me"
+                requestsRepository.addRequest(
+                    PaymentRequest(
+                        id = java.util.UUID.randomUUID().toString(),
+                        fromAddress = me,
+                        toAddress = to,
+                        amount = amt,
+                        memo = _uiState.value.memo.takeIf { it.isNotBlank() },
+                        status = RequestStatus.PENDING,
                         createdAt = System.currentTimeMillis()
                     )
                 )

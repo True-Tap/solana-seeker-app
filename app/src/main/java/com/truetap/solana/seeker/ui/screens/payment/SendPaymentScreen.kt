@@ -247,6 +247,14 @@ fun SendPaymentScreen(
                     selectedContact = uiState.selectedContact,
                     onContactPickerOpen = { showContactPicker = true }
                 )
+                if (uiState.riskWarning != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.riskWarning!!,
+                        color = TrueTapError,
+                        fontSize = 12.sp
+                    )
+                }
             }
             
             // Message Section

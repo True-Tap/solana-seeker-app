@@ -27,11 +27,54 @@ class MwaWalletConnector @Inject constructor(
         return mwaService.connectToWallet(params.targetWalletType ?: walletType, sender)
     }
 
-    override suspend fun signMessage(params: SignMessageParams): WalletResult<ByteArray> =
-        WalletResult.Error(IllegalStateException("MWA signMessage not implemented"), "MWA signMessage not implemented")
+    override suspend fun signMessage(params: SignMessageParams): WalletResult<ByteArray> {
+        val sender = params.activityResultSender
+            ?: return WalletResult.Error(IllegalStateException("Missing ActivityResultSender"), "Missing ActivityResultSender")
+        return try {
+            val adapter = MobileWalletAdapterServiceHelper.adapter
+            val result = adapter.transact(sender) {
+                signMessagesDetached(arrayOf(params.message), emptyArray())
+            }
+            when (result) {
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success<*> -> {
+                    val sigBytes = (result.payload as? ByteArray)
+                    if (sigBytes != null) WalletResult.Success(sigBytes)
+                    else WalletResult.Error(IllegalStateException("Invalid signature payload"), "Invalid signature payload")
+                }
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound ->
+                    WalletResult.Error(IllegalStateException("No compatible wallet found"), "No compatible wallet found")
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure ->
+                    WalletResult.Error(result.e, result.e.message ?: "MWA signMessage error")
+            }
+        } catch (e: Exception) {
+            WalletResult.Error(e, e.message ?: "MWA signMessage error")
+        }
+    }
 
-    override suspend fun signTransaction(params: SignTransactionParams): WalletResult<ByteArray> =
-        WalletResult.Error(IllegalStateException("MWA signTransaction not implemented"), "MWA signTransaction not implemented")
+    override suspend fun signTransaction(params: SignTransactionParams): WalletResult<ByteArray> {
+        val sender = params.activityResultSender
+            ?: return WalletResult.Error(IllegalStateException("Missing ActivityResultSender"), "Missing ActivityResultSender")
+        return try {
+            val adapter = MobileWalletAdapterServiceHelper.adapter
+            val result = adapter.transact(sender) {
+                // Use signTransactions (not send) to return signed bytes
+                signTransactions(arrayOf(params.transaction))
+            }
+            when (result) {
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.Success<*> -> {
+                    val signed = (result.payload as? ByteArray)
+                    if (signed != null) WalletResult.Success(signed)
+                    else WalletResult.Error(IllegalStateException("No signed transaction returned"), "No signed transaction returned")
+                }
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.NoWalletFound ->
+                    WalletResult.Error(IllegalStateException("No compatible wallet found"), "No compatible wallet found")
+                is com.solana.mobilewalletadapter.clientlib.TransactionResult.Failure ->
+                    WalletResult.Error(result.e, result.e.message ?: "MWA signTransaction error")
+            }
+        } catch (e: Exception) {
+            WalletResult.Error(e, e.message ?: "MWA signTransaction error")
+        }
+    }
 }
 
 
