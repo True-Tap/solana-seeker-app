@@ -2,7 +2,6 @@ package com.truetap.solana.seeker.seedvault
 
 import android.app.Activity
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.IntentSenderRequest
 
 /**
  * Abstract interface for Seed Vault providers
@@ -25,7 +24,7 @@ interface SeedVaultProvider {
      */
     suspend fun requestAuthorization(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): AuthResult
     
     /**
@@ -34,7 +33,7 @@ interface SeedVaultProvider {
     suspend fun getPublicKey(
         activity: Activity,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): PublicKeyResult
     
     /**
@@ -44,7 +43,7 @@ interface SeedVaultProvider {
         activity: Activity,
         transactionBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult
     
     /**
@@ -54,7 +53,7 @@ interface SeedVaultProvider {
         activity: Activity,
         messageBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult
     
     /**

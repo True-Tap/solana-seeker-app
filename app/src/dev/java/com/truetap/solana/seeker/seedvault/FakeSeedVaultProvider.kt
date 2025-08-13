@@ -3,7 +3,6 @@ package com.truetap.solana.seeker.seedvault
 import android.app.Activity
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.IntentSenderRequest
 import kotlinx.coroutines.delay
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -46,7 +45,7 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
     
     override suspend fun requestAuthorization(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): AuthResult {
         Log.d(TAG, "Simulating authorization request...")
         
@@ -71,7 +70,7 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
     override suspend fun getPublicKey(
         activity: Activity,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): PublicKeyResult {
         Log.d(TAG, "Generating fake public key for derivation path")
         
@@ -100,7 +99,7 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
         activity: Activity,
         transactionBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult {
         Log.d(TAG, "Simulating transaction signing...")
         
@@ -131,7 +130,7 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
         activity: Activity,
         messageBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult {
         Log.d(TAG, "Simulating message signing...")
         

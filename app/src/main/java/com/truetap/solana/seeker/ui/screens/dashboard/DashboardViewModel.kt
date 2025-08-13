@@ -285,4 +285,18 @@ class DashboardViewModel @Inject constructor(
         return formatter.format(date)
     }
     
+    // Pending outbox controls
+    fun retryNow(id: String) {
+        viewModelScope.launch {
+            try {
+                com.truetap.solana.seeker.workers.TransactionWorkScheduler.enqueue(context)
+            } catch (_: Exception) { }
+        }
+    }
+
+    fun cancelPending(id: String) {
+        viewModelScope.launch {
+            try { outboxRepository.remove(id) } catch (_: Exception) { }
+        }
+    }
 }

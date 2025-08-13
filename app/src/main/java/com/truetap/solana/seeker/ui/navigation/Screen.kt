@@ -57,6 +57,7 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object SplitPay : Screen("split_pay")
     object RequestPay : Screen("request_pay")
+    object RequestsInbox : Screen("requests_inbox")
     
     // Additional Features
     object BluetoothDiscovery : Screen("bluetooth_discovery")

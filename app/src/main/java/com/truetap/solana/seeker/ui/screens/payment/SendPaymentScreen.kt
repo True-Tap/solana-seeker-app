@@ -247,6 +247,14 @@ fun SendPaymentScreen(
                     selectedContact = uiState.selectedContact,
                     onContactPickerOpen = { showContactPicker = true }
                 )
+                if (uiState.riskWarning != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.riskWarning!!,
+                        color = TrueTapError,
+                        fontSize = 12.sp
+                    )
+                }
             }
             
             // Message Section
@@ -664,7 +672,7 @@ private fun SendAndScheduleButtons(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Filled.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )

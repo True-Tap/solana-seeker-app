@@ -23,27 +23,27 @@ class FakeSeedVaultProvider @Inject constructor() : SeedVaultProvider {
     
     override suspend fun requestAuthorization(
         activity: Activity,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): AuthResult = AuthResult.NotAvailable
     
     override suspend fun getPublicKey(
         activity: Activity,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): PublicKeyResult = PublicKeyResult.Error("Fake provider not available in production")
     
     override suspend fun signTransaction(
         activity: Activity,
         transactionBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult = SigningResult.Error("Fake provider not available in production")
     
     override suspend fun signMessage(
         activity: Activity,
         messageBytes: ByteArray,
         derivationPath: ByteArray,
-        activityResultLauncher: ActivityResultLauncher<IntentSenderRequest>
+        activityResultLauncher: ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>
     ): SigningResult = SigningResult.Error("Fake provider not available in production")
     
     override fun handleActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {

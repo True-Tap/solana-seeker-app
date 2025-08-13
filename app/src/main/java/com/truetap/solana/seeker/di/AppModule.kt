@@ -14,6 +14,7 @@ import com.truetap.solana.seeker.services.MobileWalletAdapterService
 import com.truetap.solana.seeker.services.MwaWalletConnector
 import com.truetap.solana.seeker.services.SeedVaultWalletConnector
 import com.truetap.solana.seeker.services.TransactionBuilder
+import com.truetap.solana.seeker.repositories.RequestsRepository
 import com.truetap.solana.seeker.auth.AuthApi
 import com.truetap.solana.seeker.auth.HttpAuthApi
 import com.truetap.solana.seeker.repositories.TransactionOutboxRepository
@@ -126,6 +127,12 @@ object AppModule {
     ): SeedVaultWalletConnector {
         return SeedVaultWalletConnector(seedVaultManager)
     }
+
+    @Provides
+    @Singleton
+    fun provideRequestsRepository(
+        @ApplicationContext context: android.content.Context
+    ): RequestsRepository = RequestsRepository(context)
 
     @Provides
     @Singleton
