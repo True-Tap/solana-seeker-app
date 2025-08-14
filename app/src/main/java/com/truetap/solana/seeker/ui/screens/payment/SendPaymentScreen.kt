@@ -259,10 +259,28 @@ fun SendPaymentScreen(
             
             // Message Section
             item {
-                MessageSection(
-                    message = uiState.memo,
-                    onMessageChange = viewModel::updateMemo
-                )
+                Column {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Note (private by default)", color = TrueTapTextSecondary)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("On-chain memo", color = TrueTapTextSecondary)
+                            Switch(checked = uiState.includeOnchainMemo, onCheckedChange = { viewModel.setIncludeOnchainMemo(it) })
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MessageSection(
+                        message = uiState.memo,
+                        onMessageChange = viewModel::updateMemo
+                    )
+                    if (uiState.includeOnchainMemo) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "On-chain memos are public and permanent.",
+                            color = TrueTapTextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
             }
 
             // Fee Preset Section

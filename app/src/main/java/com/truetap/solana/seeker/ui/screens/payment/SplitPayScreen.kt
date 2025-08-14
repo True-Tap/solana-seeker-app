@@ -64,7 +64,27 @@ fun SplitPayScreen(
                 ListItem(
                     headlineContent = { Text(p.name) },
                     supportingContent = { Text("${p.address.take(6)}...${p.address.takeLast(4)}") },
-                    trailingContent = { Text("${p.amount}") }
+                    trailingContent = {
+                        if (uiState.splitEvenly) {
+                            Text("${p.amount}")
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = p.sharePercent.toPlainString(),
+                                    onValueChange = { new ->
+                                        val pct = new.filter { it.isDigit() || it == '.' }
+                                        val updated = uiState.participants.map {
+                                            if (it.id == p.id) it.copy(sharePercent = pct.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO) else it
+                                        }
+                                        viewModel.setParticipants(updated)
+                                    },
+                                    label = { Text("%") },
+                                    modifier = Modifier.width(88.dp)
+                                )
+                                Text("= ${p.amount}")
+                            }
+                        }
+                    }
                 )
                 HorizontalDivider()
             }

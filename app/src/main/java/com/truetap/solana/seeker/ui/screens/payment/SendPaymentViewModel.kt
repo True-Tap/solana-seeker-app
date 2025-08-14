@@ -61,6 +61,7 @@ data class SendPaymentUiState(
     val paymentResult: PaymentResult? = null,
     val scheduleResult: ScheduleResult? = null,
     val feePreset: com.truetap.solana.seeker.services.FeePreset = com.truetap.solana.seeker.services.FeePreset.NORMAL,
+    val includeOnchainMemo: Boolean = false,
     val riskWarning: String? = null
 ) {
     val isFormValid: Boolean
@@ -134,6 +135,10 @@ class SendPaymentViewModel @Inject constructor(
         _uiState.update { it.copy(memo = memo) }
     }
     
+    fun setIncludeOnchainMemo(enabled: Boolean) {
+        _uiState.update { it.copy(includeOnchainMemo = enabled) }
+    }
+    
     fun selectToken(tokenSymbol: String) {
         _uiState.update { currentState ->
             currentState.copy(
@@ -161,7 +166,7 @@ class SendPaymentViewModel @Inject constructor(
                 val result = walletRepository.sendTransactionWithPreset(
                     toAddress = currentState.recipientAddress,
                     amount = amountDouble,
-                    message = currentState.memo.takeIf { it.isNotBlank() },
+                    message = currentState.memo.takeIf { currentState.includeOnchainMemo && it.isNotBlank() },
                     feePreset = currentState.feePreset,
                     activityResultSender = activityResultSender
                 )
