@@ -164,6 +164,7 @@ class SendPaymentViewModel @Inject constructor(
         _uiState.update { it.copy(includeOnchainMemo = enabled) }
     }
     
+    
     fun selectToken(tokenSymbol: String) {
         _uiState.update { currentState ->
             currentState.copy(
@@ -309,9 +310,7 @@ class SendPaymentViewModel @Inject constructor(
         _uiState.update { it.copy(scheduleResult = null) }
     }
 
-    fun setIncludeOnchainMemo(enabled: Boolean) {
-        _uiState.update { it.copy(includeOnchainMemo = enabled) }
-    }
+    
     
     fun runPreflightSimulation() {
         val currentState = _uiState.value
