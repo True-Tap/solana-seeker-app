@@ -62,7 +62,11 @@ data class SendPaymentUiState(
     val scheduleResult: ScheduleResult? = null,
     val feePreset: com.truetap.solana.seeker.services.FeePreset = com.truetap.solana.seeker.services.FeePreset.NORMAL,
     val includeOnchainMemo: Boolean = false,
-    val riskWarning: String? = null
+    val riskWarning: String? = null,
+    val preflightMessage: String? = null,
+    val isPreflighting: Boolean = false,
+    val isFirstPayment: Boolean = false,
+    val trustLevel: TrustLevel = TrustLevel.UNKNOWN
 ) {
     val isFormValid: Boolean
         get() = recipientAddress.isNotBlank() && 
@@ -74,6 +78,10 @@ data class SendPaymentUiState(
     fun getTokenBalance(tokenSymbol: String): Double {
         return availableTokens.find { it.symbol == tokenSymbol }?.balance ?: 0.0
     }
+}
+
+enum class TrustLevel {
+    VERIFIED, KNOWN, UNKNOWN
 }
 
 @HiltViewModel
@@ -98,21 +106,36 @@ class SendPaymentViewModel @Inject constructor(
     // TODO: Add navigation args support later
     
     fun updateRecipientAddress(address: String) {
-        _uiState.update { currentState ->
-            currentState.copy(
-                recipientAddress = address,
-                recipientError = null,
-                // Clear selected contact if address is manually changed
-                selectedContact = if (address != currentState.selectedContact?.walletAddress) null else currentState.selectedContact
-            )
+        _uiState.update { it.copy(recipientAddress = address) }
+        
+        // Clear previous contact selection if address changed
+        if (address != _uiState.value.selectedContact?.walletAddress) {
+            _uiState.update { it.copy(selectedContact = null) }
         }
         
-        // Validate address format
-        validateRecipientAddress(address)
-        // Trigger background risk assessment
+        // Assess recipient risk and trust level
         viewModelScope.launch {
-            val warning = walletRepository.assessRecipientRisk(address)
-            _uiState.update { it.copy(riskWarning = warning) }
+            try {
+                val riskResult = walletRepository.assessRecipientRisk(address)
+                val isFirstPayment = !hasPaymentHistory(address)
+                val trustLevel = assessTrustLevel(address)
+                
+                _uiState.update { 
+                    it.copy(
+                        riskWarning = riskResult,
+                        isFirstPayment = isFirstPayment,
+                        trustLevel = trustLevel
+                    ) 
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        riskWarning = null,
+                        isFirstPayment = false,
+                        trustLevel = TrustLevel.UNKNOWN
+                    ) 
+                }
+            }
         }
     }
     
@@ -371,5 +394,20 @@ class SendPaymentViewModel @Inject constructor(
             
             _uiState.update { it.copy(amountError = error) }
         }
+    }
+
+    private suspend fun hasPaymentHistory(address: String): Boolean {
+        // TODO: Implement actual payment history check from outbox or blockchain
+        // For now, return false to show first-payment warnings
+        return false
+    }
+
+    private suspend fun assessTrustLevel(address: String): TrustLevel {
+        // TODO: Implement actual trust assessment based on:
+        // - Previous successful payments
+        // - Contact verification status
+        // - Blockchain reputation data
+        // For now, return UNKNOWN for demo purposes
+        return TrustLevel.UNKNOWN
     }
 }
