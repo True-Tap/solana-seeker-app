@@ -84,6 +84,22 @@ open class UnifiedSolanaRpcService @Inject constructor(
         throw Exception("Transaction failed: $err")
     }
 
+    open suspend fun simulateTransaction(base64: String): JSONObject {
+        val params = JSONArray().apply {
+            put(base64)
+            put(JSONObject().apply {
+                put("sigVerify", false)
+                put("commitment", "confirmed")
+                put("encoding", "base64")
+            })
+        }
+        val response = call("simulateTransaction", params)
+        val result = response.optJSONObject("result")
+        if (result != null) return result
+        val err = response.optJSONObject("error")?.optString("message") ?: "Unknown error"
+        throw Exception("Simulation failed: $err")
+    }
+
     open suspend fun getLatestBlockhash(): String {
         val params = JSONArray().apply {
             put(JSONObject().apply { put("commitment", "confirmed") })

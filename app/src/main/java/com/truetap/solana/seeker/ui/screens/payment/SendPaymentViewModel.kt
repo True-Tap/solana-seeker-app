@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.truetap.solana.seeker.services.FeePreset
+import org.json.JSONObject
 
 // Data Classes
 data class TokenInfo(
@@ -87,7 +88,8 @@ enum class TrustLevel {
 @HiltViewModel
 class SendPaymentViewModel @Inject constructor(
     private val mockData: MockData,
-    private val walletRepository: WalletRepository
+    private val walletRepository: WalletRepository,
+    private val solanaRpcService: com.truetap.solana.seeker.services.UnifiedSolanaRpcService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SendPaymentUiState())
@@ -305,6 +307,92 @@ class SendPaymentViewModel @Inject constructor(
     
     fun clearScheduleResult() {
         _uiState.update { it.copy(scheduleResult = null) }
+    }
+
+    fun setIncludeOnchainMemo(enabled: Boolean) {
+        _uiState.update { it.copy(includeOnchainMemo = enabled) }
+    }
+    
+    fun runPreflightSimulation() {
+        val currentState = _uiState.value
+        if (currentState.recipientAddress.isBlank() || currentState.amount.isBlank()) {
+            _uiState.update { it.copy(preflightMessage = "Please enter recipient and amount first") }
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isPreflighting = true, preflightMessage = null) }
+                
+                // Build transaction for simulation
+                val amountDouble = currentState.amount.toDoubleOrNull() ?: 0.0
+                val lamports = (amountDouble * 1_000_000_000).toLong()
+                
+                // Get recent blockhash
+                val recentBlockhash = solanaRpcService.getLatestBlockhash()
+                
+                // Build transaction (this would need to be enhanced to use actual TransactionBuilder)
+                // For now, we'll simulate with a basic transaction
+                val transactionBase64 = buildBasicTransactionForSimulation(
+                    fromAddress = walletRepository.walletState.value.account?.publicKey ?: "",
+                    toAddress = currentState.recipientAddress,
+                    lamports = lamports,
+                    recentBlockhash = recentBlockhash,
+                    feePreset = currentState.feePreset
+                )
+                
+                // Run simulation
+                val simulationResult = solanaRpcService.simulateTransaction(transactionBase64)
+                
+                // Parse and display results
+                val preflightMessage = parseSimulationResult(simulationResult)
+                _uiState.update { 
+                    it.copy(
+                        isPreflighting = false,
+                        preflightMessage = preflightMessage
+                    ) 
+                }
+                
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        isPreflighting = false,
+                        preflightMessage = "Simulation failed: ${e.message}"
+                    ) 
+                }
+            }
+        }
+    }
+    
+    private fun buildBasicTransactionForSimulation(
+        fromAddress: String,
+        toAddress: String,
+        lamports: Long,
+        recentBlockhash: String,
+        feePreset: com.truetap.solana.seeker.services.FeePreset
+    ): String {
+        // This is a simplified version - in production, use the actual TransactionBuilder
+        // For now, return a placeholder that will fail simulation but show the flow
+        return "placeholder_transaction_for_simulation"
+    }
+    
+    private fun parseSimulationResult(simulationResult: JSONObject): String {
+        val logs = simulationResult.optJSONArray("logs")?.toString() ?: "No logs"
+        val unitsConsumed = simulationResult.optJSONObject("unitsConsumed")
+        val err = simulationResult.optJSONObject("err")
+        
+        return buildString {
+            if (err != null) {
+                appendLine("❌ Simulation failed:")
+                appendLine("Error: $err")
+            } else {
+                appendLine("✅ Simulation successful")
+                if (unitsConsumed != null) {
+                    appendLine("Compute units: $unitsConsumed")
+                }
+                appendLine("Logs: $logs")
+            }
+        }
     }
     
     private fun loadWalletInfo() {
