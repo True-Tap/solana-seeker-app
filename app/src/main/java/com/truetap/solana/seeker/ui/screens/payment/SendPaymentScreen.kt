@@ -296,11 +296,58 @@ fun SendPaymentScreen(
                         onSelected = { viewModel.updateFeePreset(it) }
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Normal is free and usually fast—choose Fast if the network is busy.",
-                        fontSize = 12.sp,
-                        color = TrueTapTextSecondary
-                    )
+                    
+                    // Preflight Simulation Button
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Preflight check",
+                            fontSize = 12.sp,
+                            color = TrueTapTextSecondary
+                        )
+                        Button(
+                            onClick = { viewModel.runPreflightSimulation() },
+                            enabled = uiState.isFormValid && !uiState.isPreflighting,
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            if (uiState.isPreflighting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.White
+                                )
+                            } else {
+                                Text("Simulate", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    
+                    // Preflight Results
+                    uiState.preflightMessage?.let { message ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (message.startsWith("✅")) 
+                                    Color(0xFF4CAF50).copy(alpha = 0.1f)
+                                else 
+                                    Color(0xFFF44336).copy(alpha = 0.1f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = message,
+                                modifier = Modifier.padding(12.dp),
+                                fontSize = 12.sp,
+                                color = if (message.startsWith("✅")) 
+                                    Color(0xFF4CAF50) 
+                                else 
+                                    Color(0xFFF44336)
+                            )
+                        }
+                    }
                 }
             }
             
