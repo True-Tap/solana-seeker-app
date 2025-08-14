@@ -62,13 +62,13 @@ class RequestPayViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSubmitting = true, error = null)
             try {
-                // For requests, add an outbox placeholder entry with memo; no send
+                // For requests, add a repository entry for inbox + outbox placeholder entry; on-chain memo only if public
                 outboxRepository.enqueue(
                     com.truetap.solana.seeker.repositories.PendingTransaction(
                         id = java.util.UUID.randomUUID().toString(),
                         toAddress = to,
                         amount = 0.0,
-                        memo = "Request: ${_uiState.value.amount} SOL • ${_uiState.value.memo}",
+                        memo = if (_uiState.value.isPrivate) null else "Request: ${_uiState.value.amount} SOL • ${_uiState.value.memo}",
                         feePreset = _uiState.value.feePreset,
                         createdAt = System.currentTimeMillis()
                     )
@@ -81,7 +81,7 @@ class RequestPayViewModel @Inject constructor(
                         fromAddress = me,
                         toAddress = to,
                         amount = amt,
-                        memo = _uiState.value.memo.takeIf { it.isNotBlank() },
+                        memo = _uiState.value.memo.takeIf { _uiState.value.isPrivate && it.isNotBlank() },
                         status = RequestStatus.PENDING,
                         createdAt = System.currentTimeMillis()
                     )

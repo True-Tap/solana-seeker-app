@@ -16,8 +16,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.*
+
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +57,7 @@ import java.time.ZoneId
 import java.util.Calendar
 import kotlinx.coroutines.delay
 import com.truetap.solana.seeker.presentation.components.FeePresetSelector
+import com.truetap.solana.seeker.ui.screens.payment.TrustLevel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,24 +248,37 @@ fun SendPaymentScreen(
                     recipientWallet = uiState.recipientAddress,
                     onRecipientChange = viewModel::updateRecipientAddress,
                     selectedContact = uiState.selectedContact,
-                    onContactPickerOpen = { showContactPicker = true }
+                    onContactPickerOpen = { showContactPicker = true },
+                    isFirstPayment = uiState.isFirstPayment,
+                    trustLevel = uiState.trustLevel,
+                    riskWarning = uiState.riskWarning
                 )
-                if (uiState.riskWarning != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = uiState.riskWarning!!,
-                        color = TrueTapError,
-                        fontSize = 12.sp
-                    )
-                }
             }
             
             // Message Section
             item {
-                MessageSection(
-                    message = uiState.memo,
-                    onMessageChange = viewModel::updateMemo
-                )
+                Column {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text("Note (private by default)", color = TrueTapTextSecondary)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("On-chain memo", color = TrueTapTextSecondary)
+                            Switch(checked = uiState.includeOnchainMemo, onCheckedChange = { viewModel.setIncludeOnchainMemo(it) })
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MessageSection(
+                        message = uiState.memo,
+                        onMessageChange = viewModel::updateMemo
+                    )
+                    if (uiState.includeOnchainMemo) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "On-chain memos are public and permanent.",
+                            color = TrueTapTextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
             }
 
             // Fee Preset Section
@@ -484,7 +500,10 @@ private fun RecipientSection(
     recipientWallet: String,
     onRecipientChange: (String) -> Unit,
     selectedContact: Contact?,
-    onContactPickerOpen: () -> Unit
+    onContactPickerOpen: () -> Unit,
+    isFirstPayment: Boolean,
+    trustLevel: TrustLevel,
+    riskWarning: String?
 ) {
     Column {
         Row(
@@ -580,17 +599,112 @@ private fun RecipientSection(
                     focusedContainerColor = TrueTapContainer,
                     unfocusedContainerColor = TrueTapContainer
                 ),
-                trailingIcon = {
-                    IconButton(onClick = { /* QR Scanner */ }) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
-                            contentDescription = "Scan QR",
-                            tint = TrueTapPrimary
-                        )
-                    }
-                },
                 singleLine = true
             )
+        }
+        
+        // Trust Level Indicator
+        if (trustLevel != TrustLevel.UNKNOWN) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = when (trustLevel) {
+                        TrustLevel.VERIFIED -> TrueTapPrimary.copy(alpha = 0.1f)
+                        TrustLevel.KNOWN -> TrueTapContainer
+                        TrustLevel.UNKNOWN -> Color.Transparent
+                    }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        when (trustLevel) {
+                            TrustLevel.VERIFIED -> Icons.Default.Verified
+                            TrustLevel.KNOWN -> Icons.Default.Info
+                            TrustLevel.UNKNOWN -> Icons.Default.Info
+                        },
+                        contentDescription = null,
+                        tint = when (trustLevel) {
+                            TrustLevel.VERIFIED -> TrueTapPrimary
+                            TrustLevel.KNOWN -> TrueTapTextSecondary
+                            TrustLevel.UNKNOWN -> TrueTapTextSecondary
+                        },
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = when (trustLevel) {
+                            TrustLevel.VERIFIED -> "Verified contact"
+                            TrustLevel.KNOWN -> "Previously paid contact"
+                            TrustLevel.UNKNOWN -> "New address"
+                        },
+                        color = when (trustLevel) {
+                            TrustLevel.VERIFIED -> TrueTapPrimary
+                            TrustLevel.KNOWN -> TrueTapTextSecondary
+                            TrustLevel.UNKNOWN -> TrueTapTextSecondary
+                        },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+        
+        // First Payment Warning
+        if (isFirstPayment) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFF9800).copy(alpha = 0.1f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = Color(0xFFFF9800),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "First payment to this address. Double-check before sending.",
+                        color = Color(0xFFFF9800),
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+        
+        // Risk Warning
+        riskWarning?.let { warning ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = TrueTapError.copy(alpha = 0.1f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = TrueTapError,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = warning,
+                        color = TrueTapError,
+                        fontSize = 12.sp
+                    )
+                }
+            }
         }
     }
 }
