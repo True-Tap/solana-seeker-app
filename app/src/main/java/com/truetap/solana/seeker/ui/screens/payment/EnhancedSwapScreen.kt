@@ -355,20 +355,6 @@ fun EnhancedSwapScreen(
                 }
             }
         }
-        
-        // Bottom Navigation
-        BottomNavigationBar(
-            selectedTab = BottomNavItem.SWAP,
-            onTabSelected = { tab ->
-                when (tab) {
-                    BottomNavItem.HOME -> onNavigateToHome()
-                    BottomNavItem.SWAP -> { /* Already on swap */ }
-                    BottomNavItem.NFTS -> onNavigateToNFTs()
-                    BottomNavItem.CONTACTS -> onNavigateToContacts()
-                    BottomNavItem.SETTINGS -> onNavigateToSettings()
-                }
-            }
-        )
     }
     
     // Modals
@@ -1062,68 +1048,6 @@ private fun RouteSelectorModal(
     // Implementation for route selection
 }
 
-@Composable
-private fun BottomNavigationBar(
-    selectedTab: BottomNavItem,
-    onTabSelected: (BottomNavItem) -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = TrueTapContainer,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            BottomNavItem.values().forEach { item ->
-                BottomNavButton(
-                    item = item,
-                    isSelected = selectedTab == item,
-                    onClick = { onTabSelected(item) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BottomNavButton(
-    item: BottomNavItem,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = when (item) {
-                BottomNavItem.HOME -> Icons.Default.Home
-                BottomNavItem.SWAP -> Icons.Default.SwapHoriz
-                BottomNavItem.NFTS -> Icons.Default.Image
-                BottomNavItem.CONTACTS -> Icons.Default.People
-                BottomNavItem.SETTINGS -> Icons.Default.Settings
-            },
-            contentDescription = item.title,
-            tint = if (isSelected) TrueTapPrimary else TrueTapTextSecondary,
-            modifier = Modifier.size(24.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(4.dp))
-        
-        Text(
-            text = item.title,
-            fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) TrueTapPrimary else TrueTapTextSecondary
-        )
-    }
-}
 
 @Composable
 private fun NetworkStatusCard(
